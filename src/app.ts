@@ -14,7 +14,10 @@ export function createApp() {
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: "1mb" }));
-  app.use(morgan("dev"));
+
+  if (process.env.NODE_ENV !== "test") {
+    app.use(morgan("dev"));
+  }
 
   app.use("/health", healthRouter);
   app.use("/api/asset-types", assetTypesRouter);
@@ -32,4 +35,3 @@ export function createApp() {
 
   return app;
 }
-

@@ -34,6 +34,8 @@
 - [x] Add incomplete records endpoint.
 - [x] Add backend validation before saving system records.
 - [x] Add duplicate system name warnings.
+- [x] Add basic backend API documentation.
+- [x] Add tests for main system record API functions.
 - [ ] Build endpoints for asset types.
 - [ ] Build endpoints for teams and people.
 - [ ] Build endpoints for vendors.

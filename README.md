@@ -35,8 +35,10 @@ Phase two begins the application code with a Node.js, Express, and TypeScript ba
 +-- docs/
 |   +-- database-design.md
 |   +-- category-definitions.md
+|   +-- api.md
 |   +-- database-diagram.md
 |   +-- development-task-list.md
+|   +-- phase-2-deliverables.md
 |   +-- requirements-summary.md
 |   +-- wireframes.md
 +-- scripts/
@@ -102,6 +104,7 @@ Planning deliverables:
 - `docs/wireframes.md`
 - `docs/database-diagram.md`
 - `docs/development-task-list.md`
+- `docs/phase-2-deliverables.md`
 
 See `docs/database-design.md` for the table-by-table design notes.
 
@@ -138,6 +141,7 @@ Initial scripts:
 ```bash
 npm install
 npm run db:init
+npm test
 npm run dev
 ```
 
@@ -163,6 +167,8 @@ Initial endpoints:
 - `DELETE /api/systems/:id`
 - `GET /api/systems/incomplete`
 - `GET /api/systems/dashboard-totals`
+
+See `docs/api.md` for request and response details.
 
 System status values:
 
@@ -236,11 +242,10 @@ Create and update responses use this shape:
 
 1. Install backend dependencies and run the Express API locally.
 2. Add a SQLite migration runner.
-3. Add API tests for system record create, retrieve, update, archive, delete, search, filter, sort, dashboard totals, and incomplete records.
-4. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
-5. Scaffold the React TypeScript frontend.
-6. Add detail pages and review workflows.
-7. Add authentication and role-based access before storing sensitive internal data.
+3. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
+4. Scaffold the React TypeScript frontend.
+5. Add detail pages and review workflows.
+6. Add authentication and role-based access before storing sensitive internal data.
 
 ## Security Notes
 

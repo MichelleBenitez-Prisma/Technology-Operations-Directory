@@ -22,6 +22,11 @@ export function getDatabase() {
   return database;
 }
 
+export function closeDatabase() {
+  database?.close();
+  database = undefined;
+}
+
 export function queryAll<T>(sql: string, params: QueryParams = {}) {
   return getDatabase().prepare(sql).all(params) as T[];
 }
