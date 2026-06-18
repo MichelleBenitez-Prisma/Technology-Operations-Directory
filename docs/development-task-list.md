@@ -25,7 +25,13 @@
 
 ## Phase Three: Core API
 
-- [ ] Build CRUD endpoints for technology assets.
+- [x] Build CRUD endpoints for system records.
+- [x] Add archive and delete behavior for system records.
+- [x] Add system record search.
+- [x] Add system record filters.
+- [x] Add system record sorting.
+- [x] Add dashboard totals endpoint.
+- [x] Add incomplete records endpoint.
 - [ ] Build endpoints for asset types.
 - [ ] Build endpoints for teams and people.
 - [ ] Build endpoints for vendors.

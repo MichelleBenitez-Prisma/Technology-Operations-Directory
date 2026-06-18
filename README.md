@@ -148,9 +148,38 @@ Initial endpoints:
 - `GET /api/system-records`
 - `GET /api/system-records/:id`
 - `POST /api/system-records`
+- `PUT /api/system-records/:id`
+- `PATCH /api/system-records/:id`
+- `POST /api/system-records/:id/archive`
+- `DELETE /api/system-records/:id`
+- `GET /api/system-records/incomplete`
+- `GET /api/system-records/dashboard-totals`
 - `GET /api/systems`
 - `GET /api/systems/:id`
 - `POST /api/systems`
+- `PUT /api/systems/:id`
+- `PATCH /api/systems/:id`
+- `POST /api/systems/:id/archive`
+- `DELETE /api/systems/:id`
+- `GET /api/systems/incomplete`
+- `GET /api/systems/dashboard-totals`
+
+System status values:
+
+- `active`
+- `development`
+- `being_replaced`
+- `maintenance_only`
+- `retired`
+
+Archive is tracked separately with `archived_at`; it is not a system status.
+
+List endpoints support:
+
+- Search: `search`
+- Filters: `categoryCode`, `status`, `businessDepartment`, `vendor`, `technicalOwner`, `hostingLocation`, `incompleteOnly`, `includeArchived`, `archivedOnly`
+- Sorting: `sortBy` and `sortDirection`
+- Pagination: `limit` and `offset`
 
 Initial system record fields:
 
@@ -180,10 +209,10 @@ Initial system record fields:
 
 1. Install backend dependencies and run the Express API locally.
 2. Add a SQLite migration runner.
-3. Build update and delete routes for system records.
+3. Add API tests for system record create, retrieve, update, archive, delete, search, filter, sort, dashboard totals, and incomplete records.
 4. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
 5. Scaffold the React TypeScript frontend.
-6. Add search, filtering, detail pages, and review workflows.
+6. Add detail pages and review workflows.
 7. Add authentication and role-based access before storing sensitive internal data.
 
 ## Security Notes

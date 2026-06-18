@@ -63,6 +63,7 @@ erDiagram
         text monitoring_url
         text support_channel
         text next_review_due_at
+        text archived_at
     }
 
     TEAMS {
@@ -120,4 +121,3 @@ erDiagram
         text next_review_due_at
     }
 ```
-

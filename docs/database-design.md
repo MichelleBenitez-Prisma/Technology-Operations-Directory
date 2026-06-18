@@ -22,7 +22,7 @@ Examples:
 - Production system
 - Retired system
 
-Important fields include name, asset key, type, lifecycle status, criticality, ownership, URLs, review dates, and support links.
+Important fields include name, asset key, type, system status, criticality, ownership, URLs, review dates, archive timestamp, and support links.
 
 ### `asset_types`
 
@@ -43,7 +43,7 @@ Initial values:
 - `retired_system`
 - `other`
 
-Production and retired state can also be represented with `asset_environments.environment_name` and `technology_assets.lifecycle_status`. The separate asset types exist because stakeholders may need to catalog broad production or retired systems that do not fit cleanly into another type.
+Production and retired state can also be represented with `asset_environments.environment_name` and `technology_assets.lifecycle_status`. The separate asset types exist because stakeholders may need to catalog broad production or retired systems that do not fit cleanly into another type. Archived records are tracked separately with `technology_assets.archived_at`.
 
 Final business definitions for these categories are documented in `docs/category-definitions.md`.
 

@@ -34,14 +34,18 @@ The final phase-one category names, definitions, inclusions, and exclusions are 
 
 ## Core Capabilities
 
-- Create, edit, view, and retire technology asset records.
-- Search assets by name, key, description, business purpose, owner, vendor, tag, lifecycle status, criticality, and category.
+- Create, edit, view, archive, delete, and retire technology asset records.
+- Search assets by name, key, description, business purpose, owner, vendor, tag, system status, criticality, and category.
+- Filter and sort system records for operational review.
+- Retrieve dashboard totals by category and status.
+- Identify incomplete records that are missing key ownership or support fields.
 - Record ownership by team, technical owner, and business owner.
 - Track vendor relationships, support links, contract dates, and renewal timing.
 - Track integrations between internal and external systems.
 - Track scheduled processes, including schedules, run locations, notification channels, and runbooks.
 - Track payment services without storing secrets, card numbers, bank account numbers, API keys, or regulated payment data.
-- Track lifecycle status, including planned, active, maintenance, deprecated, retired, and archived.
+- Track system status using consistent options: active, development, being replaced, maintenance only, and retired.
+- Track archived records separately from system status.
 - Track environments, including development, test, staging, production, disaster recovery, and other.
 - Record periodic reviews and next review due dates.
 - Use tags for flexible grouping and future reporting.
@@ -53,7 +57,7 @@ Each asset should support these common fields:
 - Asset key
 - Name
 - Category
-- Lifecycle status
+- System status
 - Criticality
 - Data classification
 - Description

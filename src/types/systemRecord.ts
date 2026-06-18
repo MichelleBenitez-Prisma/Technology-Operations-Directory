@@ -1,13 +1,38 @@
 export const SYSTEM_STATUSES = [
-  "planned",
   "active",
-  "maintenance",
-  "deprecated",
-  "retired",
-  "archived"
+  "development",
+  "being_replaced",
+  "maintenance_only",
+  "retired"
 ] as const;
 
 export type SystemStatus = (typeof SYSTEM_STATUSES)[number];
+
+export const SYSTEM_STATUS_LABELS: Record<SystemStatus, string> = {
+  active: "Active",
+  development: "Development",
+  being_replaced: "Being Replaced",
+  maintenance_only: "Maintenance Only",
+  retired: "Retired"
+};
+
+export const SYSTEM_RECORD_SORT_FIELDS = [
+  "systemName",
+  "category",
+  "status",
+  "businessDepartment",
+  "departmentOwner",
+  "technicalOwner",
+  "vendor",
+  "hostingLocation",
+  "renewalDate",
+  "lastReviewDate",
+  "updatedAt",
+  "createdAt"
+] as const;
+
+export type SystemRecordSortField = (typeof SYSTEM_RECORD_SORT_FIELDS)[number];
+export type SortDirection = "asc" | "desc";
 
 export type SystemRecord = {
   id: number;
@@ -32,6 +57,9 @@ export type SystemRecord = {
   renewal_date: string | null;
   last_review_date: string | null;
   notes: string | null;
+  archived_at: string | null;
+  is_incomplete: 0 | 1;
+  missing_fields: string;
   created_at: string;
   updated_at: string;
 };
@@ -41,20 +69,21 @@ export type CreateSystemRecordInput = {
   description: string;
   categoryCode: string;
   status: SystemStatus;
-  businessDepartment?: string;
-  departmentOwner?: string;
-  technicalOwner?: string;
-  vendor?: string;
-  supportContact?: string;
-  hostingLocation?: string;
-  serverName?: string;
-  databaseName?: string;
-  productionUrl?: string;
-  testUrl?: string;
-  documentationLink?: string;
-  passwordVaultReference?: string;
-  renewalDate?: string;
-  lastReviewDate?: string;
-  notes?: string;
+  businessDepartment?: string | null;
+  departmentOwner?: string | null;
+  technicalOwner?: string | null;
+  vendor?: string | null;
+  supportContact?: string | null;
+  hostingLocation?: string | null;
+  serverName?: string | null;
+  databaseName?: string | null;
+  productionUrl?: string | null;
+  testUrl?: string | null;
+  documentationLink?: string | null;
+  passwordVaultReference?: string | null;
+  renewalDate?: string | null;
+  lastReviewDate?: string | null;
+  notes?: string | null;
 };
 
+export type UpdateSystemRecordInput = Partial<CreateSystemRecordInput>;

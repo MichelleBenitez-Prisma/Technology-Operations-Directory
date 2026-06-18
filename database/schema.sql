@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS technology_assets (
     name TEXT NOT NULL,
     asset_type_id INTEGER NOT NULL REFERENCES asset_types(id),
     lifecycle_status TEXT NOT NULL DEFAULT 'active'
-        CHECK (lifecycle_status IN ('planned', 'active', 'maintenance', 'deprecated', 'retired', 'archived')),
+        CHECK (lifecycle_status IN ('active', 'development', 'being_replaced', 'maintenance_only', 'retired')),
     criticality TEXT NOT NULL DEFAULT 'medium'
         CHECK (criticality IN ('low', 'medium', 'high', 'critical')),
     data_classification TEXT NOT NULL DEFAULT 'internal'
@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS technology_assets (
     review_interval_days INTEGER NOT NULL DEFAULT 180 CHECK (review_interval_days > 0),
     last_reviewed_at TEXT,
     next_review_due_at TEXT,
+    archived_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -208,7 +209,7 @@ CREATE TABLE IF NOT EXISTS integrations (
     criticality TEXT NOT NULL DEFAULT 'medium'
         CHECK (criticality IN ('low', 'medium', 'high', 'critical')),
     lifecycle_status TEXT NOT NULL DEFAULT 'active'
-        CHECK (lifecycle_status IN ('planned', 'active', 'maintenance', 'deprecated', 'retired', 'archived')),
+        CHECK (lifecycle_status IN ('active', 'development', 'being_replaced', 'maintenance_only', 'retired')),
     owner_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
     documentation_url TEXT,
     notes TEXT,
@@ -235,7 +236,7 @@ CREATE TABLE IF NOT EXISTS scheduled_processes (
     command_or_job_name TEXT,
     run_location_asset_id INTEGER REFERENCES technology_assets(id) ON DELETE SET NULL,
     lifecycle_status TEXT NOT NULL DEFAULT 'active'
-        CHECK (lifecycle_status IN ('planned', 'active', 'maintenance', 'deprecated', 'retired', 'archived')),
+        CHECK (lifecycle_status IN ('active', 'development', 'being_replaced', 'maintenance_only', 'retired')),
     owner_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
     last_known_success_at TEXT,
     failure_notification_channel TEXT,
@@ -339,6 +340,30 @@ SELECT
     system_record_details.renewal_date,
     technology_assets.last_reviewed_at AS last_review_date,
     system_record_details.notes,
+    technology_assets.archived_at,
+    CASE
+        WHEN NULLIF(TRIM(technology_assets.name), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(technology_assets.description, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(asset_types.code, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(technology_assets.lifecycle_status, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(system_record_details.business_department, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(system_record_details.department_owner, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(system_record_details.technical_owner, '')), '') IS NULL
+            OR NULLIF(TRIM(IFNULL(system_record_details.support_contact, '')), '') IS NULL
+        THEN 1
+        ELSE 0
+    END AS is_incomplete,
+    TRIM(
+        CASE WHEN NULLIF(TRIM(technology_assets.name), '') IS NULL THEN 'system_name,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(technology_assets.description, '')), '') IS NULL THEN 'description,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(asset_types.code, '')), '') IS NULL THEN 'category,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(technology_assets.lifecycle_status, '')), '') IS NULL THEN 'status,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(system_record_details.business_department, '')), '') IS NULL THEN 'business_department,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(system_record_details.department_owner, '')), '') IS NULL THEN 'department_owner,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(system_record_details.technical_owner, '')), '') IS NULL THEN 'technical_owner,' ELSE '' END ||
+        CASE WHEN NULLIF(TRIM(IFNULL(system_record_details.support_contact, '')), '') IS NULL THEN 'support_contact,' ELSE '' END,
+        ','
+    ) AS missing_fields,
     technology_assets.created_at,
     technology_assets.updated_at
 FROM technology_assets
@@ -354,6 +379,7 @@ CREATE INDEX IF NOT EXISTS idx_assets_primary_vendor ON technology_assets(primar
 CREATE INDEX IF NOT EXISTS idx_assets_lifecycle_status ON technology_assets(lifecycle_status);
 CREATE INDEX IF NOT EXISTS idx_assets_criticality ON technology_assets(criticality);
 CREATE INDEX IF NOT EXISTS idx_assets_next_review_due ON technology_assets(next_review_due_at);
+CREATE INDEX IF NOT EXISTS idx_assets_archived_at ON technology_assets(archived_at);
 CREATE INDEX IF NOT EXISTS idx_environments_asset_id ON asset_environments(asset_id);
 CREATE INDEX IF NOT EXISTS idx_vendor_service_hosting_vendor ON vendor_service_details(hosting_vendor_id);
 CREATE INDEX IF NOT EXISTS idx_payment_service_processor_vendor ON payment_service_details(processor_vendor_id);
