@@ -136,6 +136,32 @@ CREATE TABLE IF NOT EXISTS database_details (
     notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS vendor_service_details (
+    asset_id INTEGER PRIMARY KEY REFERENCES technology_assets(id) ON DELETE CASCADE,
+    hosting_vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
+    service_url TEXT,
+    service_tier TEXT,
+    sla_description TEXT,
+    contract_owner_person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
+    support_level TEXT,
+    data_residency TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS payment_service_details (
+    asset_id INTEGER PRIMARY KEY REFERENCES technology_assets(id) ON DELETE CASCADE,
+    processor_vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
+    payment_service_role TEXT
+        CHECK (payment_service_role IS NULL OR payment_service_role IN ('processor', 'gateway', 'merchant_account', 'billing', 'fraud', 'settlement', 'other')),
+    payment_method_types TEXT,
+    pci_scope TEXT NOT NULL DEFAULT 'unknown'
+        CHECK (pci_scope IN ('out_of_scope', 'saq_a', 'saq_a_ep', 'saq_d', 'unknown')),
+    tokenization_enabled INTEGER NOT NULL DEFAULT 0 CHECK (tokenization_enabled IN (0, 1)),
+    settlement_frequency TEXT,
+    compliance_notes TEXT,
+    notes TEXT
+);
+
 CREATE TABLE IF NOT EXISTS asset_vendors (
     asset_id INTEGER NOT NULL REFERENCES technology_assets(id) ON DELETE CASCADE,
     vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
@@ -281,6 +307,8 @@ CREATE INDEX IF NOT EXISTS idx_assets_lifecycle_status ON technology_assets(life
 CREATE INDEX IF NOT EXISTS idx_assets_criticality ON technology_assets(criticality);
 CREATE INDEX IF NOT EXISTS idx_assets_next_review_due ON technology_assets(next_review_due_at);
 CREATE INDEX IF NOT EXISTS idx_environments_asset_id ON asset_environments(asset_id);
+CREATE INDEX IF NOT EXISTS idx_vendor_service_hosting_vendor ON vendor_service_details(hosting_vendor_id);
+CREATE INDEX IF NOT EXISTS idx_payment_service_processor_vendor ON payment_service_details(processor_vendor_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_source_asset ON integrations(source_asset_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_target_asset ON integrations(target_asset_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_owner_team ON integrations(owner_team_id);
@@ -288,4 +316,3 @@ CREATE INDEX IF NOT EXISTS idx_scheduled_processes_asset_id ON scheduled_process
 CREATE INDEX IF NOT EXISTS idx_scheduled_processes_owner_team ON scheduled_processes(owner_team_id);
 CREATE INDEX IF NOT EXISTS idx_review_records_asset_id ON review_records(asset_id);
 CREATE INDEX IF NOT EXISTS idx_asset_attributes_asset_id ON asset_attributes(asset_id);
-

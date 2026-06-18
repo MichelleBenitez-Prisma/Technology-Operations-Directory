@@ -14,10 +14,13 @@ Examples:
 - Website
 - Server
 - Database
-- Vendor-managed platform
+- Vendor-hosted service
 - Integration
 - Scheduled process
 - Internal tool
+- Payment service
+- Production system
+- Retired system
 
 Important fields include name, asset key, type, lifecycle status, criticality, ownership, URLs, review dates, and support links.
 
@@ -31,11 +34,16 @@ Initial values:
 - `website`
 - `server`
 - `database`
-- `vendor`
+- `vendor_hosted_service`
 - `integration`
 - `scheduled_process`
 - `internal_tool`
+- `payment_service`
+- `production_system`
+- `retired_system`
 - `other`
+
+Production and retired state can also be represented with `asset_environments.environment_name` and `technology_assets.lifecycle_status`. The separate asset types exist because stakeholders may need to catalog broad production or retired systems that do not fit cleanly into another type.
 
 ### `teams` and `people`
 
@@ -53,6 +61,10 @@ The following tables extend `technology_assets` when a record needs type-specifi
 - `website_details`
 - `server_details`
 - `database_details`
+- `vendor_service_details`
+- `payment_service_details`
+
+Payment service records must not store card numbers, bank account numbers, passwords, API keys, signing certificates, or other regulated secrets.
 
 ### `integrations`
 
@@ -83,8 +95,8 @@ SQLite FTS5 virtual table used for full-text search over the main asset catalog.
 - Keep review history separate from the current asset record.
 - Allow records to exist before all details are known.
 - Support both internal systems and external vendor-managed systems.
+- Keep categories data-driven so new asset types can be added without a database redesign.
 
 ## Phase One Boundaries
 
 This schema is intentionally practical for a first version. Later phases may add authentication, audit logs, role-based access, file attachments, dependency mapping, richer review workflows, and migration tooling.
-

@@ -2,7 +2,7 @@
 
 The Technology Operations Directory is an internal web application for the Technology department to record, search, and review operational information about systems across the organization.
 
-The directory is intended to cover software applications, websites, servers, databases, vendors, integrations, scheduled processes, and internal tools in one searchable place.
+The directory is intended to cover software applications, websites, servers, databases, vendor-hosted services, integrations, scheduled processes, internal tools, payment services, production systems, and retired systems in one searchable place.
 
 ## Recommended Stack
 
@@ -19,6 +19,7 @@ Phase one establishes the foundation for the application:
 
 - Initial SQLite database design
 - Reference data for supported technology asset types
+- Requirements summary, basic wireframes, database diagram, and development task list
 - Starter Git repository
 - Initial project README
 
@@ -28,14 +29,18 @@ Application code will be added in a later phase.
 
 ```text
 .
-├── database/
-│   ├── schema.sql
-│   └── seed.sql
-├── docs/
-│   └── database-design.md
-├── .gitattributes
-├── .gitignore
-└── README.md
++-- database/
+|   +-- schema.sql
+|   +-- seed.sql
++-- docs/
+|   +-- database-design.md
+|   +-- database-diagram.md
+|   +-- development-task-list.md
+|   +-- requirements-summary.md
+|   +-- wireframes.md
++-- .gitattributes
++-- .gitignore
++-- README.md
 ```
 
 ## GitHub Repository Setup
@@ -66,7 +71,7 @@ The database is centered on `technology_assets`, a shared record for anything th
 Core concepts:
 
 - `technology_assets`: central catalog entries
-- `asset_types`: supported categories such as application, website, server, database, vendor, integration, scheduled process, and internal tool
+- `asset_types`: supported categories such as application, website, server, database, vendor-hosted service, integration, scheduled process, internal tool, payment service, production system, retired system, and other future categories
 - `teams` and `people`: ownership and accountability
 - `vendors`: third-party providers and contract context
 - `integrations`: connections between internal or external systems
@@ -74,6 +79,13 @@ Core concepts:
 - `review_records`: periodic validation history
 - `tags` and `asset_tags`: flexible grouping and filtering
 - `asset_search`: SQLite full-text search index for directory search
+
+Planning deliverables:
+
+- `docs/requirements-summary.md`
+- `docs/wireframes.md`
+- `docs/database-diagram.md`
+- `docs/development-task-list.md`
 
 See `docs/database-design.md` for the table-by-table design notes.
 
