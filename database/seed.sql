@@ -1,17 +1,17 @@
 PRAGMA foreign_keys = ON;
 
 INSERT OR IGNORE INTO asset_types (code, name, description) VALUES
-    ('software_application', 'Software Application', 'Business or technical software application.'),
-    ('website', 'Website', 'Public or internal website.'),
-    ('server', 'Server', 'Physical, virtual, or cloud server.'),
-    ('database', 'Database', 'Database instance, schema, or managed database service.'),
-    ('vendor_hosted_service', 'Vendor-Hosted Service', 'External service or platform operated by a vendor.'),
-    ('integration', 'Integration', 'System-to-system connection or data exchange.'),
-    ('scheduled_process', 'Scheduled Process', 'Recurring job, automation, or batch process.'),
-    ('internal_tool', 'Internal Tool', 'Tool used by internal teams.'),
-    ('payment_service', 'Payment Service', 'Payment processor, gateway, settlement, billing, or related payment platform.'),
-    ('production_system', 'Production System', 'Operational system used in a production business process.'),
-    ('retired_system', 'Retired System', 'System retained for history, reference, audit, or migration context.'),
+    ('software_application', 'Software Application', 'A software system used by employees or departments to perform business functions.'),
+    ('website', 'Website', 'A public or internal website accessed through a web browser.'),
+    ('server', 'Server', 'A physical or virtual machine that hosts applications, services, or data.'),
+    ('database', 'Database', 'A structured data storage system used by applications and reporting tools.'),
+    ('vendor_hosted_service', 'Vendor-Hosted Service', 'A technology service hosted and managed by an external vendor.'),
+    ('integration', 'Integration', 'A connection that transfers data or functionality between systems.'),
+    ('scheduled_process', 'Scheduled Process', 'An automated job that runs at specific times or intervals.'),
+    ('internal_tool', 'Internal Tool', 'A tool developed or maintained primarily for internal employee use.'),
+    ('payment_service', 'Payment Service', 'A system used to process, validate, or manage payments.'),
+    ('production_system', 'Production System', 'A critical live system actively used for business operations.'),
+    ('retired_system', 'Retired System', 'A system that is no longer in use but is kept for historical reference.'),
     ('other', 'Other', 'Tracked technology item that does not fit another category.');
 
 INSERT OR IGNORE INTO teams (name, department, email, description) VALUES

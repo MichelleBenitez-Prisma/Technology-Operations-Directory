@@ -34,6 +34,7 @@ Application code will be added in a later phase.
 |   +-- seed.sql
 +-- docs/
 |   +-- database-design.md
+|   +-- category-definitions.md
 |   +-- database-diagram.md
 |   +-- development-task-list.md
 |   +-- requirements-summary.md
@@ -83,6 +84,7 @@ Core concepts:
 Planning deliverables:
 
 - `docs/requirements-summary.md`
+- `docs/category-definitions.md`
 - `docs/wireframes.md`
 - `docs/database-diagram.md`
 - `docs/development-task-list.md`

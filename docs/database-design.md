@@ -45,6 +45,8 @@ Initial values:
 
 Production and retired state can also be represented with `asset_environments.environment_name` and `technology_assets.lifecycle_status`. The separate asset types exist because stakeholders may need to catalog broad production or retired systems that do not fit cleanly into another type.
 
+Final business definitions for these categories are documented in `docs/category-definitions.md`.
+
 ### `teams` and `people`
 
 Ownership and contact records. Assets can point to owner teams and individual business or technical owners.

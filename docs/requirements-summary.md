@@ -22,6 +22,8 @@ The application must support these initial categories:
 
 Additional categories must be possible without redesigning the database. The initial database supports this through the `asset_types` reference table.
 
+The final phase-one category names, definitions, inclusions, and exclusions are documented in `docs/category-definitions.md`.
+
 ## Primary Users
 
 - Technology operations staff who maintain operational records
@@ -110,4 +112,3 @@ Production and retired systems should support the same common asset fields, plus
 - File attachments
 - Automated notifications
 - Production deployment
-
