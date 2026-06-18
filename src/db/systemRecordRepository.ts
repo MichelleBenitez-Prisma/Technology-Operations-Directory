@@ -5,7 +5,9 @@ import type {
   CreateSystemRecordInput,
   SortDirection,
   SystemRecord,
+  SystemRecordMutationResult,
   SystemRecordSortField,
+  SystemRecordWarning,
   UpdateSystemRecordInput
 } from "../types/systemRecord.js";
 
@@ -101,13 +103,16 @@ export function findSystemRecordById(
   );
 }
 
-export function createSystemRecord(input: CreateSystemRecordInput) {
+export function createSystemRecord(
+  input: CreateSystemRecordInput
+): SystemRecordMutationResult {
   const assetType = findAssetTypeByCode(input.categoryCode);
 
   if (!assetType) {
     throwValidationError(`Unknown category code: ${input.categoryCode}`);
   }
 
+  const warnings = buildDuplicateSystemNameWarnings(input.systemName);
   const database = getDatabase();
   database.exec("BEGIN");
 
@@ -158,20 +163,36 @@ export function createSystemRecord(input: CreateSystemRecordInput) {
     insertSystemRecordDetails(assetId, input);
 
     database.exec("COMMIT");
-    return findSystemRecordById(assetId, { includeArchived: true });
+    const record = findSystemRecordById(assetId, { includeArchived: true });
+
+    if (!record) {
+      throw new Error(`System record ${assetId} was created but could not be read.`);
+    }
+
+    return {
+      data: record,
+      warnings
+    };
   } catch (error) {
     database.exec("ROLLBACK");
     throw error;
   }
 }
 
-export function updateSystemRecord(id: number, input: UpdateSystemRecordInput) {
+export function updateSystemRecord(
+  id: number,
+  input: UpdateSystemRecordInput
+): SystemRecordMutationResult | undefined {
   const existing = findSystemRecordById(id, { includeArchived: true });
 
   if (!existing) {
     return undefined;
   }
 
+  const warnings = buildDuplicateSystemNameWarnings(
+    input.systemName ?? existing.system_name,
+    id
+  );
   const database = getDatabase();
   database.exec("BEGIN");
 
@@ -241,7 +262,16 @@ export function updateSystemRecord(id: number, input: UpdateSystemRecordInput) {
     updateSystemRecordDetails(id, input);
 
     database.exec("COMMIT");
-    return findSystemRecordById(id, { includeArchived: true });
+    const record = findSystemRecordById(id, { includeArchived: true });
+
+    if (!record) {
+      throw new Error(`System record ${id} was updated but could not be read.`);
+    }
+
+    return {
+      data: record,
+      warnings
+    };
   } catch (error) {
     database.exec("ROLLBACK");
     throw error;
@@ -515,6 +545,51 @@ function createUniqueAssetKey(systemName: string) {
   }
 
   return candidate;
+}
+
+function buildDuplicateSystemNameWarnings(
+  systemName: string,
+  excludeSystemId?: number
+): SystemRecordWarning[] {
+  const trimmedName = systemName.trim();
+
+  if (trimmedName.length === 0) {
+    return [];
+  }
+
+  const params: QueryParams = {
+    systemName: trimmedName
+  };
+  const excludeClause = excludeSystemId ? "AND id <> $excludeSystemId" : "";
+
+  if (excludeSystemId) {
+    params.excludeSystemId = excludeSystemId;
+  }
+
+  const duplicateRows = queryAll<{ id: number; system_name: string }>(
+    `
+    SELECT id, system_name
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND LOWER(TRIM(system_name)) = LOWER(TRIM($systemName))
+      ${excludeClause}
+    ORDER BY system_name
+    `,
+    params
+  );
+
+  if (duplicateRows.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      code: "duplicate_system_name",
+      message:
+        "Another active system record already uses this system name. Review the matching records before saving another copy.",
+      matchingSystemIds: duplicateRows.map((row) => row.id)
+    }
+  ];
 }
 
 function slugify(value: string) {

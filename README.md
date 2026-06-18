@@ -205,6 +205,33 @@ Initial system record fields:
 
 `systemName`, `description`, `categoryCode`, and `status` are required by the initial API validation.
 
+Validation before save:
+
+- Required fields cannot be empty.
+- URLs must use `http://` or `https://` and valid URL formatting.
+- Dates must use a real `YYYY-MM-DD` calendar date.
+- Status must be one of the defined system status values.
+- Category must exist in `asset_types`.
+- Duplicate active system names are allowed, but create and update responses include a warning.
+
+Create and update responses use this shape:
+
+```json
+{
+  "data": {
+    "id": 1,
+    "system_name": "Example System"
+  },
+  "warnings": [
+    {
+      "code": "duplicate_system_name",
+      "message": "Another active system record already uses this system name. Review the matching records before saving another copy.",
+      "matchingSystemIds": [2]
+    }
+  ]
+}
+```
+
 ## Suggested Next Phases
 
 1. Install backend dependencies and run the Express API locally.

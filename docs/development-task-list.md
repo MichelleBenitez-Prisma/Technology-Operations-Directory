@@ -32,6 +32,8 @@
 - [x] Add system record sorting.
 - [x] Add dashboard totals endpoint.
 - [x] Add incomplete records endpoint.
+- [x] Add backend validation before saving system records.
+- [x] Add duplicate system name warnings.
 - [ ] Build endpoints for asset types.
 - [ ] Build endpoints for teams and people.
 - [ ] Build endpoints for vendors.

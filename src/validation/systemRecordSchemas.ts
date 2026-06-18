@@ -5,7 +5,7 @@ import {
   SYSTEM_STATUSES
 } from "../types/systemRecord.js";
 
-const requiredText = z.string().trim().min(1);
+const requiredText = z.string().trim().min(1, "This field is required.");
 const nullableText = z.preprocess(
   (value) => {
     if (typeof value === "string" && value.trim() === "") {
@@ -27,7 +27,7 @@ const nullableDate = z.preprocess(
   z
     .string()
     .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format.")
+    .refine(isValidDateString, "Use YYYY-MM-DD format with a real calendar date.")
     .nullable()
     .optional()
 );
@@ -39,7 +39,16 @@ const nullableUrl = z.preprocess(
 
     return value;
   },
-  z.string().trim().url().nullable().optional()
+  z
+    .string()
+    .trim()
+    .url("Use a valid URL format.")
+    .refine(
+      (value) => value.startsWith("http://") || value.startsWith("https://"),
+      "URL must begin with http:// or https://."
+    )
+    .nullable()
+    .optional()
 );
 const optionalBoolean = z.preprocess((value) => {
   if (value === "true") {
@@ -98,3 +107,21 @@ export const listSystemRecordsQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0)
 });
 
+function isValidDateString(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}

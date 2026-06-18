@@ -68,11 +68,9 @@ systemRecordsRouter.get("/:id", (request, response) => {
 
 systemRecordsRouter.post("/", (request, response) => {
   const input = createSystemRecordSchema.parse(request.body);
-  const record = createSystemRecord(input);
+  const result = createSystemRecord(input);
 
-  response.status(201).json({
-    data: record
-  });
+  response.status(201).json(result);
 });
 
 systemRecordsRouter.put("/:id", (request, response) => {
@@ -149,9 +147,9 @@ function updateSystemRecordHandler(
   }
 
   const input = updateSystemRecordSchema.parse(body);
-  const record = updateSystemRecord(id, input);
+  const result = updateSystemRecord(id, input);
 
-  if (!record) {
+  if (!result) {
     response.status(404).json({
       error: "Not Found",
       message: `System record ${id} was not found.`
@@ -159,9 +157,7 @@ function updateSystemRecordHandler(
     return;
   }
 
-  response.json({
-    data: record
-  });
+  response.json(result);
 }
 
 function parseSystemRecordId(value: string | undefined) {

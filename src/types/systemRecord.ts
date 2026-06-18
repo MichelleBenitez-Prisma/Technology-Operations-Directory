@@ -34,6 +34,17 @@ export const SYSTEM_RECORD_SORT_FIELDS = [
 export type SystemRecordSortField = (typeof SYSTEM_RECORD_SORT_FIELDS)[number];
 export type SortDirection = "asc" | "desc";
 
+export type SystemRecordWarning = {
+  code: "duplicate_system_name";
+  message: string;
+  matchingSystemIds: number[];
+};
+
+export type SystemRecordMutationResult = {
+  data: SystemRecord;
+  warnings: SystemRecordWarning[];
+};
+
 export type SystemRecord = {
   id: number;
   asset_key: string;

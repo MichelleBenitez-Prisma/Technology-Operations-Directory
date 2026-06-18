@@ -39,6 +39,8 @@ The final phase-one category names, definitions, inclusions, and exclusions are 
 - Filter and sort system records for operational review.
 - Retrieve dashboard totals by category and status.
 - Identify incomplete records that are missing key ownership or support fields.
+- Validate records before saving, including required fields, URL format, date format, valid status, and valid category.
+- Warn users when a system name duplicates another active system record.
 - Record ownership by team, technical owner, and business owner.
 - Track vendor relationships, support links, contract dates, and renewal timing.
 - Track integrations between internal and external systems.
