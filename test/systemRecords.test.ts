@@ -178,6 +178,10 @@ test("system records API supports main phase two flows", async () => {
     assert.ok(dashboard.body?.data.total >= 3);
     assert.equal(dashboard.body?.data.byStatus.length, 5);
     assert.ok(dashboard.body?.data.incomplete >= 1);
+    assert.ok(dashboard.body?.data.missingDocumentation >= 1);
+    assert.ok(dashboard.body?.data.withoutTechnicalOwner >= 1);
+    assert.ok(Array.isArray(dashboard.body?.data.upcomingRenewals));
+    assert.ok(Array.isArray(dashboard.body?.data.recentlyUpdated));
 
     const archived = await requestJson(
       baseUrl,

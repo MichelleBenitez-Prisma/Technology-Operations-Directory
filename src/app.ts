@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -10,6 +13,8 @@ import { systemRecordsRouter } from "./routes/systemRecords.routes.js";
 
 export function createApp() {
   const app = express();
+  const clientBuildPath = path.resolve(process.cwd(), "dist", "client");
+  const clientIndexPath = path.join(clientBuildPath, "index.html");
 
   app.use(helmet());
   app.use(cors());
@@ -23,6 +28,18 @@ export function createApp() {
   app.use("/api/asset-types", assetTypesRouter);
   app.use("/api/system-records", systemRecordsRouter);
   app.use("/api/systems", systemRecordsRouter);
+
+  if (existsSync(clientIndexPath)) {
+    app.use(express.static(clientBuildPath));
+    app.use((request, response, next) => {
+      if (request.method === "GET" && request.accepts("html")) {
+        response.sendFile(clientIndexPath);
+        return;
+      }
+
+      next();
+    });
+  }
 
   app.use((request, response) => {
     response.status(404).json({

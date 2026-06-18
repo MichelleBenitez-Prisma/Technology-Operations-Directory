@@ -333,6 +333,22 @@ export function getSystemRecordDashboardTotals() {
       AND is_incomplete = 1
     `
   )?.count ?? 0;
+  const missingDocumentation = queryOne<{ count: number }>(
+    `
+    SELECT COUNT(*) AS count
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND NULLIF(TRIM(IFNULL(documentation_url, '')), '') IS NULL
+    `
+  )?.count ?? 0;
+  const withoutTechnicalOwner = queryOne<{ count: number }>(
+    `
+    SELECT COUNT(*) AS count
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND NULLIF(TRIM(IFNULL(technical_owner, '')), '') IS NULL
+    `
+  )?.count ?? 0;
   const byStatusRows = queryAll<{ status: string; count: number }>(
     `
     SELECT status, COUNT(*) AS count
@@ -363,13 +379,59 @@ export function getSystemRecordDashboardTotals() {
     ORDER BY category_name
     `
   );
+  const upcomingRenewals = queryAll<SystemRecord>(
+    `
+    SELECT *
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND renewal_date IS NOT NULL
+      AND DATE(renewal_date) BETWEEN DATE('now') AND DATE('now', '+90 days')
+    ORDER BY renewal_date ASC, system_name ASC
+    LIMIT 8
+    `
+  );
+  const recentlyUpdated = queryAll<SystemRecord>(
+    `
+    SELECT *
+    FROM system_record_view
+    WHERE archived_at IS NULL
+    ORDER BY updated_at DESC, system_name ASC
+    LIMIT 8
+    `
+  );
+  const missingDocumentationRecords = queryAll<SystemRecord>(
+    `
+    SELECT *
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND NULLIF(TRIM(IFNULL(documentation_url, '')), '') IS NULL
+    ORDER BY system_name ASC
+    LIMIT 8
+    `
+  );
+  const withoutTechnicalOwnerRecords = queryAll<SystemRecord>(
+    `
+    SELECT *
+    FROM system_record_view
+    WHERE archived_at IS NULL
+      AND NULLIF(TRIM(IFNULL(technical_owner, '')), '') IS NULL
+    ORDER BY system_name ASC
+    LIMIT 8
+    `
+  );
 
   return {
     total,
     archived,
     incomplete,
+    missingDocumentation,
+    withoutTechnicalOwner,
     byStatus,
-    byCategory
+    byCategory,
+    upcomingRenewals,
+    recentlyUpdated,
+    missingDocumentationRecords,
+    withoutTechnicalOwnerRecords
   };
 }
 

@@ -48,13 +48,27 @@
 - [ ] Add validation and error handling.
 - [ ] Add API tests.
 
+## Phase Three: Core User Interface
+
+- [x] Scaffold React and Vite dashboard client.
+- [x] Build main Technology Operations dashboard.
+- [x] Show total systems, active systems, systems being replaced, and retired systems.
+- [x] Show systems missing documentation and systems without a technical owner.
+- [x] Show upcoming renewals.
+- [x] Show recently updated records.
+- [x] Link dashboard items to related records or filtered API lists where practical.
+- [x] Add quick dashboard search for system records.
+- [x] Serve production dashboard build from Express.
+- [ ] Build detailed system record pages.
+- [ ] Build add and edit system forms.
+
 ## Phase Four: Frontend Foundation
 
-- [ ] Scaffold React with TypeScript.
+- [x] Scaffold React with TypeScript.
 - [ ] Choose styling approach: standard CSS, Bootstrap, or Tailwind CSS.
-- [ ] Create application shell and navigation.
-- [ ] Create shared form, table, badge, and status components.
-- [ ] Add API client layer.
+- [x] Create application shell and navigation.
+- [x] Create shared table, badge, and dashboard components.
+- [x] Add API client layer.
 - [ ] Add frontend routing.
 
 ## Phase Five: Directory Workflows

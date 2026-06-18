@@ -292,8 +292,14 @@ Returns:
 - Total active-directory records
 - Archived record count
 - Incomplete record count
+- Missing documentation count
+- Systems without technical owner count
 - Counts by status
 - Counts by category
+- Upcoming renewals
+- Recently updated records
+- Missing documentation records
+- Records without technical owner
 
 ## Local Commands
 
@@ -304,4 +310,3 @@ npm run typecheck
 npm test
 npm run dev
 ```
-
