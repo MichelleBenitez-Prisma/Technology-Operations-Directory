@@ -15,13 +15,13 @@
 
 ## Phase Two: Backend Foundation
 
-- [ ] Scaffold Node.js, Express, and TypeScript backend.
-- [ ] Add SQLite database connection module.
+- [x] Scaffold Node.js, Express, and TypeScript backend.
+- [x] Add SQLite database connection module.
 - [ ] Add migration runner for schema changes.
-- [ ] Add seed script for reference data.
-- [ ] Add environment configuration files.
+- [x] Add seed script for reference data.
+- [x] Add environment configuration files.
 - [ ] Add backend linting and formatting.
-- [ ] Add health check endpoint.
+- [x] Add health check endpoint.
 
 ## Phase Three: Core API
 

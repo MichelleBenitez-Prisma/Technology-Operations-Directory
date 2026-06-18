@@ -162,6 +162,24 @@ CREATE TABLE IF NOT EXISTS payment_service_details (
     notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS system_record_details (
+    asset_id INTEGER PRIMARY KEY REFERENCES technology_assets(id) ON DELETE CASCADE,
+    business_department TEXT,
+    department_owner TEXT,
+    technical_owner TEXT,
+    vendor TEXT,
+    support_contact TEXT,
+    hosting_location TEXT,
+    server_name TEXT,
+    database_name TEXT,
+    test_url TEXT,
+    password_vault_reference TEXT,
+    renewal_date TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS asset_vendors (
     asset_id INTEGER NOT NULL REFERENCES technology_assets(id) ON DELETE CASCADE,
     vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
@@ -297,6 +315,36 @@ BEGIN
     VALUES (new.id, new.asset_key, new.name, new.description, new.business_purpose);
 END;
 
+CREATE VIEW IF NOT EXISTS system_record_view AS
+SELECT
+    technology_assets.id,
+    technology_assets.asset_key,
+    technology_assets.name AS system_name,
+    technology_assets.description,
+    asset_types.code AS category_code,
+    asset_types.name AS category_name,
+    technology_assets.lifecycle_status AS status,
+    system_record_details.business_department,
+    system_record_details.department_owner,
+    system_record_details.technical_owner,
+    system_record_details.vendor,
+    system_record_details.support_contact,
+    system_record_details.hosting_location,
+    system_record_details.server_name,
+    system_record_details.database_name,
+    technology_assets.production_url,
+    system_record_details.test_url,
+    technology_assets.documentation_url,
+    system_record_details.password_vault_reference,
+    system_record_details.renewal_date,
+    technology_assets.last_reviewed_at AS last_review_date,
+    system_record_details.notes,
+    technology_assets.created_at,
+    technology_assets.updated_at
+FROM technology_assets
+JOIN asset_types ON asset_types.id = technology_assets.asset_type_id
+LEFT JOIN system_record_details ON system_record_details.asset_id = technology_assets.id;
+
 CREATE INDEX IF NOT EXISTS idx_people_team_id ON people(team_id);
 CREATE INDEX IF NOT EXISTS idx_assets_type_id ON technology_assets(asset_type_id);
 CREATE INDEX IF NOT EXISTS idx_assets_owner_team_id ON technology_assets(owner_team_id);
@@ -309,6 +357,10 @@ CREATE INDEX IF NOT EXISTS idx_assets_next_review_due ON technology_assets(next_
 CREATE INDEX IF NOT EXISTS idx_environments_asset_id ON asset_environments(asset_id);
 CREATE INDEX IF NOT EXISTS idx_vendor_service_hosting_vendor ON vendor_service_details(hosting_vendor_id);
 CREATE INDEX IF NOT EXISTS idx_payment_service_processor_vendor ON payment_service_details(processor_vendor_id);
+CREATE INDEX IF NOT EXISTS idx_system_record_business_department ON system_record_details(business_department);
+CREATE INDEX IF NOT EXISTS idx_system_record_vendor ON system_record_details(vendor);
+CREATE INDEX IF NOT EXISTS idx_system_record_server_name ON system_record_details(server_name);
+CREATE INDEX IF NOT EXISTS idx_system_record_database_name ON system_record_details(database_name);
 CREATE INDEX IF NOT EXISTS idx_integrations_source_asset ON integrations(source_asset_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_target_asset ON integrations(target_asset_id);
 CREATE INDEX IF NOT EXISTS idx_integrations_owner_team ON integrations(owner_team_id);

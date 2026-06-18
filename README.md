@@ -23,7 +23,7 @@ Phase one establishes the foundation for the application:
 - Starter Git repository
 - Initial project README
 
-Application code will be added in a later phase.
+Phase two begins the application code with a Node.js, Express, and TypeScript backend scaffold.
 
 ## Repository Structure
 
@@ -39,9 +39,23 @@ Application code will be added in a later phase.
 |   +-- development-task-list.md
 |   +-- requirements-summary.md
 |   +-- wireframes.md
++-- scripts/
+|   +-- init-database.mjs
++-- src/
+|   +-- app.ts
+|   +-- server.ts
+|   +-- config/
+|   +-- db/
+|   +-- middleware/
+|   +-- routes/
+|   +-- types/
+|   +-- validation/
++-- .env.example
 +-- .gitattributes
 +-- .gitignore
++-- package.json
 +-- README.md
++-- tsconfig.json
 ```
 
 ## GitHub Repository Setup
@@ -103,14 +117,74 @@ sqlite3 data/technology_operations_directory.sqlite ".read database/seed.sql"
 
 The `data/` directory is ignored by Git so local SQLite databases are not committed.
 
+You can also build the local SQLite database with the Node.js script:
+
+```bash
+npm run db:init
+```
+
+Use this to rebuild the database from scratch:
+
+```bash
+npm run db:reset
+```
+
+## Backend API
+
+The phase-two backend scaffold uses Node.js, Express, and TypeScript.
+
+Initial scripts:
+
+```bash
+npm install
+npm run db:init
+npm run dev
+```
+
+Initial endpoints:
+
+- `GET /health`
+- `GET /api/asset-types`
+- `GET /api/system-records`
+- `GET /api/system-records/:id`
+- `POST /api/system-records`
+- `GET /api/systems`
+- `GET /api/systems/:id`
+- `POST /api/systems`
+
+Initial system record fields:
+
+- `systemName`
+- `description`
+- `categoryCode`
+- `status`
+- `businessDepartment`
+- `departmentOwner`
+- `technicalOwner`
+- `vendor`
+- `supportContact`
+- `hostingLocation`
+- `serverName`
+- `databaseName`
+- `productionUrl`
+- `testUrl`
+- `documentationLink`
+- `passwordVaultReference`
+- `renewalDate`
+- `lastReviewDate`
+- `notes`
+
+`systemName`, `description`, `categoryCode`, and `status` are required by the initial API validation.
+
 ## Suggested Next Phases
 
-1. Scaffold the Express API with TypeScript.
+1. Install backend dependencies and run the Express API locally.
 2. Add a SQLite migration runner.
-3. Build API routes for assets, vendors, integrations, scheduled processes, tags, and reviews.
-4. Scaffold the React TypeScript frontend.
-5. Add search, filtering, detail pages, and review workflows.
-6. Add authentication and role-based access before storing sensitive internal data.
+3. Build update and delete routes for system records.
+4. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
+5. Scaffold the React TypeScript frontend.
+6. Add search, filtering, detail pages, and review workflows.
+7. Add authentication and role-based access before storing sensitive internal data.
 
 ## Security Notes
 
