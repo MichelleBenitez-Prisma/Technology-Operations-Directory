@@ -59,24 +59,32 @@
 - [x] Link dashboard items to related records or filtered API lists where practical.
 - [x] Add quick dashboard search for system records.
 - [x] Serve production dashboard build from Express.
-- [ ] Build detailed system record pages.
-- [ ] Build add and edit system forms.
+- [x] Build searchable systems list.
+- [x] Add category, status, technical owner, vendor, incomplete, archive, and sort controls to systems list.
+- [x] Build detailed system record pages.
+- [x] Build add and edit system forms.
+- [x] Add archive action from the system detail page.
+- [x] Add replacement system and retirement notes fields for system lifecycle tracking.
+- [ ] Add delete action to the system detail page if permanent deletion is still required in the UI.
+- [ ] Add stronger frontend tests for dashboard, list, detail, form validation, and archive behavior.
+- [ ] Add sample records for visual review and demonstration.
+- [ ] Add user-facing documentation for using the Phase Three screens.
 
 ## Phase Four: Frontend Foundation
 
 - [x] Scaffold React with TypeScript.
-- [ ] Choose styling approach: standard CSS, Bootstrap, or Tailwind CSS.
+- [x] Choose styling approach: standard CSS.
 - [x] Create application shell and navigation.
 - [x] Create shared table, badge, and dashboard components.
 - [x] Add API client layer.
-- [ ] Add frontend routing.
+- [x] Add frontend routing.
 
 ## Phase Five: Directory Workflows
 
-- [ ] Build dashboard view.
-- [ ] Build asset search and list view.
-- [ ] Build asset detail view.
-- [ ] Build add and edit asset forms.
+- [x] Build dashboard view.
+- [x] Build asset search and list view.
+- [x] Build asset detail view.
+- [x] Build add and edit asset forms.
 - [ ] Add category-specific detail sections.
 - [ ] Build vendor detail workflow.
 - [ ] Build integration detail workflow.
