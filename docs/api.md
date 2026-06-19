@@ -106,6 +106,58 @@ GET /api/asset-types
 
 Returns seeded system categories.
 
+Asset types also support:
+
+```http
+GET /api/asset-types/:id
+POST /api/asset-types
+PUT /api/asset-types/:id
+PATCH /api/asset-types/:id
+DELETE /api/asset-types/:id
+```
+
+### Directory Resource Endpoints
+
+The supporting directory tables use the same basic endpoint pattern:
+
+```http
+GET /api/<resource>
+GET /api/<resource>/:id
+POST /api/<resource>
+PUT /api/<resource>/:id
+PATCH /api/<resource>/:id
+DELETE /api/<resource>/:id
+```
+
+Supported resources:
+
+- `teams`
+- `people`
+- `vendors`
+- `asset-environments`
+- `integrations`
+- `scheduled-processes`
+- `reviews`
+- `tags`
+
+List endpoints support:
+
+| Parameter | Description                                     |
+| --------- | ----------------------------------------------- |
+| `search`  | Searches the main text fields for the resource. |
+| `limit`   | Page size, from 1 to 100.                       |
+| `offset`  | Starting row offset.                            |
+
+### Global Asset Search
+
+```http
+GET /api/search?query=payroll
+```
+
+Searches technology assets through the SQLite FTS5 `asset_search` index and
+returns matching asset ids, keys, names, descriptions, categories, statuses, and
+archive state.
+
 ### Create System Record
 
 ```http

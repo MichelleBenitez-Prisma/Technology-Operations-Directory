@@ -8,7 +8,9 @@ import morgan from "morgan";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 import { assetTypesRouter } from "./routes/assetTypes.routes.js";
+import { createDirectoryRouter } from "./routes/directory.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { searchRouter } from "./routes/search.routes.js";
 import { systemRecordsRouter } from "./routes/systemRecords.routes.js";
 
 export function createApp() {
@@ -26,6 +28,15 @@ export function createApp() {
 
   app.use("/health", healthRouter);
   app.use("/api/asset-types", assetTypesRouter);
+  app.use("/api/teams", createDirectoryRouter("teams"));
+  app.use("/api/people", createDirectoryRouter("people"));
+  app.use("/api/vendors", createDirectoryRouter("vendors"));
+  app.use("/api/asset-environments", createDirectoryRouter("assetEnvironments"));
+  app.use("/api/integrations", createDirectoryRouter("integrations"));
+  app.use("/api/scheduled-processes", createDirectoryRouter("scheduledProcesses"));
+  app.use("/api/reviews", createDirectoryRouter("reviews"));
+  app.use("/api/tags", createDirectoryRouter("tags"));
+  app.use("/api/search", searchRouter);
   app.use("/api/system-records", systemRecordsRouter);
   app.use("/api/systems", systemRecordsRouter);
 

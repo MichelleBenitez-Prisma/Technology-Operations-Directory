@@ -155,6 +155,116 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(searched.status, 200);
     assert.ok(getResponseData<TestSystemRecord[]>(searched).length >= 2);
 
+    const globalSearch = await requestJson(baseUrl, "/api/search?query=payroll");
+    assert.equal(globalSearch.status, 200);
+    assert.ok(getResponseData<Record<string, unknown>[]>(globalSearch).length >= 1);
+
+    const createdTeam = await requestJson(baseUrl, "/api/teams", {
+      method: "POST",
+      body: {
+        name: "Print Systems",
+        department: "Technology",
+        email: "print-systems@example.com",
+        description: "Supports printing-company legacy systems."
+      }
+    });
+    assert.equal(createdTeam.status, 201);
+    const teamId = Number(getResponseData<{ id: number }>(createdTeam).id);
+
+    const createdPerson = await requestJson(baseUrl, "/api/people", {
+      method: "POST",
+      body: {
+        display_name: "Michelle Benitez",
+        email: "michelle.benitez@example.com",
+        title: "Technology Operations",
+        team_id: teamId,
+        active: 1
+      }
+    });
+    assert.equal(createdPerson.status, 201);
+    const personId = Number(getResponseData<{ id: number }>(createdPerson).id);
+
+    const createdVendor = await requestJson(baseUrl, "/api/vendors", {
+      method: "POST",
+      body: {
+        name: "Print Vendor",
+        website_url: "https://vendor.example.com",
+        support_url: "https://vendor.example.com/support",
+        renewal_notice_days: 60
+      }
+    });
+    assert.equal(createdVendor.status, 201);
+
+    const createdEnvironment = await requestJson(baseUrl, "/api/asset-environments", {
+      method: "POST",
+      body: {
+        asset_id: systemId,
+        environment_name: "production",
+        url: "https://payroll.example.com",
+        host_name: "PAYROLL-APP-01",
+        location: "Azure"
+      }
+    });
+    assert.equal(createdEnvironment.status, 201);
+
+    const createdIntegration = await requestJson(baseUrl, "/api/integrations", {
+      method: "POST",
+      body: {
+        name: "Payroll to Reporting",
+        source_asset_id: systemId,
+        target_external_name: "Reporting Platform",
+        integration_type: "api",
+        direction: "outbound",
+        owner_team_id: teamId
+      }
+    });
+    assert.equal(createdIntegration.status, 201);
+
+    const createdScheduledProcess = await requestJson(baseUrl, "/api/scheduled-processes", {
+      method: "POST",
+      body: {
+        asset_id: systemId,
+        name: "Payroll nightly export",
+        schedule_kind: "cron",
+        schedule_expression: "0 1 * * *",
+        schedule_timezone: "America/Chicago",
+        owner_team_id: teamId
+      }
+    });
+    assert.equal(createdScheduledProcess.status, 201);
+
+    const createdReview = await requestJson(baseUrl, "/api/reviews", {
+      method: "POST",
+      body: {
+        asset_id: systemId,
+        reviewed_by_person_id: personId,
+        review_status: "approved",
+        next_review_due_at: "2026-12-18"
+      }
+    });
+    assert.equal(createdReview.status, 201);
+
+    const createdTag = await requestJson(baseUrl, "/api/tags", {
+      method: "POST",
+      body: {
+        name: "legacy-replacement",
+        description: "System is part of replacement tracking."
+      }
+    });
+    assert.equal(createdTag.status, 201);
+
+    const teamList = await requestJson(baseUrl, "/api/teams?search=print");
+    assert.equal(teamList.status, 200);
+    assert.ok(getResponseData<Record<string, unknown>[]>(teamList).length >= 1);
+
+    const invalidVendor = await requestJson(baseUrl, "/api/vendors", {
+      method: "POST",
+      body: {
+        website_url: "not-a-url"
+      }
+    });
+    assert.equal(invalidVendor.status, 400);
+
     const filtered = await requestJson(
       baseUrl,
       "/api/system-records?categoryCode=software_application&status=active&businessDepartment=Finance"

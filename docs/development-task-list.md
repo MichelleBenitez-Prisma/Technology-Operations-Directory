@@ -36,17 +36,17 @@
 - [x] Add duplicate system name warnings.
 - [x] Add basic backend API documentation.
 - [x] Add tests for main system record API functions.
-- [ ] Build endpoints for asset types.
-- [ ] Build endpoints for teams and people.
-- [ ] Build endpoints for vendors.
-- [ ] Build endpoints for asset environments.
-- [ ] Build endpoints for integrations.
-- [ ] Build endpoints for scheduled processes.
-- [ ] Build endpoints for reviews.
-- [ ] Build endpoints for tags.
-- [ ] Add search endpoint using SQLite FTS5.
-- [ ] Add validation and error handling.
-- [ ] Add API tests.
+- [x] Build endpoints for asset types.
+- [x] Build endpoints for teams and people.
+- [x] Build endpoints for vendors.
+- [x] Build endpoints for asset environments.
+- [x] Build endpoints for integrations.
+- [x] Build endpoints for scheduled processes.
+- [x] Build endpoints for reviews.
+- [x] Build endpoints for tags.
+- [x] Add search endpoint using SQLite FTS5.
+- [x] Add validation and error handling.
+- [x] Add API tests.
 
 ## Phase Three: Core User Interface
 

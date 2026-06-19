@@ -18,6 +18,14 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     return;
   }
 
+  if (isSqliteConstraintError(error)) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: error.message
+    });
+    return;
+  }
+
   console.error(error);
 
   response.status(500).json({
@@ -25,3 +33,12 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     message: "An unexpected error occurred."
   });
 };
+
+function isSqliteConstraintError(error: unknown) {
+  return (
+    error instanceof Error &&
+    ("code" in error || "message" in error) &&
+    (String((error as { code?: unknown }).code).includes("SQLITE_CONSTRAINT") ||
+      error.message.includes("constraint failed"))
+  );
+}
