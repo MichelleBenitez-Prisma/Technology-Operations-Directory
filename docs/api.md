@@ -51,13 +51,13 @@ Repository-level validation errors, such as an unknown category, return:
 
 Use these API values:
 
-| API Value | Display Label |
-| --- | --- |
-| `active` | Active |
-| `development` | Development |
-| `being_replaced` | Being Replaced |
+| API Value          | Display Label    |
+| ------------------ | ---------------- |
+| `active`           | Active           |
+| `development`      | Development      |
+| `being_replaced`   | Being Replaced   |
 | `maintenance_only` | Maintenance Only |
-| `retired` | Retired |
+| `retired`          | Retired          |
 
 Archived records are tracked separately with `archived_at`.
 
@@ -140,6 +140,8 @@ Request body:
   "passwordVaultReference": "Vault/Technology/PayrollApi",
   "renewalDate": "2026-12-31",
   "lastReviewDate": "2026-06-18",
+  "replacementSystem": "Enterprise Payroll Platform",
+  "retirementNotes": "Retain until replacement reporting is fully validated.",
   "notes": "Initial record."
 }
 ```
@@ -223,22 +225,22 @@ GET /api/systems
 
 Supported query parameters:
 
-| Parameter | Description |
-| --- | --- |
-| `search` | Searches system name, description, category, department, owner, vendor, support, hosting, server, database, and notes. |
-| `categoryCode` | Filters by category code. |
-| `status` | Filters by system status. |
-| `businessDepartment` | Filters by business department. |
-| `vendor` | Filters by vendor. |
-| `technicalOwner` | Filters by technical owner. |
-| `hostingLocation` | Filters by hosting location. |
-| `includeArchived` | Includes archived records when `true`. |
-| `archivedOnly` | Returns only archived records when `true`. |
-| `incompleteOnly` | Returns only incomplete records when `true`. |
-| `sortBy` | Sort field. |
-| `sortDirection` | `asc` or `desc`. |
-| `limit` | Page size, from 1 to 100. |
-| `offset` | Starting row offset. |
+| Parameter            | Description                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `search`             | Searches system name, description, category, department, owner, vendor, support, hosting, server, database, and notes. |
+| `categoryCode`       | Filters by category code.                                                                                              |
+| `status`             | Filters by system status.                                                                                              |
+| `businessDepartment` | Filters by business department.                                                                                        |
+| `vendor`             | Filters by vendor.                                                                                                     |
+| `technicalOwner`     | Filters by technical owner.                                                                                            |
+| `hostingLocation`    | Filters by hosting location.                                                                                           |
+| `includeArchived`    | Includes archived records when `true`.                                                                                 |
+| `archivedOnly`       | Returns only archived records when `true`.                                                                             |
+| `incompleteOnly`     | Returns only incomplete records when `true`.                                                                           |
+| `sortBy`             | Sort field.                                                                                                            |
+| `sortDirection`      | `asc` or `desc`.                                                                                                       |
+| `limit`              | Page size, from 1 to 100.                                                                                              |
+| `offset`             | Starting row offset.                                                                                                   |
 
 Supported `sortBy` values:
 

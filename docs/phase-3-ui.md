@@ -10,6 +10,9 @@ Location:
 client/src/DashboardApp.tsx
 ```
 
+The same React entry point now also includes the Phase 3 system list, system
+detail page, add-system form, edit-system form, and archive action.
+
 The dashboard is designed for quick operational scanning. It includes:
 
 - Total systems
@@ -76,3 +79,14 @@ npm start
 
 After a production build, Express serves the dashboard from `dist/client`.
 
+## Phase Three Screens
+
+- Dashboard: `#/`
+- Systems list: `#/systems`
+- Add system: `#/systems/new`
+- System detail: `#/systems/:id`
+- Edit system: `#/systems/:id/edit`
+
+The systems list supports search, category filtering, status filtering,
+technical-owner filtering, vendor filtering, incomplete-record filtering,
+archive visibility, and sorting.

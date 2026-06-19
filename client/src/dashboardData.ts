@@ -57,10 +57,9 @@ export function getRecentlyUpdated(records: SystemRecord[], limit = 6) {
 }
 
 export function getRecordHref(record: SystemRecord) {
-  return `/api/system-records/${record.id}`;
+  return `#/systems/${record.id}`;
 }
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
-

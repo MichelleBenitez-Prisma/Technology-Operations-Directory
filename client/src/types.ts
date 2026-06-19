@@ -27,12 +27,56 @@ export type SystemRecord = {
   password_vault_reference: string | null;
   renewal_date: string | null;
   last_review_date: string | null;
+  replacement_system: string | null;
+  retirement_notes: string | null;
   notes: string | null;
   archived_at: string | null;
   is_incomplete: 0 | 1;
   missing_fields: string;
   created_at: string;
   updated_at: string;
+};
+
+export type SystemRecordFormInput = {
+  systemName: string;
+  description: string;
+  categoryCode: string;
+  status: SystemStatus;
+  businessDepartment: string;
+  departmentOwner: string;
+  technicalOwner: string;
+  vendor: string;
+  supportContact: string;
+  hostingLocation: string;
+  serverName: string;
+  databaseName: string;
+  productionUrl: string;
+  testUrl: string;
+  documentationLink: string;
+  passwordVaultReference: string;
+  renewalDate: string;
+  lastReviewDate: string;
+  replacementSystem: string;
+  retirementNotes: string;
+  notes: string;
+};
+
+export type SystemRecordWarning = {
+  code: "duplicate_system_name";
+  message: string;
+  matchingSystemIds: number[];
+};
+
+export type SystemRecordMutationResult = {
+  data: SystemRecord;
+  warnings: SystemRecordWarning[];
+};
+
+export type AssetType = {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
 };
 
 export type DashboardTotals = {

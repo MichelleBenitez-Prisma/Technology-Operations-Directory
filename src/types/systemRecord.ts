@@ -67,6 +67,8 @@ export type SystemRecord = {
   password_vault_reference: string | null;
   renewal_date: string | null;
   last_review_date: string | null;
+  replacement_system: string | null;
+  retirement_notes: string | null;
   notes: string | null;
   archived_at: string | null;
   is_incomplete: 0 | 1;
@@ -94,6 +96,8 @@ export type CreateSystemRecordInput = {
   passwordVaultReference?: string | null;
   renewalDate?: string | null;
   lastReviewDate?: string | null;
+  replacementSystem?: string | null;
+  retirementNotes?: string | null;
   notes?: string | null;
 };
 

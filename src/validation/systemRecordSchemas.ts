@@ -67,6 +67,8 @@ export const createSystemRecordSchema = z.object({
   passwordVaultReference: nullableText,
   renewalDate: nullableDate,
   lastReviewDate: nullableDate,
+  replacementSystem: nullableText,
+  retirementNotes: nullableText,
   notes: nullableText
 });
 

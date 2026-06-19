@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -22,6 +22,8 @@ type TestSystemRecord = {
   system_name: string;
   status: string;
   business_department: string | null;
+  replacement_system?: string | null;
+  retirement_notes?: string | null;
   archived_at?: string | null;
 };
 
@@ -112,6 +114,8 @@ test("system records API supports main phase two flows", async () => {
       passwordVaultReference: "Vault/Technology/PayrollApi",
       renewalDate: "2026-12-31",
       lastReviewDate: "2026-06-18",
+      replacementSystem: "Enterprise Payroll Platform",
+      retirementNotes: "Retain until replacement reporting is fully validated.",
       notes: "Initial API test record."
     };
 
@@ -122,6 +126,11 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(created.status, 201);
     const createdData = getResponseData<TestSystemRecord>(created);
     assert.equal(createdData.system_name, "Payroll API");
+    assert.equal(createdData.replacement_system, "Enterprise Payroll Platform");
+    assert.equal(
+      createdData.retirement_notes,
+      "Retain until replacement reporting is fully validated."
+    );
     assert.deepEqual(getResponseWarnings(created), []);
     const systemId = Number(createdData.id);
 
@@ -166,13 +175,20 @@ test("system records API supports main phase two flows", async () => {
       method: "PATCH",
       body: {
         status: "maintenance_only",
-        businessDepartment: "Finance Operations"
+        businessDepartment: "Finance Operations",
+        replacementSystem: "Acquirer Payroll Suite",
+        retirementNotes: "Inventory record retained for IT replacement tracking."
       }
     });
     assert.equal(updated.status, 200);
     const updatedData = getResponseData<TestSystemRecord>(updated);
     assert.equal(updatedData.status, "maintenance_only");
     assert.equal(updatedData.business_department, "Finance Operations");
+    assert.equal(updatedData.replacement_system, "Acquirer Payroll Suite");
+    assert.equal(
+      updatedData.retirement_notes,
+      "Inventory record retained for IT replacement tracking."
+    );
 
     const incompleteCreated = await requestJson(baseUrl, "/api/system-records", {
       method: "POST",
@@ -234,10 +250,22 @@ function createTestDatabase(databasePath: string) {
   const database = new DatabaseSync(databasePath);
   const schemaSql = readFileSync(path.join(projectRoot, "database", "schema.sql"), "utf8");
   const seedSql = readFileSync(path.join(projectRoot, "database", "seed.sql"), "utf8");
+  const migrationsDirectory = path.join(projectRoot, "database", "migrations");
 
   database.exec("PRAGMA foreign_keys = ON;");
   database.exec(schemaSql);
   database.exec(seedSql);
+
+  if (existsSync(migrationsDirectory)) {
+    const migrationFiles = readdirSync(migrationsDirectory)
+      .filter((fileName) => fileName.toLowerCase().endsWith(".sql"))
+      .sort((left, right) => left.localeCompare(right));
+
+    for (const fileName of migrationFiles) {
+      database.exec(readFileSync(path.join(migrationsDirectory, fileName), "utf8"));
+    }
+  }
+
   database.close();
 }
 

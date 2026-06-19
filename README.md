@@ -24,11 +24,22 @@ Phase one establishes the foundation for the application:
 - Initial project README
 
 Phase two begins the application code with a Node.js, Express, and TypeScript backend scaffold.
+Phase three adds the core React interface for dashboard review, system list search,
+system detail pages, add/edit forms, and archive handling.
 
 ## Repository Structure
 
 ```text
 .
++-- client/
+|   +-- index.html
+|   +-- src/
+|       +-- DashboardApp.tsx
+|       +-- api.ts
+|       +-- dashboardData.ts
+|       +-- main.tsx
+|       +-- styles.css
+|       +-- types.ts
 +-- database/
 |   +-- migrations/
 |   +-- schema.sql
@@ -64,7 +75,9 @@ Phase two begins the application code with a Node.js, Express, and TypeScript ba
 +-- eslint.config.js
 +-- package.json
 +-- README.md
++-- tsconfig.client.json
 +-- tsconfig.json
++-- vite.config.ts
 ```
 
 ## GitHub Repository Setup
@@ -253,8 +266,11 @@ Initial system record fields:
 - `renewalDate`
 - `lastReviewDate`
 - `notes`
+- `replacementSystem`
+- `retirementNotes`
 
 `systemName`, `description`, `categoryCode`, and `status` are required by the initial API validation.
+`replacementSystem` and `retirementNotes` support tracking old inventory and replacement activity during system retirement.
 
 Validation before save:
 
@@ -285,7 +301,7 @@ Create and update responses use this shape:
 
 ## Suggested Next Phases
 
-1. Build detailed system record pages and edit forms.
+1. Complete polish and testing for the Phase 3 system list, detail, add, edit, and archive workflows.
 2. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
 3. Add review workflows.
 4. Add authentication and role-based access before storing sensitive internal data.

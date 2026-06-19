@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
@@ -23,6 +23,7 @@ const schemaSql = readFileSync(path.join(projectRoot, "database", "schema.sql"),
 const seedSql = readFileSync(path.join(projectRoot, "database", "seed.sql"), "utf8");
 
 const database = new DatabaseSync(databasePath);
+const migrationsDirectory = path.join(projectRoot, "database", "migrations");
 
 database.exec("PRAGMA foreign_keys = ON;");
 database.exec(schemaSql);
@@ -47,6 +48,32 @@ database
     checksum: createHash("sha256").update(schemaSql).digest("hex")
   });
 database.exec(seedSql);
+
+const migrationFiles = existsSync(migrationsDirectory)
+  ? readdirSync(migrationsDirectory)
+      .filter((fileName) => fileName.toLowerCase().endsWith(".sql"))
+      .sort((left, right) => left.localeCompare(right))
+  : [];
+
+for (const fileName of migrationFiles) {
+  const version = path.basename(fileName, path.extname(fileName));
+  const migrationPath = path.join(migrationsDirectory, fileName);
+  const migrationSql = readFileSync(migrationPath, "utf8");
+
+  database.exec(migrationSql);
+  database
+    .prepare(
+      `
+      INSERT OR IGNORE INTO schema_migrations (version, name, checksum)
+      VALUES ($version, $name, $checksum)
+      `
+    )
+    .run({
+      version,
+      name: fileName,
+      checksum: createHash("sha256").update(migrationSql).digest("hex")
+    });
+}
 
 const assetTypeCount = database.prepare("SELECT COUNT(*) AS count FROM asset_types").get().count;
 

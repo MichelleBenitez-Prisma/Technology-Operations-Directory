@@ -55,6 +55,8 @@ const SYSTEM_DETAIL_FIELDS = {
   testUrl: "test_url",
   passwordVaultReference: "password_vault_reference",
   renewalDate: "renewal_date",
+  replacementSystem: "replacement_system",
+  retirementNotes: "retirement_notes",
   notes: "notes"
 } as const;
 
@@ -517,6 +519,8 @@ function insertSystemRecordDetails(assetId: number, input: CreateSystemRecordInp
         test_url,
         password_vault_reference,
         renewal_date,
+        replacement_system,
+        retirement_notes,
         notes
       )
       VALUES (
@@ -532,6 +536,8 @@ function insertSystemRecordDetails(assetId: number, input: CreateSystemRecordInp
         $testUrl,
         $passwordVaultReference,
         $renewalDate,
+        $replacementSystem,
+        $retirementNotes,
         $notes
       )
       `
@@ -549,6 +555,8 @@ function insertSystemRecordDetails(assetId: number, input: CreateSystemRecordInp
       testUrl: input.testUrl ?? null,
       passwordVaultReference: input.passwordVaultReference ?? null,
       renewalDate: input.renewalDate ?? null,
+      replacementSystem: input.replacementSystem ?? null,
+      retirementNotes: input.retirementNotes ?? null,
       notes: input.notes ?? null
     });
 }
