@@ -1,36 +1,22 @@
 import { z } from "zod";
 
-import {
-  SYSTEM_RECORD_SORT_FIELDS,
-  SYSTEM_STATUSES
-} from "../types/systemRecord.js";
+import { SYSTEM_RECORD_SORT_FIELDS, SYSTEM_STATUSES } from "../types/systemRecord.js";
 
 const requiredText = z.string().trim().min(1, "This field is required.");
-const nullableText = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim() === "") {
-      return null;
-    }
+const nullableText = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
 
-    return value;
-  },
-  z.string().trim().nullable().optional()
-);
-const nullableDate = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim() === "") {
-      return null;
-    }
+  return value;
+}, z.string().trim().nullable().optional());
+const nullableDate = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
 
-    return value;
-  },
-  z
-    .string()
-    .trim()
-    .refine(isValidDateString, "Use YYYY-MM-DD format with a real calendar date.")
-    .nullable()
-    .optional()
-);
+  return value;
+}, z.string().trim().refine(isValidDateString, "Use YYYY-MM-DD format with a real calendar date.").nullable().optional());
 const nullableUrl = z.preprocess(
   (value) => {
     if (typeof value === "string" && value.trim() === "") {
@@ -120,8 +106,6 @@ function isValidDateString(value: string) {
   const date = new Date(Date.UTC(year, month - 1, day));
 
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }

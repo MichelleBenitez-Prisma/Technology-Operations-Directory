@@ -9,4 +9,3 @@ assetTypesRouter.get("/", (_request, response) => {
     data: listAssetTypes()
   });
 });
-

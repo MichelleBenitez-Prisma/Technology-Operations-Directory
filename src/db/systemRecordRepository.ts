@@ -86,10 +86,7 @@ export function listIncompleteSystemRecords(filters: ListSystemRecordsFilters) {
   });
 }
 
-export function findSystemRecordById(
-  id: number,
-  options: { includeArchived?: boolean } = {}
-) {
+export function findSystemRecordById(id: number, options: { includeArchived?: boolean } = {}) {
   const archivedClause = options.includeArchived ? "" : "AND archived_at IS NULL";
 
   return queryOne<SystemRecord>(
@@ -103,9 +100,7 @@ export function findSystemRecordById(
   );
 }
 
-export function createSystemRecord(
-  input: CreateSystemRecordInput
-): SystemRecordMutationResult {
+export function createSystemRecord(input: CreateSystemRecordInput): SystemRecordMutationResult {
   const assetType = findAssetTypeByCode(input.categoryCode);
 
   if (!assetType) {
@@ -189,10 +184,7 @@ export function updateSystemRecord(
     return undefined;
   }
 
-  const warnings = buildDuplicateSystemNameWarnings(
-    input.systemName ?? existing.system_name,
-    id
-  );
+  const warnings = buildDuplicateSystemNameWarnings(input.systemName ?? existing.system_name, id);
   const database = getDatabase();
   database.exec("BEGIN");
 
@@ -319,36 +311,41 @@ export function deleteSystemRecord(id: number) {
 }
 
 export function getSystemRecordDashboardTotals() {
-  const total = queryOne<{ count: number }>(
-    "SELECT COUNT(*) AS count FROM system_record_view WHERE archived_at IS NULL"
-  )?.count ?? 0;
-  const archived = queryOne<{ count: number }>(
-    "SELECT COUNT(*) AS count FROM system_record_view WHERE archived_at IS NOT NULL"
-  )?.count ?? 0;
-  const incomplete = queryOne<{ count: number }>(
-    `
+  const total =
+    queryOne<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM system_record_view WHERE archived_at IS NULL"
+    )?.count ?? 0;
+  const archived =
+    queryOne<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM system_record_view WHERE archived_at IS NOT NULL"
+    )?.count ?? 0;
+  const incomplete =
+    queryOne<{ count: number }>(
+      `
     SELECT COUNT(*) AS count
     FROM system_record_view
     WHERE archived_at IS NULL
       AND is_incomplete = 1
     `
-  )?.count ?? 0;
-  const missingDocumentation = queryOne<{ count: number }>(
-    `
+    )?.count ?? 0;
+  const missingDocumentation =
+    queryOne<{ count: number }>(
+      `
     SELECT COUNT(*) AS count
     FROM system_record_view
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(documentation_url, '')), '') IS NULL
     `
-  )?.count ?? 0;
-  const withoutTechnicalOwner = queryOne<{ count: number }>(
-    `
+    )?.count ?? 0;
+  const withoutTechnicalOwner =
+    queryOne<{ count: number }>(
+      `
     SELECT COUNT(*) AS count
     FROM system_record_view
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(technical_owner, '')), '') IS NULL
     `
-  )?.count ?? 0;
+    )?.count ?? 0;
   const byStatusRows = queryAll<{ status: string; count: number }>(
     `
     SELECT status, COUNT(*) AS count
@@ -358,9 +355,7 @@ export function getSystemRecordDashboardTotals() {
     ORDER BY status
     `
   );
-  const byStatusLookup = new Map(
-    byStatusRows.map((row) => [row.status, row.count] as const)
-  );
+  const byStatusLookup = new Map(byStatusRows.map((row) => [row.status, row.count] as const));
   const byStatus = SYSTEM_STATUSES.map((status) => ({
     status,
     label: SYSTEM_STATUS_LABELS[status],
@@ -597,10 +592,9 @@ function createUniqueAssetKey(systemName: string) {
   let suffix = 2;
 
   while (
-    queryOne<{ id: number }>(
-      "SELECT id FROM technology_assets WHERE asset_key = $assetKey",
-      { assetKey: candidate }
-    )
+    queryOne<{ id: number }>("SELECT id FROM technology_assets WHERE asset_key = $assetKey", {
+      assetKey: candidate
+    })
   ) {
     candidate = `${baseKey}-${suffix}`;
     suffix += 1;

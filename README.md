@@ -30,6 +30,7 @@ Phase two begins the application code with a Node.js, Express, and TypeScript ba
 ```text
 .
 +-- database/
+|   +-- migrations/
 |   +-- schema.sql
 |   +-- seed.sql
 +-- docs/
@@ -38,12 +39,14 @@ Phase two begins the application code with a Node.js, Express, and TypeScript ba
 |   +-- api.md
 |   +-- database-diagram.md
 |   +-- development-task-list.md
+|   +-- phase-2-audit.md
 |   +-- phase-2-deliverables.md
 |   +-- phase-3-ui.md
 |   +-- requirements-summary.md
 |   +-- wireframes.md
 +-- scripts/
 |   +-- init-database.mjs
+|   +-- migrate-database.mjs
 +-- src/
 |   +-- app.ts
 |   +-- server.ts
@@ -56,6 +59,9 @@ Phase two begins the application code with a Node.js, Express, and TypeScript ba
 +-- .env.example
 +-- .gitattributes
 +-- .gitignore
++-- .prettierignore
++-- .prettierrc.json
++-- eslint.config.js
 +-- package.json
 +-- README.md
 +-- tsconfig.json
@@ -105,6 +111,7 @@ Planning deliverables:
 - `docs/wireframes.md`
 - `docs/database-diagram.md`
 - `docs/development-task-list.md`
+- `docs/phase-2-audit.md`
 - `docs/phase-2-deliverables.md`
 - `docs/phase-3-ui.md`
 
@@ -134,6 +141,19 @@ Use this to rebuild the database from scratch:
 npm run db:reset
 ```
 
+Schema changes after the baseline should be added as numbered `.sql` files in
+`database/migrations/` and applied with:
+
+```bash
+npm run db:migrate
+```
+
+Check the database migration state with:
+
+```bash
+npm run db:migrate:status
+```
+
 ## Backend API
 
 The phase-two backend scaffold uses Node.js, Express, and TypeScript.
@@ -143,6 +163,9 @@ Initial scripts:
 ```bash
 npm install
 npm run db:init
+npm run db:migrate:status
+npm run lint:api
+npm run format:api:check
 npm test
 npm run dev
 ```
@@ -262,11 +285,10 @@ Create and update responses use this shape:
 
 ## Suggested Next Phases
 
-1. Add a SQLite migration runner.
-2. Build detailed system record pages and edit forms.
-3. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
-4. Add review workflows.
-5. Add authentication and role-based access before storing sensitive internal data.
+1. Build detailed system record pages and edit forms.
+2. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
+3. Add review workflows.
+4. Add authentication and role-based access before storing sensitive internal data.
 
 ## Security Notes
 

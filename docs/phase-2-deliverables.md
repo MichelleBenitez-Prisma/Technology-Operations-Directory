@@ -5,7 +5,9 @@ This document tracks whether the phase-two backend deliverables are complete.
 | Deliverable | Status | Evidence |
 | --- | --- | --- |
 | Working SQLite database | Complete | `npm run db:init` and `npm run db:reset` create `data/technology_operations_directory.sqlite`. |
-| Database creation scripts or migrations | Complete | `scripts/init-database.mjs` builds the database from `database/schema.sql` and `database/seed.sql`. |
+| Database creation scripts or migrations | Complete | `scripts/init-database.mjs` builds the database from `database/schema.sql` and `database/seed.sql`. `scripts/migrate-database.mjs` records the baseline schema and applies future files from `database/migrations/`. |
+| Migration runner for schema changes | Complete | `npm run db:migrate` applies pending schema migrations. `npm run db:migrate:status` reports applied and pending migrations. |
+| Backend linting and formatting | Complete | `eslint.config.js`, `.prettierrc.json`, `.prettierignore`, `npm run lint:api`, `npm run format:api`, and `npm run format:api:check` cover backend TypeScript, tests, and Node scripts. |
 | Working backend API | Complete | Express app in `src/app.ts` and server entry point in `src/server.ts`. |
 | Input validation | Complete | `src/validation/systemRecordSchemas.ts` validates required fields, URLs, dates, status values, and request query options. Category validation occurs before save in `src/db/systemRecordRepository.ts`. Duplicate system names return warnings. |
 | Error handling | Complete | `src/middleware/errorHandler.ts` returns structured validation and server errors. Routes also return 400, 404, 201, 204, and 200 responses as appropriate. |
@@ -19,7 +21,10 @@ Run these from the project root:
 ```bash
 npm install
 npm run db:reset
+npm run db:migrate:status
 npm run typecheck
+npm run lint:api
+npm run format:api:check
 npm test
 npm run dev
 ```
@@ -29,4 +34,3 @@ The API runs locally at:
 ```text
 http://localhost:3001
 ```
-

@@ -8,4 +8,3 @@ healthRouter.get("/", (_request, response) => {
     service: "technology-operations-directory-api"
   });
 });
-

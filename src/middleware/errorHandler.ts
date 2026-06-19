@@ -25,4 +25,3 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     message: "An unexpected error occurred."
   });
 };
-

@@ -27,4 +27,3 @@ export function findAssetTypeByCode(code: string) {
     { code }
   );
 }
-

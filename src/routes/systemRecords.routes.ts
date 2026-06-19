@@ -131,11 +131,7 @@ systemRecordsRouter.delete("/:id", (request, response) => {
   response.status(204).send();
 });
 
-function updateSystemRecordHandler(
-  rawId: string | undefined,
-  body: unknown,
-  response: Response
-) {
+function updateSystemRecordHandler(rawId: string | undefined, body: unknown, response: Response) {
   const id = parseSystemRecordId(rawId);
 
   if (!id) {

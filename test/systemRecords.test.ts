@@ -14,7 +14,30 @@ const projectRoot = path.resolve(__dirname, "..");
 
 type JsonResponse = {
   status: number;
-  body: Record<string, any> | undefined;
+  body: Record<string, unknown> | undefined;
+};
+
+type TestSystemRecord = {
+  id: number;
+  system_name: string;
+  status: string;
+  business_department: string | null;
+  archived_at?: string | null;
+};
+
+type TestWarning = {
+  code: string;
+  matchingSystemIds: number[];
+};
+
+type TestDashboardTotals = {
+  total: number;
+  byStatus: unknown[];
+  incomplete: number;
+  missingDocumentation: number;
+  withoutTechnicalOwner: number;
+  upcomingRenewals: unknown[];
+  recentlyUpdated: unknown[];
 };
 
 test("system records API supports main phase two flows", async () => {
@@ -97,9 +120,10 @@ test("system records API supports main phase two flows", async () => {
       body: createPayload
     });
     assert.equal(created.status, 201);
-    assert.equal(created.body?.data.system_name, "Payroll API");
-    assert.deepEqual(created.body?.warnings, []);
-    const systemId = Number(created.body?.data.id);
+    const createdData = getResponseData<TestSystemRecord>(created);
+    assert.equal(createdData.system_name, "Payroll API");
+    assert.deepEqual(getResponseWarnings(created), []);
+    const systemId = Number(createdData.id);
 
     const duplicate = await requestJson(baseUrl, "/api/system-records", {
       method: "POST",
@@ -109,20 +133,18 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(duplicate.status, 201);
-    assert.equal(duplicate.body?.warnings[0].code, "duplicate_system_name");
-    assert.deepEqual(duplicate.body?.warnings[0].matchingSystemIds, [systemId]);
-    const duplicateId = Number(duplicate.body?.data.id);
+    const duplicateWarnings = getResponseWarnings(duplicate);
+    assert.equal(duplicateWarnings[0]?.code, "duplicate_system_name");
+    assert.deepEqual(duplicateWarnings[0]?.matchingSystemIds, [systemId]);
+    const duplicateId = Number(getResponseData<TestSystemRecord>(duplicate).id);
 
     const retrieved = await requestJson(baseUrl, `/api/system-records/${systemId}`);
     assert.equal(retrieved.status, 200);
-    assert.equal(retrieved.body?.data.id, systemId);
+    assert.equal(getResponseData<TestSystemRecord>(retrieved).id, systemId);
 
-    const searched = await requestJson(
-      baseUrl,
-      "/api/system-records?search=payroll"
-    );
+    const searched = await requestJson(baseUrl, "/api/system-records?search=payroll");
     assert.equal(searched.status, 200);
-    assert.ok((searched.body?.data as any[]).length >= 2);
+    assert.ok(getResponseData<TestSystemRecord[]>(searched).length >= 2);
 
     const filtered = await requestJson(
       baseUrl,
@@ -130,7 +152,7 @@ test("system records API supports main phase two flows", async () => {
     );
     assert.equal(filtered.status, 200);
     assert.ok(
-      (filtered.body?.data as any[]).some((record) => record.id === systemId)
+      getResponseData<TestSystemRecord[]>(filtered).some((record) => record.id === systemId)
     );
 
     const sorted = await requestJson(
@@ -148,8 +170,9 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(updated.status, 200);
-    assert.equal(updated.body?.data.status, "maintenance_only");
-    assert.equal(updated.body?.data.business_department, "Finance Operations");
+    const updatedData = getResponseData<TestSystemRecord>(updated);
+    assert.equal(updatedData.status, "maintenance_only");
+    assert.equal(updatedData.business_department, "Finance Operations");
 
     const incompleteCreated = await requestJson(baseUrl, "/api/system-records", {
       method: "POST",
@@ -165,43 +188,32 @@ test("system records API supports main phase two flows", async () => {
     const incomplete = await requestJson(baseUrl, "/api/system-records/incomplete");
     assert.equal(incomplete.status, 200);
     assert.ok(
-      (incomplete.body?.data as any[]).some(
+      getResponseData<TestSystemRecord[]>(incomplete).some(
         (record) => record.system_name === "Incomplete Internal Tool"
       )
     );
 
-    const dashboard = await requestJson(
-      baseUrl,
-      "/api/system-records/dashboard-totals"
-    );
+    const dashboard = await requestJson(baseUrl, "/api/system-records/dashboard-totals");
     assert.equal(dashboard.status, 200);
-    assert.ok(dashboard.body?.data.total >= 3);
-    assert.equal(dashboard.body?.data.byStatus.length, 5);
-    assert.ok(dashboard.body?.data.incomplete >= 1);
-    assert.ok(dashboard.body?.data.missingDocumentation >= 1);
-    assert.ok(dashboard.body?.data.withoutTechnicalOwner >= 1);
-    assert.ok(Array.isArray(dashboard.body?.data.upcomingRenewals));
-    assert.ok(Array.isArray(dashboard.body?.data.recentlyUpdated));
+    const dashboardData = getResponseData<TestDashboardTotals>(dashboard);
+    assert.ok(dashboardData.total >= 3);
+    assert.equal(dashboardData.byStatus.length, 5);
+    assert.ok(dashboardData.incomplete >= 1);
+    assert.ok(dashboardData.missingDocumentation >= 1);
+    assert.ok(dashboardData.withoutTechnicalOwner >= 1);
+    assert.ok(Array.isArray(dashboardData.upcomingRenewals));
+    assert.ok(Array.isArray(dashboardData.recentlyUpdated));
 
-    const archived = await requestJson(
-      baseUrl,
-      `/api/system-records/${duplicateId}/archive`,
-      {
-        method: "POST"
-      }
-    );
+    const archived = await requestJson(baseUrl, `/api/system-records/${duplicateId}/archive`, {
+      method: "POST"
+    });
     assert.equal(archived.status, 200);
-    assert.ok(archived.body?.data.archived_at);
+    assert.ok(getResponseData<TestSystemRecord>(archived).archived_at);
 
-    const archivedOnly = await requestJson(
-      baseUrl,
-      "/api/system-records?archivedOnly=true"
-    );
+    const archivedOnly = await requestJson(baseUrl, "/api/system-records?archivedOnly=true");
     assert.equal(archivedOnly.status, 200);
     assert.ok(
-      (archivedOnly.body?.data as any[]).some(
-        (record) => record.id === duplicateId
-      )
+      getResponseData<TestSystemRecord[]>(archivedOnly).some((record) => record.id === duplicateId)
     );
 
     const deleted = await requestJson(baseUrl, `/api/system-records/${duplicateId}`, {
@@ -209,10 +221,7 @@ test("system records API supports main phase two flows", async () => {
     });
     assert.equal(deleted.status, 204);
 
-    const deletedLookup = await requestJson(
-      baseUrl,
-      `/api/system-records/${duplicateId}`
-    );
+    const deletedLookup = await requestJson(baseUrl, `/api/system-records/${duplicateId}`);
     assert.equal(deletedLookup.status, 404);
   } finally {
     await closeServer(server);
@@ -223,14 +232,8 @@ test("system records API supports main phase two flows", async () => {
 
 function createTestDatabase(databasePath: string) {
   const database = new DatabaseSync(databasePath);
-  const schemaSql = readFileSync(
-    path.join(projectRoot, "database", "schema.sql"),
-    "utf8"
-  );
-  const seedSql = readFileSync(
-    path.join(projectRoot, "database", "seed.sql"),
-    "utf8"
-  );
+  const schemaSql = readFileSync(path.join(projectRoot, "database", "schema.sql"), "utf8");
+  const seedSql = readFileSync(path.join(projectRoot, "database", "seed.sql"), "utf8");
 
   database.exec("PRAGMA foreign_keys = ON;");
   database.exec(schemaSql);
@@ -264,6 +267,19 @@ async function requestJson(
     status: response.status,
     body: text ? JSON.parse(text) : undefined
   };
+}
+
+function getResponseData<T>(response: JsonResponse) {
+  assert.ok(response.body);
+  assert.ok("data" in response.body);
+
+  return response.body.data as T;
+}
+
+function getResponseWarnings(response: JsonResponse) {
+  assert.ok(response.body);
+
+  return (response.body.warnings ?? []) as TestWarning[];
 }
 
 async function closeServer(server: Server) {

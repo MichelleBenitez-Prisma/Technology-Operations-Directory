@@ -17,10 +17,10 @@
 
 - [x] Scaffold Node.js, Express, and TypeScript backend.
 - [x] Add SQLite database connection module.
-- [ ] Add migration runner for schema changes.
+- [x] Add migration runner for schema changes.
 - [x] Add seed script for reference data.
 - [x] Add environment configuration files.
-- [ ] Add backend linting and formatting.
+- [x] Add backend linting and formatting.
 - [x] Add health check endpoint.
 
 ## Phase Three: Core API

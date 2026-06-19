@@ -101,4 +101,4 @@ SQLite FTS5 virtual table used for full-text search over the main asset catalog.
 
 ## Phase One Boundaries
 
-This schema is intentionally practical for a first version. Later phases may add authentication, audit logs, role-based access, file attachments, dependency mapping, richer review workflows, and migration tooling.
+This schema is intentionally practical for a first version. Later phases may add authentication, audit logs, role-based access, file attachments, dependency mapping, and richer review workflows. Schema changes should be added through the migration runner in `scripts/migrate-database.mjs`.

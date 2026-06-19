@@ -27,4 +27,3 @@ export const env = {
     process.env.DATABASE_PATH ?? "data/technology_operations_directory.sqlite"
   )
 };
-

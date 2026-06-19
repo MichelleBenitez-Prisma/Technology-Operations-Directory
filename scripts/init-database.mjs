@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -25,14 +26,31 @@ const database = new DatabaseSync(databasePath);
 
 database.exec("PRAGMA foreign_keys = ON;");
 database.exec(schemaSql);
+database.exec(`
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    version TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    checksum TEXT NOT NULL,
+    applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+database
+  .prepare(
+    `
+    INSERT OR IGNORE INTO schema_migrations (version, name, checksum)
+    VALUES ($version, $name, $checksum)
+    `
+  )
+  .run({
+    version: "000_initial_schema",
+    name: "Initial schema",
+    checksum: createHash("sha256").update(schemaSql).digest("hex")
+  });
 database.exec(seedSql);
 
-const assetTypeCount = database
-  .prepare("SELECT COUNT(*) AS count FROM asset_types")
-  .get().count;
+const assetTypeCount = database.prepare("SELECT COUNT(*) AS count FROM asset_types").get().count;
 
 database.close();
 
 console.log(`Database ready: ${databasePath}`);
 console.log(`Seeded asset types: ${assetTypeCount}`);
-

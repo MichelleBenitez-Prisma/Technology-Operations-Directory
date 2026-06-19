@@ -1,0 +1,7 @@
+client/
+coverage/
+data/
+dist/
+logs/
+node_modules/
+package-lock.json
