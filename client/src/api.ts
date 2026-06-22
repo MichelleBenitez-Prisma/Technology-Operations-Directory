@@ -40,6 +40,10 @@ export async function archiveSystem(id: number) {
   return mutateJson<{ data: SystemRecord }>(`/api/system-records/${id}/archive`, "POST");
 }
 
+export async function deleteSystem(id: number) {
+  await mutateEmpty(`/api/system-records/${id}`, "DELETE");
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
 
@@ -69,6 +73,15 @@ async function mutateJson<T>(
   return (await response.json()) as T;
 }
 
+async function mutateEmpty(path: string, method: "DELETE"): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method
+  });
+
+  if (!response.ok) {
+    throw await ApiError.fromResponse(response);
+  }
+}
 export class ApiError extends Error {
   issues: Array<{ path?: Array<string | number>; message: string }>;
 

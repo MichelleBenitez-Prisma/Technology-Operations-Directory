@@ -13,6 +13,7 @@ import {
   Save,
   Search,
   ShieldAlert,
+  Trash2,
   UserRoundX,
   X
 } from "lucide-react";
@@ -23,6 +24,7 @@ import {
   ApiError,
   archiveSystem,
   createSystem,
+  deleteSystem,
   fetchAssetTypes,
   fetchDashboardTotals,
   fetchSystem,
@@ -529,6 +531,7 @@ function SystemDetail({
   const [record, setRecord] = useState<SystemRecord | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setLoadState("loading");
@@ -565,6 +568,30 @@ function SystemDetail({
       window.alert("Unable to archive this system record.");
     } finally {
       setIsArchiving(false);
+    }
+  }
+
+  async function deleteCurrentSystem() {
+    if (!record) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${record.system_name}? This action cannot be undone.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteSystem(record.id);
+      navigate("#/systems");
+    } catch (error) {
+      console.error(error);
+      window.alert("Unable to delete this system record.");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -606,6 +633,14 @@ function SystemDetail({
           >
             <Archive size={16} aria-hidden="true" />
             {record.archived_at ? "Archived" : "Archive"}
+          </button>
+          <button
+            className="danger-button"
+            disabled={isDeleting}
+            onClick={() => void deleteCurrentSystem()}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </section>
