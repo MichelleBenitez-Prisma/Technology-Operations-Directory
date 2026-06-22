@@ -65,10 +65,10 @@
 - [x] Build add and edit system forms.
 - [x] Add archive action from the system detail page.
 - [x] Add replacement system and retirement notes fields for system lifecycle tracking.
-- [ ] Add delete action to the system detail page if permanent deletion is still required in the UI.
-- [ ] Add stronger frontend tests for dashboard, list, detail, form validation, and archive behavior.
-- [ ] Add sample records for visual review and demonstration.
-- [ ] Add user-facing documentation for using the Phase Three screens.
+- [x] Add delete action to the system detail page if permanent deletion is still required in the UI.
+- [x] Add stronger frontend tests for dashboard, list, detail, form validation, and archive behavior.
+- [x] Add sample records for visual review and demonstration.
+- [x] Add user-facing documentation for using the Phase Three screens.
 
 ## Phase Four: Frontend Foundation
 

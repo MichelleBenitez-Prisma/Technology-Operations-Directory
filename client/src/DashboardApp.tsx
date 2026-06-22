@@ -1172,7 +1172,11 @@ function TextAreaField({
 }
 
 function parseRoute(): Route {
-  const hash = window.location.hash.replace(/^#/, "");
+  return parseRouteFromHash(window.location.hash);
+}
+
+export function parseRouteFromHash(rawHash: string): Route {
+  const hash = rawHash.replace(/^#/, "");
   const [pathPart, queryPart] = hash.split("?");
   const path = pathPart || "/";
   const query = new URLSearchParams(queryPart ?? "");
@@ -1203,7 +1207,7 @@ function parseRoute(): Route {
   return { name: "systems", query };
 }
 
-function buildSystemsQuery(filters: {
+export function buildSystemsQuery(filters: {
   search: string;
   categoryCode: string;
   status: string;
@@ -1237,7 +1241,7 @@ function buildSystemsQuery(filters: {
   return query;
 }
 
-function createEmptyForm(): SystemRecordFormInput {
+ export function createEmptyForm(): SystemRecordFormInput {
   return {
     systemName: "",
     description: "",
@@ -1263,7 +1267,7 @@ function createEmptyForm(): SystemRecordFormInput {
   };
 }
 
-function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
+export function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
   return {
     systemName: record.system_name,
     description: record.description,
@@ -1289,7 +1293,7 @@ function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
   };
 }
 
-function mapApiIssues(error: ApiError) {
+export function mapApiIssues(error: ApiError) {
   if (error.issues.length === 0) {
     return {};
   }
