@@ -757,6 +757,12 @@ function VendorDetail({ id, navigate }: { id: number; navigate: (hash: string) =
 
         <DetailSection title="Contract and notes">
           <DetailItem label="Account representative" value={vendor.account_representative} />
+          <DetailItem label="Contract start date" value={formatDate(vendor.contract_start_date)} />
+          <DetailItem label="Contract end date" value={formatDate(vendor.contract_end_date)} />
+          <DetailItem
+            label="Renewal notice days"
+            value={vendor.renewal_notice_days === null ? null : String(vendor.renewal_notice_days)}
+          />
           <DetailItem label="Contract notes" value={vendor.contract_notes} />
           <DetailItem label="Renewal notes" value={vendor.renewal_notes} />
           <DetailItem label="General notes" value={vendor.notes} />
@@ -867,24 +873,27 @@ function VendorForm({
         <FormSection title="Vendor information">
           <VendorTextField
             label="Vendor name"
-            name="name"
+            name={"name" as unknown as keyof VendorFormInput}
             value={form.name}
             onChange={updateField}
             error={errors.name}
             required
           />
-          <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} />
-          <VendorTextField label="Support email" name="support_email" value={form.support_email} onChange={updateField} />
-          <VendorTextField label="Support phone number" name="support_phone" value={form.support_phone} onChange={updateField} />
-          <VendorTextField label="Support portal" name="support_portal_url" value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
-          <VendorTextField label="Account representative" name="account_representative" value={form.account_representative} onChange={updateField} />
-          <VendorTextArea label="Description" name="description" value={form.description} onChange={updateField} />
+          <VendorTextField label="Website" name={"website_url" as unknown as keyof VendorFormInput} value={form.website_url} onChange={updateField} error={errors.website_url} />
+          <VendorTextField label="Support email" name={"support_email" as unknown as keyof VendorFormInput} value={form.support_email} onChange={updateField} />
+          <VendorTextField label="Support phone number" name={"support_phone" as unknown as keyof VendorFormInput} value={form.support_phone} onChange={updateField} />
+          <VendorTextField label="Support portal" name={"support_portal_url" as unknown as keyof VendorFormInput} value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
+          <VendorTextField label="Account representative" name={"account_representative" as unknown as keyof VendorFormInput} value={form.account_representative} onChange={updateField} />
+          <VendorTextArea label="Description" name={"description" as unknown as keyof VendorFormInput} value={form.description} onChange={updateField} />
         </FormSection>
 
         <FormSection title="Contract and notes">
-          <VendorTextArea label="Contract notes" name="contract_notes" value={form.contract_notes} onChange={updateField} />
-          <VendorTextArea label="Renewal notes" name="renewal_notes" value={form.renewal_notes} onChange={updateField} />
-          <VendorTextArea label="General notes" name="notes" value={form.notes} onChange={updateField} />
+          <VendorTextField label="Contract start date" name={"contract_start_date" as unknown as keyof VendorFormInput} type="date" value={form.contract_start_date} onChange={updateField} error={errors.contract_start_date} />
+          <VendorTextField label="Contract end date" name={"contract_end_date" as unknown as keyof VendorFormInput} type="date" value={form.contract_end_date} onChange={updateField} error={errors.contract_end_date} />
+          <VendorTextField label="Renewal notice days" name={"renewal_notice_days" as unknown as keyof VendorFormInput} type="number" value={form.renewal_notice_days} onChange={updateField} error={errors.renewal_notice_days} />
+          <VendorTextArea label="Contract notes" name={"contract_notes" as unknown as keyof VendorFormInput} value={form.contract_notes} onChange={updateField} />
+          <VendorTextArea label="Renewal notes" name={"renewal_notes" as unknown as keyof VendorFormInput} value={form.renewal_notes} onChange={updateField} />
+          <VendorTextArea label="General notes" name={"notes" as unknown as keyof VendorFormInput} value={form.notes} onChange={updateField} />
         </FormSection>
 
         <div className="form-actions">
@@ -1561,6 +1570,7 @@ function VendorTextField({
   value,
   onChange,
   error,
+  type = "text",
   required
 }: {
   label: string;
@@ -1568,6 +1578,7 @@ function VendorTextField({
   value: string;
   onChange: (name: keyof VendorFormInput, value: string) => void;
   error?: string;
+  type?: string;
   required?: boolean;
 }) {
   return (
@@ -1576,7 +1587,12 @@ function VendorTextField({
         {label}
         {required ? " *" : ""}
       </span>
-      <input value={value} onChange={(event) => onChange(name, event.target.value)} required={required} />
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(name, event.target.value)}
+        required={required}
+      />
       {error ? <em>{error}</em> : null}
     </label>
   );
@@ -1771,7 +1787,10 @@ export function createEmptyVendorForm(): VendorFormInput {
     support_email: "",
     support_phone: "",
     support_portal_url: "",
-    account_representative: "",
+    account_representative: "", 
+    contract_start_date: "",
+    contract_end_date: "",
+    renewal_notice_days: "",
     contract_notes: "",
     renewal_notes: "",
     notes: ""
@@ -1787,6 +1806,9 @@ export function mapVendorToForm(vendor: Vendor): VendorFormInput {
     support_phone: vendor.support_phone ?? "",
     support_portal_url: vendor.support_portal_url ?? "",
     account_representative: vendor.account_representative ?? "",
+    contract_start_date: vendor.contract_start_date ??"",
+    contract_end_date: vendor.contract_end_date ?? "",
+    renewal_notice_days: vendor.renewal_notice_days === null ? "" : String(vendor.renewal_notice_days),
     contract_notes: vendor.contract_notes ?? "",
     renewal_notes: vendor.renewal_notes ?? "",
     notes: vendor.notes ?? ""

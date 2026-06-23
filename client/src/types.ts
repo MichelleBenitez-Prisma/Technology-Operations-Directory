@@ -110,6 +110,9 @@ export type VendorFormInput = {
   support_phone: string;
   support_portal_url: string;
   account_representative: string;
+  contract_start_date: string;
+  contract_end_date: string;
+  renewal_notice_days: string;
   contract_notes: string;
   renewal_notes: string;
   notes: string;

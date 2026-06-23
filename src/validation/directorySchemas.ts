@@ -52,6 +52,14 @@ const optionalId = z.preprocess((value) => {
   return value;
 }, z.number().int().positive().nullable().optional());
 
+const optionalNonNegativeInt = z.preprocess((value) => {
+  if (value === "" || value === null) {
+    return undefined;
+  }
+
+  return value;
+}, z.coerce.number().int().min(0).optional());
+
 const optionalActive = z.preprocess(
   (value) => {
     if (typeof value === "boolean") {
@@ -118,7 +126,7 @@ const vendorSchema = z.object({
   account_representative: optionalText,
   contract_start_date: optionalDate,
   contract_end_date: optionalDate,
-  renewal_notice_days: z.number().int().min(0).optional(),
+  renewal_notice_days: optionalNonNegativeInt,
   contract_notes: optionalText,
   renewal_notes: optionalText,
   notes: optionalText
