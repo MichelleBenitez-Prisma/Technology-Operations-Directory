@@ -1,3 +1,13 @@
+INSERT OR IGNORE INTO assest_types (code, name, description)
+    VALUES
+    ('software_application', 'Software Application', 'A software system used by employees or departments to perform business functions.'),
+    ('website', 'Website', 'A public or internal website accessed through a web browser.'),
+    ('database', 'Database', 'A structured data storage system used by applications and reporting tools.'),
+    ('scheduled_process', 'Scheduled Process', 'An automated job that runs at specific times or intervals.'),
+    ('internal_tool', 'Internal Tool', 'A tool developed or maintained primarily for internal employee use.'),
+    ('payment_service', 'Payment Service', 'A system used to process, validate, or manage payments.'),
+    ('production_system', 'Production System', 'A critical live system actively used for business operations.'); 
+
 INSERT OR IGNORE INTO technology_assests (
     asset_key,
     name,

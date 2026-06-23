@@ -5,10 +5,13 @@ export type DirectoryResourceConfig = {
   listOrderBy: string;
   allowedColumns: readonly string[];
   searchableColumns?: readonly string[];
+  supportsArchive?: boolean;
 };
 
 export type DirectoryListFilters = {
   search?: string | null;
+  includeArchived?: boolean;
+  archivedOnly?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -37,16 +40,38 @@ const RESOURCE_CONFIGS = {
     listOrderBy: "name ASC",
     allowedColumns: [
       "name",
+      "description",
       "website_url",
       "support_url",
+      "support_email",
+      "support_phone",
+      "support_portal_url",
       "account_manager_name",
       "account_manager_email",
+      "account_representative",
       "contract_start_date",
       "contract_end_date",
       "renewal_notice_days",
+      "contract_notes",
+      "renewal_notes",
       "notes"
     ],
-    searchableColumns: ["name", "website_url", "support_url", "account_manager_name", "notes"]
+     searchableColumns: [
+      "name",
+      "description",
+      "website_url",
+      "support_url",
+      "support_email",
+      "support_phone",
+      "support_portal_url",
+      "account_manager_name",
+      "account_manager_email",
+      "account_representative",
+      "contract_notes",
+      "renewal_notes",
+      "notes"
+    ],
+    supportsArchive: true
   },
   assetEnvironments: {
     tableName: "asset_environments",
@@ -132,7 +157,7 @@ const RESOURCE_CONFIGS = {
 
 export type DirectoryResourceName = keyof typeof RESOURCE_CONFIGS;
 
-export function getDirectoryResourceConfig(resourceName: DirectoryResourceName) {
+export function getDirectoryResourceConfig(resourceName: DirectoryResourceName): DirectoryResourceConfig {
   return RESOURCE_CONFIGS[resourceName];
 }
 
@@ -153,6 +178,14 @@ export function listDirectoryRows(
     );
     where.push(`(${searchParts.join(" OR ")})`);
     params.search = `%${filters.search.toLowerCase()}%`;
+  }
+
+  if (config.supportsArchive) {
+    if (filters.archivedOnly) {
+      where.push("archived_at IS NOT NULL");
+    } else if (!filters.includeArchived) {
+      where.push("archived_at IS NULL");
+    }
   }
 
   return queryAll<Record<string, unknown>>(
@@ -256,6 +289,34 @@ export function deleteDirectoryRow(resourceName: DirectoryResourceName, id: numb
   );
 
   return true;
+}
+
+export function archiveDirectoryRow(resourceName: DirectoryResourceName, id: number) {
+  const config = getDirectoryResourceConfig(resourceName);
+
+  // Some resource configs don't include the supportsArchive flag in their type.
+  // Treat missing flag as not supporting archive.
+  if (!("supportsArchive" in config) || !config.supportsArchive) {
+    throwValidationError("This resource does not support archive.");
+  }
+
+  const existing = findDirectoryRowById(resourceName, id);
+
+  if (!existing) {
+    return undefined;
+  }
+
+  execute(
+    `
+    UPDATE ${config.tableName}
+    SET archived_at = COALESCE(archived_at, CURRENT_TIMESTAMP),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $id
+    `,
+    { id }
+  );
+
+  return findDirectoryRowById(resourceName, id);
 }
 
 export function searchTechnologyAssets(searchTerm: string, limit = 25) {

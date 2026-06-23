@@ -142,11 +142,38 @@ Supported resources:
 
 List endpoints support:
 
-| Parameter | Description                                     |
-| --------- | ----------------------------------------------- |
-| `search`  | Searches the main text fields for the resource. |
-| `limit`   | Page size, from 1 to 100.                       |
-| `offset`  | Starting row offset.                            |
+| Parameter        | Description                                     |
+| -----------------| ----------------------------------------------- |
+| `search`         | Searches the main text fields for the resource. |
+| `includeArchived`| Includes archived vendors when `true`.          |
+| `archivedOnly`   | Returns only archived vendors when `true`.      |
+| `limit`          | Page size, from 1 to 100.                       |
+| `offset`         | Starting row offset.                            |
+
+### Vendor Directory
+
+```http
+POST /api/vendors/:id/archive
+```
+
+Archives a vendor by setting `archived_at`. Vendor list responses exclude archived vendors by default.
+
+Vendor create and update requests support:
+
+- `name`
+- `description`
+- `website_url`
+- `support_email`
+- `support_phone`
+- `support_portal_url`
+- `account_representative`
+- `contract_notes`
+- `renewal_notes`
+- `notes`
+
+Existing compatibility fields are still accepted, including `support_url`,
+`account_manager_name`, `account_manager_email`, `contract_start_date`,
+`contract_end_date`, and `renewal_notice_days`.
 
 ### Global Asset Search
 

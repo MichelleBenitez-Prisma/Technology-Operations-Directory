@@ -4,20 +4,26 @@ import {afterEach, test} from "node:test";
 
 import {
     archiveSystem,
+    archiveVendor,
+    createVendor,
     createSystem,
     deleteSystem,
     fetchDashboardTotals,
     fetchSystems,
+    fetchVendors,
 } from "../client/src/api.ts";
 import {
     buildSystemsQuery,
+    buildVendorsQuery,
     createEmptyForm,
+    createEmptyVendorForm,
     mapApiIssues,
     mapRecordToForm,
+    mapVendorToForm,
     parseRouteFromHash,
 } from "../client/src/DashboardApp.tsx";
 import { getRecordHref, getStatusCount } from "../client/src/dashboardData.ts";
-import type { DashboardTotals, SystemRecord } from '../client/src/types.ts';
+import type { DashboardTotals, SystemRecord, Vendor } from '../client/src/types.ts';
 
 const originalFetch = globalThis.fetch;
 
@@ -99,6 +105,30 @@ test("detail and form helpers map records and validation issues", async () => {
   });
 });
 
+test("vendor route, query, and form helpers preserve phase four fields", () => {
+  const route = parseRouteFromHash("#/vendors?search=print&includeArchived=true");
+
+  assert.equal(route.name, "vendors");
+
+  if (route.name === "vendors") {
+    assert.equal(route.query.get("search"), "print");
+  }
+
+  const query = buildVendorsQuery({ search: "print", includeArchived: true });
+  assert.equal(query.get("limit"), "100");
+  assert.equal(query.get("search"), "print");
+  assert.equal(query.get("includeArchived"), "true");
+
+  const form = mapVendorToForm(createVendorRecord());
+  assert.equal(form.name, "Print Vendor");
+  assert.equal(form.support_email, "support@vendor.example.com");
+  assert.equal(form.account_representative, "Vendor Account Team");
+  assert.equal(form.contract_notes, "Contract notes.");
+  assert.equal(form.renewal_notes, "Renewal notes.");
+
+  assert.equal(createEmptyVendorForm().name, "");
+});
+
 test("client API calls dashboard, list, create, archive, and delete endpoints", async () => {
   const calls: Array<{ method: string; url: string; body?: string }> = [];
 
@@ -124,6 +154,9 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await createSystem(createEmptyForm());
   await archiveSystem(7);
   await deleteSystem(7);
+  await fetchVendors("search=print&includeArchived=true");
+  await createVendor(createEmptyVendorForm());
+  await archiveVendor(9);
 
   assert.deepEqual(
     calls.map((call) => `${call.method} ${call.url}`),
@@ -132,7 +165,10 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "GET /api/system-records?search=payroll",
       "POST /api/system-records",
       "POST /api/system-records/7/archive",
-      "DELETE /api/system-records/7"
+      "DELETE /api/system-records/7",
+      "GET /api/vendors?search=print&includeArchived=true",
+      "POST /api/vendors",
+      "POST /api/vendors/9/archive"
     ]
   );
 });
@@ -166,6 +202,31 @@ function createSystemRecord(): SystemRecord {
     archived_at: null,
     is_incomplete: 0,
     missing_fields: "",
+    created_at: "2026-06-18T00:00:00.000Z",
+    updated_at: "2026-06-18T00:00:00.000Z"
+  };
+}
+
+function createVendorRecord(): Vendor {
+  return {
+    id: 9,
+    name: "Print Vendor",
+    description: "Vendor description.",
+    website_url: "https://vendor.example.com",
+    support_url: null,
+    support_email: "support@vendor.example.com",
+    support_phone: "555-0100",
+    support_portal_url: "https://vendor.example.com/support",
+    account_manager_name: null,
+    account_manager_email: null,
+    account_representative: "Vendor Account Team",
+    contract_start_date: null,
+    contract_end_date: null,
+    renewal_notice_days: null,
+    contract_notes: "Contract notes.",
+    renewal_notes: "Renewal notes.",
+    notes: "General notes.",
+    archived_at: null,
     created_at: "2026-06-18T00:00:00.000Z",
     updated_at: "2026-06-18T00:00:00.000Z"
   };

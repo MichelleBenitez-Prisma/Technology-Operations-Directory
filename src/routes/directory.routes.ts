@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  archiveDirectoryRow,
   createDirectoryRow,
   deleteDirectoryRow,
   findDirectoryRowById,
@@ -60,6 +61,31 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
     });
   });
 
+   router.post("/:id/archive", (request, response) => {
+    const id = parseId(request.params.id);
+
+    if (!id) {
+      response.status(400).json({
+        error: "Validation Error",
+        message: "Id must be a positive integer."
+      });
+      return;
+    }
+
+    const row = archiveDirectoryRow(resourceName, id);
+
+    if (!row) {
+      response.status(404).json({
+        error: "Not Found",
+        message: `Record ${id} was not found.`
+      });
+      return;
+    }
+
+    response.json({
+      data: row
+    });
+  });
   router.patch("/:id", (request, response) => {
     const id = parseId(request.params.id);
 

@@ -42,6 +42,20 @@ type TestDashboardTotals = {
   recentlyUpdated: unknown[];
 };
 
+type TestVendor = {
+  id: number;
+  name: string;
+  description: string | null;
+  support_email: string | null;
+  support_phone: string | null;
+  support_portal_url: string | null;
+  account_representative: string | null;
+  contract_notes: string | null;
+  renewal_notes: string | null;
+  notes: string | null;
+  archived_at: string | null;
+};
+
 test("system records API supports main phase two flows", async () => {
   const tempDirectory = mkdtempSync(path.join(tmpdir(), "tod-api-"));
   const databasePath = path.join(tempDirectory, "test.sqlite");
@@ -188,12 +202,53 @@ test("system records API supports main phase two flows", async () => {
       method: "POST",
       body: {
         name: "Print Vendor",
+        description: "Vendor used for print production support.",
         website_url: "https://vendor.example.com",
-        support_url: "https://vendor.example.com/support",
-        renewal_notice_days: 60
+        support_email: "support@vendor.example.com",
+        support_phone: "555-0100",
+        support_portal_url: "https://vendor.example.com/support",
+        account_representative: "Vendor Account Team",
+        contract_notes: "Master agreement is tracked by Technology Operations.",
+        renewal_notes: "Review renewal 90 days before contract end.",
+        notes: "General vendor notes."
       }
     });
     assert.equal(createdVendor.status, 201);
+    const vendorData = getResponseData<TestVendor>(createdVendor);
+    assert.equal(vendorData.description, "Vendor used for print production support.");
+    assert.equal(vendorData.support_email, "support@vendor.example.com");
+    assert.equal(vendorData.support_phone, "555-0100");
+    assert.equal(vendorData.support_portal_url, "https://vendor.example.com/support");
+    assert.equal(vendorData.account_representative, "Vendor Account Team");
+    assert.equal(vendorData.contract_notes, "Master agreement is tracked by Technology Operations.");
+    assert.equal(vendorData.renewal_notes, "Review renewal 90 days before contract end.");
+    const vendorId = Number(vendorData.id);
+
+    const updatedVendor = await requestJson(baseUrl, `/api/vendors/${vendorId}`, {
+      method: "PATCH",
+      body: {
+        renewal_notes: "Updated renewal notes."
+      }
+    });
+    assert.equal(updatedVendor.status, 200);
+    assert.equal(getResponseData<TestVendor>(updatedVendor).renewal_notes, "Updated renewal notes.");
+
+    const archivedVendor = await requestJson(baseUrl, `/api/vendors/${vendorId}/archive`, {
+      method: "POST"
+    });
+    assert.equal(archivedVendor.status, 200);
+    assert.ok(getResponseData<TestVendor>(archivedVendor).archived_at);
+
+    const visibleVendors = await requestJson(baseUrl, "/api/vendors");
+    assert.equal(visibleVendors.status, 200);
+    assert.ok(
+      !getResponseData<TestVendor[]>(visibleVendors).some((vendor) => vendor.id === vendorId)
+    );
+
+    const allVendors = await requestJson(baseUrl, "/api/vendors?includeArchived=true");
+    assert.equal(allVendors.status, 200);
+    assert.ok(getResponseData<TestVendor[]>(allVendors).some((vendor) => vendor.id === vendorId));
+
 
     const createdEnvironment = await requestJson(baseUrl, "/api/asset-environments", {
       method: "POST",
@@ -260,6 +315,7 @@ test("system records API supports main phase two flows", async () => {
     const invalidVendor = await requestJson(baseUrl, "/api/vendors", {
       method: "POST",
       body: {
+        name: "Invaild vendor",
         website_url: "not-a-url"
       }
     });

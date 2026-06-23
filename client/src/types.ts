@@ -79,6 +79,42 @@ export type AssetType = {
   description: string | null;
 };
 
+export type Vendor = {
+  id: number;
+  name: string;
+  description: string | null;
+  website_url: string | null;
+  support_url: string | null;
+  support_email: string | null;
+  support_phone: string | null;
+  support_portal_url: string | null;
+  account_manager_name: string | null;
+  account_manager_email: string | null;
+  account_representative: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  renewal_notice_days: number | null;
+  contract_notes: string | null;
+  renewal_notes: string | null;
+  notes: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type VendorFormInput = {
+  name: string;
+  description: string;
+  website_url: string;
+  support_email: string;
+  support_phone: string;
+  support_portal_url: string;
+  account_representative: string;
+  contract_notes: string;
+  renewal_notes: string;
+  notes: string;
+};
+
 export type DashboardTotals = {
   total: number;
   archived: number;

@@ -57,6 +57,17 @@ Use **Add System** to create a new record. Required fields are marked with `*`: 
 
 URLs must begin with `http://` or `https://`. Dates should use the date picker or `YYYY-MM-DD` format. The app shows validation messages when required fields, URLs, or dates need correction.
 
+## Vendor Directory
+
+Open `#/vendors` or use the **Vendors** button.
+
+The vendor list supports search and an option to include archived vendors. Use **Add Vendor** to create a vendor record. Vendor records include name, description, website, support email, support phone number, support portal, account representative, contract notes, renewal notes, and general notes.
+
+Select a vendor name to open the vendor detail page. The detail page shows vendor support and contract information, plus connected systems whose system record vendor name matches the selected vendor.
+
+Use **Edit** to update vendor information. Use **Archive** when the vendor should be hidden from the default list but retained for history.
+
+
 ## Demo Records
 
 Sample records are included for visual review and demonstration, including DokShop, Pace, Control, Payment Gateway, Storefront Importer, Internal Reporting Database, and Technology Department Website. These records use example URLs and do not contain real credentials or payment data.

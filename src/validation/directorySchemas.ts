@@ -63,8 +63,22 @@ const optionalActive = z.preprocess(
   z.union([z.literal(0), z.literal(1)]).optional()
 );
 
+const optionalBoolean = z.preprocess((value) => {
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+}, z.boolean().optional());
+
 const listQuerySchema = z.object({
   search: optionalText,
+   includeArchived: optionalBoolean.default(false),
+  archivedOnly: optionalBoolean.default(false),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).default(0)
 });
@@ -93,13 +107,20 @@ const personSchema = z.object({
 
 const vendorSchema = z.object({
   name: z.string().trim().min(1, "This field is required.").optional(),
+  description: optionalText,
   website_url: optionalUrl,
   support_url: optionalUrl,
+  support_email: optionalText,
+  support_phone: optionalText,
+  support_portal_url: optionalUrl,
   account_manager_name: optionalText,
   account_manager_email: optionalText,
+  account_representative: optionalText,
   contract_start_date: optionalDate,
   contract_end_date: optionalDate,
   renewal_notice_days: z.number().int().min(0).optional(),
+  contract_notes: optionalText,
+  renewal_notes: optionalText,
   notes: optionalText
 });
 

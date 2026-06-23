@@ -3,7 +3,9 @@ import type {
   DashboardTotals,
   SystemRecord,
   SystemRecordFormInput,
-  SystemRecordMutationResult
+  SystemRecordMutationResult,
+  Vendor,
+  VendorFormInput
 } from "./types";
 
 type ApiEnvelope<T> = {
@@ -44,6 +46,26 @@ export async function deleteSystem(id: number) {
   await mutateEmpty(`/api/system-records/${id}`, "DELETE");
 }
 
+export async function fetchVendors(query = "limit=100") {
+  return getJson<Vendor[]>(`/api/vendors?${query}`);
+}
+
+export async function fetchVendor(id: number) {
+  return getJson<Vendor>(`/api/vendors/${id}`);
+}
+
+export async function createVendor(input: VendorFormInput) {
+  return mutateJson<Vendor>(`/api/vendors`, "POST", input);
+}
+
+export async function updateVendor(id: number, input: VendorFormInput) {
+  return mutateJson<Vendor>(`/api/vendors/${id}`, "PUT", input);
+}
+
+export async function archiveVendor(id: number) {
+  return mutateJson<{ data: Vendor }>(`/api/vendors/${id}/archive`, "POST");
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
 
@@ -58,7 +80,7 @@ async function getJson<T>(path: string): Promise<T> {
 async function mutateJson<T>(
   path: string,
   method: "POST" | "PUT",
-  body?: SystemRecordFormInput
+  body?: SystemRecordFormInput | VendorFormInput
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,

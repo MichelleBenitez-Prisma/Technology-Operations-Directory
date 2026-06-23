@@ -18,18 +18,23 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, FormEvent } from "react";
 
 import {
   ApiError,
   archiveSystem,
+  archiveVendor,
   createSystem,
+  createVendor,
   deleteSystem,
   fetchAssetTypes,
   fetchDashboardTotals,
   fetchSystem,
   fetchSystems,
-  updateSystem
+  fetchVendor,
+  fetchVendors,
+  updateSystem,
+  updateVendor
 } from "./api";
 import { getRecordHref, getStatusCount, statusLabels } from "./dashboardData";
 import type {
@@ -38,16 +43,23 @@ import type {
   SystemRecord,
   SystemRecordFormInput,
   SystemRecordWarning,
-  SystemStatus
+  SystemStatus,
+  Vendor,
+  VendorFormInput
 } from "./types";
 
 type LoadState = "loading" | "ready" | "error";
-type Route =
+export type Route =
   | { name: "dashboard" }
   | { name: "systems"; query: URLSearchParams }
   | { name: "systemDetail"; id: number }
   | { name: "newSystem" }
-  | { name: "editSystem"; id: number };
+  | { name: "editSystem"; id: number }
+  | { name: "vendors"; query: URLSearchParams }
+  | { name: "vendorDetail"; id: number }
+  | { name: "newVendor" }
+  | { name: "editVendor"; id: number };
+
 
 const systemStatuses = Object.keys(statusLabels) as SystemStatus[];
 const sortOptions = [
@@ -96,6 +108,10 @@ export function DashboardApp() {
             <ListFilter size={16} aria-hidden="true" />
             Systems
           </a>
+          <a className="secondary-link" href="#/vendors">
+            <ListFilter size={16} aria-hidden="true" />
+            Vendors
+          </a>  
           <a className="primary-link" href="#/systems/new">
             <Plus size={16} aria-hidden="true" />
             Add System
@@ -115,6 +131,12 @@ export function DashboardApp() {
       ) : null}
       {route.name === "editSystem" ? (
         <SystemForm assetTypes={assetTypes} mode="edit" systemId={route.id} navigate={navigate} />
+      ) : null}
+      {route.name === "vendors" ? <VendorsList initialQuery={route.query} /> : null}
+      {route.name === "vendorDetail" ? <VendorDetail id={route.id} navigate={navigate} /> : null}
+      {route.name === "newVendor" ? <VendorForm mode="create" navigate={navigate} /> : null}
+      {route.name === "editVendor" ? (
+       <VendorForm mode="edit" vendorId={route.id} navigate={navigate} /> 
       ) : null}
     </main>
   );
@@ -518,6 +540,368 @@ function SystemsList({
     </>
   );
 }
+function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [filters, setFilters] = useState(() => ({
+    search: initialQuery.get("search") ?? "",
+    includeArchived: initialQuery.get("includeArchived") === "true"
+  }));
+
+ useEffect(() => {
+    const query = buildVendorsQuery(filters);
+    window.history.replaceState(null, "", `#/vendors?${query.toString()}`);
+    setLoadState("loading");
+
+    void fetchVendors(query.toString())
+      .then((nextVendors) => {
+        setVendors(nextVendors);
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [filters]);
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Phase 4</p>
+          <h2>Vendor Directory</h2>
+        </div>
+        <a className="primary-link" href="#/vendors/new">
+          <Plus size={16} aria-hidden="true" />
+          Add Vendor
+        </a>  
+     </section>
+
+     <section className="filter-bar" aria-label="Vendor list filters">
+        <label className="field search-field">
+          <span>Search</span>
+          <input
+            type="search"
+            placeholder="Vendor name, support, contract notes..."
+            value={filters.search}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, search: event.target.value }))
+            }
+          />
+        </label>
+        <label className="check-field">
+          <input
+            type="checkbox"
+            checked={filters.includeArchived}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, includeArchived: event.target.checked }))
+            }
+          />
+          Include archived
+        </label>
+      </section>
+
+      {loadState === "error" ? (
+        <section className="notice error" role="alert">
+          <ShieldAlert size={20} aria-hidden="true" />
+          <span>Unable to load vendors.</span>
+        </section>
+      ) : null}
+
+      <section className="panel wide">
+        <div className="list-summary">
+          <strong>{loadState === "loading" ? "Loading..." : `${vendors.length} vendors`}</strong>
+          <span>Open a vendor to review support and contract information.</span>
+        </div>
+        <div className="table-table">
+          <table> 
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Website</th>
+                <th>Support</th>
+                <th>Representative</th>
+                <th>Archived</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vendors.map((vendor) => (
+                <tr key={vendor.id}>
+                  <td>
+                    <a href={`#/vendors/${vendor.id}`}>{vendor.name}</a>
+                  </td>
+                  <td>{vendor.website_url ?? "Not Reocrded"}</td>
+                  <td>{vendor.support_email ?? vendor.support_phone ?? "Not Recorded"}</td>
+                  <td>{vendor.account_representative ?? "Not Recorded"}</td>
+                  <td>{vendor.archived_at ? formatDateTime(vendor.archived_at) : "No"}</td>
+                </tr>
+              ))}
+              {vendors.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="empty-state">
+                    No matching vendors found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function VendorDetail({ id, navigate }: { id: number; navigate: (hash: string) => void }) {
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [systems, setSystems] = useState<SystemRecord[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  useEffect(() => {
+    setLoadState("loading");
+
+    void fetchVendor(id)
+      .then(async (nextVendor) => {
+        setVendor(nextVendor);
+        setSystems(
+          await fetchSystems(
+            `vendor=${encodeURIComponent(nextVendor.name)}&includeArchived=true&limit=100&sortBy=systemName&sortDirection=asc`
+          )
+        );
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [id]);
+
+  async function archiveCurrentVendor() {
+    if (!vendor || vendor.archived_at) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Archive ${vendor.name}? This keeps the vendor for history.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsArchiving(true);
+
+    try {
+      const result = await archiveVendor(vendor.id);
+      setVendor(result.data);
+    } catch (error) {
+      console.error(error);
+      window.alert("Unable to archive this vendor.");
+    } finally {
+      setIsArchiving(false);
+    }
+   }
+
+  if (loadState === "loading") {
+    return <section className="panel wide">Loading vendor...</section>;
+  }
+
+  if (loadState === "error" || !vendor) {
+    return (
+      <section className="notice error" role="alert">
+        <ShieldAlert size={20} aria-hidden="true" />
+        <span>Unable to load this vendor.</span>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Vendor detail</p>
+          <h2>{vendor.name}</h2>
+        </div>
+        <div className="top-actions">
+          <a className="secondary-link" href="#/vendors">
+            Vendors
+          </a>
+          <button className="secondary-link" onClick={() => navigate(`/vendors/${vendor.id}/edit`)}>
+            <Edit3 size={16} aria-hidden="true" />
+            Edit
+          </button>
+          <button
+            className="danger-button"
+            disabled={Boolean(vendor.archived_at) || isArchiving}
+            onClick={() => void archiveCurrentVendor()}
+          >
+            <Archive size={16} aria-hidden="true" />
+            {vendor.archived_at ? "Archived" : "Archive"}
+          </button>
+        </div>
+      </section>
+      {vendor.archived_at ? (
+        <section className="notice archived">
+          <Archive size={20} aria-hidden="true" />
+          <span>Archived on {formatDateTime(vendor.archived_at)}.</span>
+        </section>
+      ) : null}
+
+      <section className="detail-grid">
+        <DetailSection title="Vendor information">
+          <DetailItem label="Vendor name" value={vendor.name} />
+          <DetailItem label="Description" value={vendor.description} />
+          <DetailItem label="Website" value={vendor.website_url} isLink />
+          <DetailItem label="Support email" value={vendor.support_email} />
+          <DetailItem label="Support phone number" value={vendor.support_phone} />
+          <DetailItem label="Support portal" value={vendor.support_portal_url} isLink />
+        </DetailSection>
+
+        <DetailSection title="Contract and notes">
+          <DetailItem label="Account representative" value={vendor.account_representative} />
+          <DetailItem label="Contract notes" value={vendor.contract_notes} />
+          <DetailItem label="Renewal notes" value={vendor.renewal_notes} />
+          <DetailItem label="General notes" value={vendor.notes} />
+        </DetailSection>
+
+        <section className="panel detail-section wide">
+          <h3>Connected systems</h3>
+          <SystemTable records={systems} showVendor showLastReview showArchived />
+        </section>
+      </section>
+    </>
+  );
+}
+
+function VendorForm({
+  mode,
+  vendorId,
+  navigate
+}: {
+  mode: "create" | "edit";
+  vendorId?: number;
+  navigate: (hash: string) => void;
+}) {
+  const [form, setForm] = useState<VendorFormInput>(createEmptyVendorForm());
+  const [loadState, setLoadState] = useState<LoadState>(mode === "edit" ? "loading" : "ready");
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (mode !== "edit" || !vendorId) {
+      return;
+    }
+
+    setLoadState("loading");
+    void fetchVendor(vendorId)
+      .then((nextVendor) => {
+        setForm(mapVendorToForm(nextVendor));
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [mode, vendorId]);
+
+  function updateField(name: keyof VendorFormInput, value: string) {
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => {
+      const nextErrors = { ...current };
+      delete nextErrors[name];
+      return nextErrors;
+    });
+  }
+
+  async function saveVendor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+    setErrors({});
+    setMessage("");
+
+    try {
+      const result =
+        mode === "create" ? await createVendor(form) : await updateVendor(Number(vendorId), form);
+
+      navigate(`/vendors/${result.id}`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrors(mapApiIssues(error));
+        setMessage(error.message);
+      } else {
+        console.error(error);
+        setMessage("Unable to save the vendor.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (loadState === "loading") {
+    return <section className="panel wide">Loading vendor form...</section>;
+  }
+
+  if (loadState === "error") {
+    return (
+      <section className="notice error" role="alert">
+        <ShieldAlert size={20} aria-hidden="true" />
+        <span>Unable to load this vendor for editing.</span>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Vendor directory</p>
+          <h2>{mode === "create" ? "Add Vendor" : "Edit Vendor"}</h2>
+        </div>
+      </section>
+
+      <form className="record-form" onSubmit={(event) => void saveVendor(event)}>
+        {message ? (
+          <section className={`notice ${Object.keys(errors).length > 0 ? "error" : "success"}`}>
+            <span>{message}</span>
+          </section>
+        ) : null}
+        <FormSection title="Vendor information">
+          <VendorTextField
+            label="Vendor name"
+            name="name"
+            value={form.name}
+            onChange={updateField}
+            error={errors.name}
+            required
+          />
+          <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} />
+          <VendorTextField label="Support email" name="support_email" value={form.support_email} onChange={updateField} />
+          <VendorTextField label="Support phone number" name="support_phone" value={form.support_phone} onChange={updateField} />
+          <VendorTextField label="Support portal" name="support_portal_url" value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
+          <VendorTextField label="Account representative" name="account_representative" value={form.account_representative} onChange={updateField} />
+          <VendorTextArea label="Description" name="description" value={form.description} onChange={updateField} />
+        </FormSection>
+
+        <FormSection title="Contract and notes">
+          <VendorTextArea label="Contract notes" name="contract_notes" value={form.contract_notes} onChange={updateField} />
+          <VendorTextArea label="Renewal notes" name="renewal_notes" value={form.renewal_notes} onChange={updateField} />
+          <VendorTextArea label="General notes" name="notes" value={form.notes} onChange={updateField} />
+        </FormSection>
+
+        <div className="form-actions">
+          <a className="secondary-link" href={mode === "edit" && vendorId ? `#/vendors/${vendorId}` : "#/vendors"}>
+            Cancel
+          </a>
+          <button className="primary-link" type="submit" disabled={isSaving}>
+            <Save size={16} aria-hidden="true" />
+            {isSaving ? "Saving..." : "Save Vendor"}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+
 
 function SystemDetail({
   id,
@@ -751,7 +1135,7 @@ function SystemForm({
     });
   }
 
-  async function saveSystem(event: React.FormEvent<HTMLFormElement>) {
+  async function saveSystem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setErrors({});
@@ -1171,6 +1555,55 @@ function TextAreaField({
   );
 }
 
+function VendorTextField({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  required
+}: {
+  label: string;
+  name: keyof VendorFormInput;
+  value: string;
+  onChange: (name: keyof VendorFormInput, value: string) => void;
+  error?: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="field">
+      <span>
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <input value={value} onChange={(event) => onChange(name, event.target.value)} required={required} />
+      {error ? <em>{error}</em> : null}
+    </label>
+  );
+}
+
+function VendorTextArea({
+  label,
+  name,
+  value,
+  onChange,
+  error
+}: {
+  label: string;
+  name: keyof VendorFormInput;
+  value: string;
+  onChange: (name: keyof VendorFormInput, value: string) => void;
+  error?: string;
+}) {
+  return (
+    <label className="field full-field">
+      <span>{label}</span>
+      <textarea value={value} onChange={(event) => onChange(name, event.target.value)} />
+      {error ? <em>{error}</em> : null}
+    </label>
+  );
+}
+
 function parseRoute(): Route {
   return parseRouteFromHash(window.location.hash);
 }
@@ -1182,6 +1615,27 @@ export function parseRouteFromHash(rawHash: string): Route {
   const query = new URLSearchParams(queryPart ?? "");
   const segments = path.split("/").filter(Boolean);
 
+  if (segments[0] === "vendors") {
+    if (segments.length === 1) {
+      return { name: "vendors", query };
+    }
+
+    if (segments[1] === "new") {
+      return { name: "newVendor" };
+    }
+
+    const vendorId = Number(segments[1]);
+
+    if (Number.isInteger(vendorId) && vendorId > 0 && segments[2] === "edit") {
+      return { name: "editVendor", id: vendorId };
+    }
+
+    if (Number.isInteger(vendorId) && vendorId > 0) {
+      return { name: "vendorDetail", id: vendorId };
+    }
+
+    return { name: "vendors", query };
+  }
   if (segments[0] !== "systems") {
     return { name: "dashboard" };
   }
@@ -1241,6 +1695,22 @@ export function buildSystemsQuery(filters: {
   return query;
 }
 
+export function buildVendorsQuery(filters: { search: string; includeArchived: boolean }) {
+  const query = new URLSearchParams({
+    limit: "100"
+  });
+
+  if (filters.search.trim()) {
+    query.set("search", filters.search.trim());
+  }
+
+  if (filters.includeArchived) {
+    query.set("includeArchived", "true");
+  }
+
+  return query;
+}
+
  export function createEmptyForm(): SystemRecordFormInput {
   return {
     systemName: "",
@@ -1267,7 +1737,7 @@ export function buildSystemsQuery(filters: {
   };
 }
 
-export function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
+function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
   return {
     systemName: record.system_name,
     description: record.description,
@@ -1293,7 +1763,36 @@ export function mapRecordToForm(record: SystemRecord): SystemRecordFormInput {
   };
 }
 
-export function mapApiIssues(error: ApiError) {
+export function createEmptyVendorForm(): VendorFormInput {
+  return {
+    name: "",
+    description: "",
+    website_url: "",
+    support_email: "",
+    support_phone: "",
+    support_portal_url: "",
+    account_representative: "",
+    contract_notes: "",
+    renewal_notes: "",
+    notes: ""
+  };
+}
+
+export function mapVendorToForm(vendor: Vendor): VendorFormInput {
+  return {
+    name: vendor.name,
+    description: vendor.description ?? "",
+    website_url: vendor.website_url ?? "",
+    support_email: vendor.support_email ?? "",
+    support_phone: vendor.support_phone ?? "",
+    support_portal_url: vendor.support_portal_url ?? "",
+    account_representative: vendor.account_representative ?? "",
+    contract_notes: vendor.contract_notes ?? "",
+    renewal_notes: vendor.renewal_notes ?? "",
+    notes: vendor.notes ?? ""
+  };
+}
+function mapApiIssues(error: ApiError) {
   if (error.issues.length === 0) {
     return {};
   }

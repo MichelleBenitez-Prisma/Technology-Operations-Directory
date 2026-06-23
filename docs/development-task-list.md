@@ -86,7 +86,7 @@
 - [x] Build asset detail view.
 - [x] Build add and edit asset forms.
 - [ ] Add category-specific detail sections.
-- [ ] Build vendor detail workflow.
+- [x] Build vendor detail workflow.
 - [ ] Build integration detail workflow.
 - [ ] Build scheduled process workflow.
 - [ ] Build review workflow.
