@@ -136,19 +136,42 @@ Supported resources:
 - `vendors`
 - `asset-environments`
 - `integrations`
+- `system-dependencies`
 - `scheduled-processes`
 - `reviews`
 - `tags`
 
 List endpoints support:
 
-| Parameter        | Description                                     |
-| -----------------| ----------------------------------------------- |
-| `search`         | Searches the main text fields for the resource. |
-| `includeArchived`| Includes archived vendors when `true`.          |
-| `archivedOnly`   | Returns only archived vendors when `true`.      |
-| `limit`          | Page size, from 1 to 100.                       |
-| `offset`         | Starting row offset.                            |
+| Parameter        | Description                                                        |
+| -----------------| -------------------------------------------------------------------|
+| `search`         | Searches the main text fields for the resource.                    |
+| `includeArchived`| Includes archived records for resorces that support archive.       |
+| `archivedOnly`   | Returns only archived records for resources that support archive.  |
+| `limit`          | Page size, from 1 to 100.                                          |
+| `offset`         | Starting row offset.                                               |
+
+
+### Phase 5 Dependencies
+
+```http
+GET /api/system-records/:id/dependencies
+GET /api/system-records/:id/category-details
+PUT /api/system-records/:id/category-details
+GET /api/system-records/:id/tags
+POST /api/system-records/:id/tags
+DELETE /api/system-records/:id/tags/:tagId
+POST /api/system-dependencies
+PUT /api/system-dependencies/:id
+POST /api/system-dependencies/:id/archive
+```
+
+Dependency records include `source_asset_id`, `destination_asset_id`,
+`relationship_description`, `data_or_service_exchanged`, `importance_level`, and
+`notes`. `importance_level` must be `critical`, `important`, or `standard`.
+
+The dependency summary endpoint returns `dependsOn` and `dependedOnBy` lists so a
+system detail page can show upstream dependencies and downstream impact.
 
 ### Vendor Directory
 

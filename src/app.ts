@@ -33,6 +33,7 @@ export function createApp() {
   app.use("/api/vendors", createDirectoryRouter("vendors"));
   app.use("/api/asset-environments", createDirectoryRouter("assetEnvironments"));
   app.use("/api/integrations", createDirectoryRouter("integrations"));
+  app.use("/api/system-dependencies", createDirectoryRouter("systemDependcies"));
   app.use("/api/scheduled-processes", createDirectoryRouter("scheduledProcesses"));
   app.use("/api/reviews", createDirectoryRouter("reviews"));
   app.use("/api/tags", createDirectoryRouter("tags"));

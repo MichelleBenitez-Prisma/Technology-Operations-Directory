@@ -56,6 +56,17 @@ type TestVendor = {
   archived_at: string | null;
 };
 
+type TestDependency = {
+  id: number;
+  source_asset_id: number;
+  destination_asset_id: number;
+  relationship_description: string;
+  data_or_service_exchanged: string | null;
+  importance_level: string;
+  archived_at: string | null;
+  related_system_name?: string;
+};
+
 test("system records API supports main phase two flows", async () => {
   const tempDirectory = mkdtempSync(path.join(tmpdir(), "tod-api-"));
   const databasePath = path.join(tempDirectory, "test.sqlite");
@@ -274,6 +285,16 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdIntegration.status, 201);
+    const integrationId = Number(getResponseData<{id: number}>(createdIntegration).id);
+
+    const updatedIntegration = await requestJson(baseUrl, `api/integrations/${integrationId}`, {
+      method: "PATCH",
+      body: {
+        protocol: "HTTPS",
+        criticality: "critical"
+      }
+    });
+    assert.equal(updatedIntegration.status, 200);
 
     const createdScheduledProcess = await requestJson(baseUrl, "/api/scheduled-processes", {
       method: "POST",
@@ -287,6 +308,16 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdScheduledProcess.status, 201);
+    const scheduledProcessId = Number(getResponseData<{id: number}>(createdScheduledProcess).id);
+
+    const archivedScheduledProcess = await requestJson(
+      baseUrl,
+      `/api/scheduled-processes/${scheduledProcessID}/archive`,
+      { method: "POST"}
+    );
+    assert.equal(archivedScheduledProcess.status, 200);
+
+    )
 
     const createdReview = await requestJson(baseUrl, "/api/reviews", {
       method: "POST",
@@ -298,6 +329,15 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdReview.status, 201);
+    const reviewId = Number(getResponseData<{id: number }>(createdReview).id);
+
+    const updatedReview = await requestJson(base64url, `/api/reviews/${reviewId}`, {
+      method: "PATCH",
+      body: {
+        review_status: "needs_updates",
+        notes: "Needs dependency validation."
+      }
+    });
 
     const createdTag = await requestJson(baseUrl, "/api/tags", {
       method: "POST",
@@ -307,6 +347,81 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdTag.status, 201);
+    const tagID = Number(getResponseData<{id: number }>(createdTag).id);
+
+    const assignedTags = await requestJson(baseUrl, `/api/system-records/${systemId}/tags`, {
+      method: "POST",
+      body: {
+        tagId
+      }
+    });
+    assert.equal(assignedTags.status, 201);
+    assert.ok(
+      getResponseData<Array<{ id: number }>>(assignedTags).some((tag) => tag.id === tagId)
+    );
+
+    const dependency = await requestJson(baseUrl, "/api/system-dependencies", {
+      method: "POST",
+      body: {
+        source_asset_id: systemId,
+        destination_asset_id: duplicateId,
+        relationship_description: "Payroll sends order-impact data to the downstream system.",
+        data_or_service_exchanged: "Payroll calculation status",
+        importance_level: "critical",
+        notes: "Used to verify Phase 5 impact view."
+      }
+    });
+    assert.equal(dependency.status, 201);
+    const dependencyData = getResponseData<TestDependency>(dependency);
+    assert.equal(dependencyData.importance_level, "critical");
+    const dependencyId = Number(dependencyData.id);
+
+    const invalidDependency = await requestJson(baseUrl, "/api/system-dependencies", {
+      method: "POST",
+      body: {
+        source_asset_id: systemId,
+        destination_asset_id: systemId,
+        relationship_description: "Invalid self dependency.",
+        importance_level: "critical"
+      }
+    });
+    assert.equal(invalidDependency.status, 400);
+
+    const dependencySummary = await requestJson(
+      baseUrl,
+      `/api/system-records/${systemId}/dependencies`
+    );
+    assert.equal(dependencySummary.status, 200);
+    const dependencySummaryData = getResponseData<{
+      dependsOn: TestDependency[];
+      dependedOnBy: TestDependency[];
+    }>(dependencySummary);
+    assert.ok(
+      dependencySummaryData.dependsOn.some((record) => record.id === dependencyId)
+    );
+
+    const updatedDependency = await requestJson(baseUrl, `/api/system-dependencies/${dependencyId}`, {
+      method: "PATCH",
+      body: {
+        importance_level: "important",
+        notes: "Updated dependency notes."
+      }
+    });
+    assert.equal(updatedDependency.status, 200);
+    assert.equal(getResponseData<TestDependency>(updatedDependency).importance_level, "important");
+
+    const archivedDependency = await requestJson(
+      baseUrl,
+      `/api/system-dependencies/${dependencyId}/archive`,
+      { method: "POST" }
+    );
+    assert.equal(archivedDependency.status, 200);
+    assert.ok(getResponseData<TestDependency>(archivedDependency).archived_at);
+
+    const removedTags = await requestJson(baseUrl, `/api/system-records/${systemId}/tags/${tagId}`, {
+      method: "DELETE"
+    });
+    assert.equal(removedTags.status, 200);
 
     const teamList = await requestJson(baseUrl, "/api/teams?search=print");
     assert.equal(teamList.status, 200);

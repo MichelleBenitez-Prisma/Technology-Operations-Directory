@@ -1,13 +1,19 @@
 import { Router, type Response } from "express";
 
 import {
+  addSystemRecordTag,
   archiveSystemRecord,
   createSystemRecord,
   deleteSystemRecord,
   findSystemRecordById,
+  getSystemRecordCategoryDetails,
   getSystemRecordDashboardTotals,
   listIncompleteSystemRecords,
+  listSystemRecordDependencies,
+  listSystemRecordTags,
+  removeSystemRecordTag,
   listSystemRecords,
+  updateSystemRecordCategoryDetails,
   updateSystemRecord
 } from "../db/systemRecordRepository.js";
 import {
@@ -37,6 +43,160 @@ systemRecordsRouter.get("/", (request, response) => {
 
   response.json({
     data: listSystemRecords(query)
+  });
+});
+
+systemRecordsRouter.get("/:id/dependencies", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+
+  if (!id) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id must be a positive integer."
+    });
+    return;
+  }
+
+  if (!findSystemRecordById(id, { includeArchived: true })) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.json({
+    data: listSystemRecordDependencies(id)
+  });
+});
+
+systemRecordsRouter.get("/:id/category-details", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+
+  if (!id) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id must be a positive integer."
+    });
+    return;
+  }
+
+  const details = getSystemRecordCategoryDetails(id);
+
+  if (!details) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.json({
+    data: details
+  });
+});
+
+systemRecordsRouter.get("/:id/tags", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+
+  if (!id) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id must be a positive integer."
+    });
+    return;
+  }
+
+  if (!findSystemRecordById(id, { includeArchived: true })) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.json({
+    data: listSystemRecordTags(id)
+  });
+});
+
+systemRecordsRouter.post("/:id/tags", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+  const tagId = parseSystemRecordId((request.body as { tagId?: string | number }).tagId?.toString());
+
+  if (!id || !tagId) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id and tag id must be positive integers."
+    });
+    return;
+  }
+
+  const tags = addSystemRecordTag(id, tagId);
+
+  if (!tags) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.status(201).json({
+    data: tags
+  });
+});
+
+systemRecordsRouter.delete("/:id/tags/:tagId", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+  const tagId = parseSystemRecordId(request.params.tagId);
+
+  if (!id || !tagId) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id and tag id must be positive integers."
+    });
+    return;
+  }
+
+  const tags = removeSystemRecordTag(id, tagId);
+
+  if (!tags) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.json({
+    data: tags
+  });
+});
+
+systemRecordsRouter.put("/:id/category-details", (request, response) => {
+  const id = parseSystemRecordId(request.params.id);
+
+  if (!id) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "System record id must be a positive integer."
+    });
+    return;
+  }
+
+  const details = updateSystemRecordCategoryDetails(id, request.body as Record<string, unknown>);
+
+  if (!details) {
+    response.status(404).json({
+      error: "Not Found",
+      message: `System record ${id} was not found.`
+    });
+    return;
+  }
+
+  response.json({
+    data: details
   });
 });
 

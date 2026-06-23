@@ -3,13 +3,20 @@ import assert from "node:assert/strict";
 import {afterEach, test} from "node:test";
 
 import {
+    addSystemTag,
+    archiveDirectoryRecord,
     archiveSystem,
     archiveVendor,
+    createDirectoryRecord,
     createVendor,
     createSystem,
     deleteSystem,
     fetchDashboardTotals,
+    fetchDirectoryRecords,
     fetchSystems,
+    fetchSystemCategoryDetails,
+    fetchSystemDependencies,
+    fetchSystemTags,
     fetchVendors,
 } from "../client/src/api.ts";
 import {
@@ -24,6 +31,7 @@ import {
 } from "../client/src/DashboardApp.tsx";
 import { getRecordHref, getStatusCount } from "../client/src/dashboardData.ts";
 import type { DashboardTotals, SystemRecord, Vendor } from '../client/src/types.ts';
+import { create } from "node:domain";
 
 const originalFetch = globalThis.fetch;
 
@@ -48,8 +56,10 @@ test("system list route and query and helpers preserve filters and sorting", () 
     const route = parseRouteFromHash(
         "#/systems?search=payroll&status=active&technicalOwner=App&includeArchived=true"
     );
-
+    const route = parseRouteFromHash("#/directory/integrations?search=api")
+    
     assert.equal(route.name, "systems");
+    assert.equal(directoryRoute.name, "directoryList");
 
     if (route.name === "systems") {
         assert.equal(route.query.get("search"), "payroll");
@@ -143,6 +153,18 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       return new Response(null, { status: 204 });
     }
 
+    const url = String(input)
+    const data =
+      url.includes("/tags") && init?.method === "POST"
+        ? [{id: 1, name: "legacy"}]
+        : url.includes("/api/vendors") && init?.method === "POST"
+        ?createVendorRecord()
+        :url.includes("/api/system-dependencies") && init?.method === "POST"
+          ? createDirectoryRecordFixture()
+        : init?.method === "POST"
+          ? createSystemRecord()
+          : [];
+
     return new Response(JSON.stringify({ data: init?.method === "POST" ? createSystemRecord() : [] }), {
       headers: { "Content-Type": "application/json" },
       status: init?.method === "POST" ? 201 : 200
@@ -151,24 +173,40 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
 
   await fetchDashboardTotals();
   await fetchSystems("search=payroll");
+  await fetchSystemDependencies(42);
+  await fetchSystemCategoryDetails(42);
+  await fetchSystemTags(42);
   await createSystem(createEmptyForm());
   await archiveSystem(7);
   await deleteSystem(7);
   await fetchVendors("search=print&includeArchived=true");
   await createVendor(createEmptyVendorForm());
   await archiveVendor(9);
+  await fetchDirectoryRecords("integrations", "search=api");
+  await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
+  await archiveDirectoryRecords("system-dependencies", 11);
+  await addSystemTag(42, 1);
+
 
   assert.deepEqual(
     calls.map((call) => `${call.method} ${call.url}`),
     [
       "GET /api/system-records/dashboard-totals",
       "GET /api/system-records?search=payroll",
+      "GET /api/system-records/42/dependencies",
+      "GET /api/system-records/42/category-details",
+      "GET /api/system-records/42/tags",
       "POST /api/system-records",
       "POST /api/system-records/7/archive",
       "DELETE /api/system-records/7",
       "GET /api/vendors?search=print&includeArchived=true",
       "POST /api/vendors",
-      "POST /api/vendors/9/archive"
+      "POST /api/vendors/9/archive",
+      "POST /api/vendors/9/archive",
+      "GET /api/integrations?search=api",
+      "POST /api/system-dependencies",
+      "POST /api/system-dependencies/11/archive",
+      "POST /api/system-records/42/tags"
     ]
   );
 });
@@ -229,5 +267,18 @@ function createVendorRecord(): Vendor {
     archived_at: null,
     created_at: "2026-06-18T00:00:00.000Z",
     updated_at: "2026-06-18T00:00:00.000Z"
+  };
+}
+
+function createDirectoryRecordFixture() {
+  return {
+    id: 11,
+    source_asset_id: 42,
+    destination_asset_id: 43,
+    relationship_description: "Website depends on API.",
+    data_or_service_exchanged: "API responses",
+    importance_level: "critical",
+    notes: "Impact test.",
+    archived_at: null
   };
 }

@@ -102,6 +102,230 @@ export function findSystemRecordById(id: number, options: { includeArchived?: bo
   );
 }
 
+export function listSystemRecordDependencies(id: number) {
+  const dependsOn = queryAll<Record<string, unknown>>(
+    `
+    SELECT
+      system_dependencies.*,
+      destination.id AS related_system_id,
+      destination.system_name AS related_system_name,
+      destination.category_name AS related_category_name,
+      destination.status AS related_status
+    FROM system_dependencies
+    JOIN system_record_view AS destination ON destination.id = system_dependencies.destination_asset_id
+    WHERE system_dependencies.source_asset_id = $id
+      AND system_dependencies.archived_at IS NULL
+    ORDER BY
+      CASE system_dependencies.importance_level
+        WHEN 'critical' THEN 1
+        WHEN 'important' THEN 2
+        ELSE 3
+      END,
+      destination.system_name ASC
+    `,
+    { id }
+  );
+
+  const dependedOnBy = queryAll<Record<string, unknown>>(
+    `
+    SELECT
+      system_dependencies.*,
+      source.id AS related_system_id,
+      source.system_name AS related_system_name,
+      source.category_name AS related_category_name,
+      source.status AS related_status
+    FROM system_dependencies
+    JOIN system_record_view AS source ON source.id = system_dependencies.source_asset_id
+    WHERE system_dependencies.destination_asset_id = $id
+      AND system_dependencies.archived_at IS NULL
+    ORDER BY
+      CASE system_dependencies.importance_level
+        WHEN 'critical' THEN 1
+        WHEN 'important' THEN 2
+        ELSE 3
+      END,
+      source.system_name ASC
+    `,
+    { id }
+  );
+
+  return {
+    dependsOn,
+    dependedOnBy
+  };
+}
+
+export function listSystemRecordTags(id: number) {
+  return queryAll<Record<string, unknown>>(
+    `
+    SELECT tags.id, tags.name, tags.description
+    FROM asset_tags
+    JOIN tags ON tags.id = asset_tags.tag_id
+    WHERE asset_tags.asset_id = $id
+      AND IFNULL(tags.archived_at, '') = ''
+    ORDER BY tags.name ASC
+    `,
+    { id }
+  );
+}
+
+export function addSystemRecordTag(id: number, tagId: number) {
+  if (!findSystemRecordById(id, { includeArchived: true })) {
+    return undefined;
+  }
+
+  getDatabase()
+    .prepare(
+      `
+      INSERT OR IGNORE INTO asset_tags (asset_id, tag_id)
+      VALUES ($id, $tagId)
+      `
+    )
+    .run({ id, tagId });
+
+  return listSystemRecordTags(id);
+}
+
+export function removeSystemRecordTag(id: number, tagId: number) {
+  if (!findSystemRecordById(id, { includeArchived: true })) {
+    return undefined;
+  }
+
+  getDatabase()
+    .prepare(
+      `
+      DELETE FROM asset_tags
+      WHERE asset_id = $id AND tag_id = $tagId
+      `
+    )
+    .run({ id, tagId });
+
+  return listSystemRecordTags(id);
+}
+
+const CATEGORY_DETAIL_CONFIGS: Record<string, { tableName: string; columns: readonly string[] }> = {
+  website: {
+    tableName: "website_details",
+    columns: ["domain_name", "cms_platform", "analytics_url", "notes"]
+  },
+  server: {
+    tableName: "server_details",
+    columns: [
+      "host_name",
+      "operating_system",
+      "operating_system_version",
+      "ip_address",
+      "hosting_provider",
+      "region",
+      "backup_policy",
+      "notes"
+    ]
+  },
+  database: {
+    tableName: "database_details",
+    columns: ["engine", "engine_version", "database_name", "contains_pii", "backup_schedule", "retention_days", "notes"]
+  },
+  vendor_hosted_service: {
+    tableName: "vendor_service_details",
+    columns: ["service_url", "service_tier", "sla_description", "support_level", "data_residency", "notes"]
+  },
+  payment_service: {
+    tableName: "payment_service_details",
+    columns: [
+      "payment_service_role",
+      "payment_method_types",
+      "pci_scope",
+      "tokenization_enabled",
+      "settlement_frequency",
+      "compliance_notes",
+      "notes"
+    ]
+  }
+};
+
+export function getSystemRecordCategoryDetails(id: number) {
+  const record = findSystemRecordById(id, { includeArchived: true });
+
+  if (!record) {
+    return undefined;
+  }
+
+  const config = CATEGORY_DETAIL_CONFIGS[record.category_code];
+
+  if (!config) {
+    return {
+      categoryCode: record.category_code,
+      categoryName: record.category_name,
+      fields: null
+    };
+  }
+
+  const row = queryOne<Record<string, unknown>>(
+    `
+    SELECT ${config.columns.join(", ")}
+    FROM ${config.tableName}
+    WHERE asset_id = $id
+    `,
+    { id }
+  );
+
+  return {
+    categoryCode: record.category_code,
+    categoryName: record.category_name,
+    fields: row ?? Object.fromEntries(config.columns.map((column) => [column, null]))
+  };
+}
+
+export function updateSystemRecordCategoryDetails(id: number, input: Record<string, unknown>) {
+  const record = findSystemRecordById(id, { includeArchived: true });
+
+  if (!record) {
+    return undefined;
+  }
+
+  const config = CATEGORY_DETAIL_CONFIGS[record.category_code];
+
+  if (!config) {
+    throwValidationError(`Category ${record.category_code} does not support extra details.`);
+  }
+
+  const values: QueryParams = { id };
+
+  for (const column of config.columns) {
+    if (Object.prototype.hasOwnProperty.call(input, column)) {
+      values[column] = normalizeCategoryValue(input[column]);
+    }
+  }
+
+  const columns = Object.keys(values).filter((column) => column !== "id");
+
+  if (columns.length === 0) {
+    throwValidationError("At least one category detail field must be provided.");
+  }
+
+  const database = getDatabase();
+  database.exec("BEGIN");
+
+  try {
+    database.prepare(`INSERT OR IGNORE INTO ${config.tableName} (asset_id) VALUES ($id)`).run({ id });
+    database
+      .prepare(
+        `
+        UPDATE ${config.tableName}
+        SET ${columns.map((column) => `${column} = $${column}`).join(", ")}
+        WHERE asset_id = $id
+        `
+      )
+      .run(values);
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+
+  return getSystemRecordCategoryDetails(id);
+}
+
 export function createSystemRecord(input: CreateSystemRecordInput): SystemRecordMutationResult {
   const assetType = findAssetTypeByCode(input.categoryCode);
 
@@ -668,6 +892,23 @@ function slugify(value: string) {
 
 function hasField<T extends object>(input: T, field: keyof T) {
   return Object.prototype.hasOwnProperty.call(input, field);
+}
+
+function normalizeCategoryValue(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+
+  if (typeof value === "number" || value === null) {
+    return value;
+  }
+
+  return null;
 }
 
 function throwValidationError(message: string): never {

@@ -1,3 +1,4 @@
+import { systemRecordsRouter } from "../routes/systemRecords.routes.js";
 import { execute, queryAll, queryOne, type QueryParams } from "./database.js";
 
 export type DirectoryResourceConfig = {
@@ -106,7 +107,8 @@ const RESOURCE_CONFIGS = {
       "protocol",
       "data_description",
       "notes"
-    ]
+    ],
+    supportsArchive: true
   },
   scheduledProcesses: {
     tableName: "scheduled_processes",
@@ -132,7 +134,8 @@ const RESOURCE_CONFIGS = {
       "command_or_job_name",
       "failure_notification_channel",
       "notes"
-    ]
+    ],
+    supportsArchive: true
   },
   reviews: {
     tableName: "review_records",
@@ -145,19 +148,35 @@ const RESOURCE_CONFIGS = {
       "notes",
       "next_review_due_at"
     ],
-    searchableColumns: ["review_status", "notes"]
+    searchableColumns: ["review_status", "notes"],
+    supportsArchive: true
   },
   tags: {
     tableName: "tags",
     listOrderBy: "name ASC",
     allowedColumns: ["name", "description"],
-    searchableColumns: ["name", "description"]
+    searchableColumns: ["name", "description"],
+    supportsArchive: true 
+  },
+  systemDependcies: {
+    tableName: "system_dependencies",
+    listOrderBy: "importance_level ASC, id DESC",
+    allowedColumns: [
+      "source_asset_id",
+      "destination_asset_id",
+      "relationship_description",
+      "data_or_service_exchange",
+      "importance_level",
+      "notes"
+    ],
+    searchableColumns: ["rekationship_description", "data_or_service_exchanged", "importance_level", "notes"],
+    supportsArchive: true
   }
 } as const satisfies Record<string, DirectoryResourceConfig>;
 
 export type DirectoryResourceName = keyof typeof RESOURCE_CONFIGS;
 
-export function getDirectoryResourceConfig(resourceName: DirectoryResourceName): DirectoryResourceConfig {
+export function getDirectoryResourceConfig(resourceName: DirectoryResourceName) {
   return RESOURCE_CONFIGS[resourceName];
 }
 

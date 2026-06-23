@@ -206,6 +206,15 @@ const tagSchema = z.object({
   description: optionalText
 });
 
+const systemDependencySchema = z.object({
+  source_asset_id: z.number().int().positive().optional(),
+  destination_asset_id: z.number().int().positive().optional(),
+  relationship_description: z.string().trim().min(1, "This field is required.").optional(),
+  data_or_service_exchanged: optionalText,
+  importance_level: z.enum(["critical", "important", "standard"]).optional(),
+  notes: optionalText
+});
+
 export const directorySchemas = {
   assetTypes: assetTypeSchema,
   teams: teamSchema,
@@ -215,7 +224,8 @@ export const directorySchemas = {
   integrations: integrationSchema,
   scheduledProcesses: scheduledProcessSchema,
   reviews: reviewSchema,
-  tags: tagSchema
+  tags: tagSchema,
+  systemDependencies: systemDependencySchema
 };
 
 export const directoryListQuerySchema = listQuerySchema;
@@ -229,7 +239,8 @@ const requiredCreateFields: Record<keyof typeof directorySchemas, string[]> = {
   integrations: ["name"],
   scheduledProcesses: ["name"],
   reviews: ["asset_id"],
-  tags: ["name"]
+  tags: ["name"],
+  systemDependencies: ["source_asset_id", "destination_asset_id", "relationship_description"]
 };
 
 export const searchQuerySchema = z.object({
@@ -263,14 +274,20 @@ export function parseCreateInput(resourceName: keyof typeof directorySchemas, bo
     throw error;
   }
 
+  validateSystemDependency(resourceName, value);
+
   return value;
 }
 
 export function parseUpdateInput(resourceName: keyof typeof directorySchemas, body: unknown) {
-  return requireAtLeastOne(directorySchemas[resourceName].partial().parse(body)) as Record<
+  const value = requireAtLeastOne(directorySchemas[resourceName].partial().parse(body)) as Record<
     string,
     unknown
   >;
+
+  validateSystemDependency(resourceName,value);
+
+  return value;
 }
 
 function requireAtLeastOne<T extends Record<string, unknown>>(value: T) {
@@ -281,6 +298,18 @@ function requireAtLeastOne<T extends Record<string, unknown>>(value: T) {
   }
 
   return value;
+}
+
+function validateSystemDependency(resourceName: keyof typeof directorySchemas, value: Record<string, unknown>) {
+  if (resourceName !== "systemDependencies") {
+    return;
+  }
+
+  if (value.source_asset_id && value.destination_asset_id && value.source_asset_id === value.destination_asset_id) {
+    const error = new Error("source_asset_id and destination_asset_id must be different systems.");
+    error.name = "ValidationError";
+    throw error;
+  }
 }
 
 function isValidDateString(value: string) {
@@ -298,4 +327,33 @@ function isValidDateString(value: string) {
   return (
     date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
+}
+
+function validateSystemDependency(
+  resourceName: keyof typeof directorySchemas | string,
+  value: Record<string, unknown>
+) {
+  if (resourceName !== "systemDependencies") return;
+
+  const src = value["source_asset_id"];
+  const dst = value["destination_asset_id"];
+  const rel = value["relationship_description"];
+
+  if (src == null || dst == null) {
+    const error = new Error("source_asset_id and destination_asset_id are required.");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (src === dst) {
+    const error = new Error("source_asset_id and destination_asset_id must be different.");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (rel == null || (typeof rel === "string" && rel.trim() === "")) {
+    const error = new Error("relationship_description is required.");
+    error.name = "ValidationError";
+    throw error;
+  }
 }

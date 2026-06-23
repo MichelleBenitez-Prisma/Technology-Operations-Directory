@@ -118,6 +118,42 @@ export type VendorFormInput = {
   notes: string;
 };
 
+export type DirectoryResource =
+  | "integrations"
+  | "scheduled-processes"
+  | "reviews"
+  | "tags"
+  | "system-dependencies";
+
+export type DirectoryRecord = Record<string, string | number | null>;
+
+export type DependencyImportance = "critical" | "important" | "standard";
+
+export type SystemDependency = {
+  id: number;
+  source_asset_id: number;
+  destination_asset_id: number;
+  relationship_description: string;
+  data_or_service_exchanged: string | null;
+  importance_level: DependencyImportance;
+  notes: string | null;
+  archived_at: string | null;
+  related_system_id: number;
+  related_system_name: string;
+  related_category_name: string;
+  related_status: SystemStatus;
+};
+
+export type SystemDependencySummary = {
+  dependsOn: SystemDependency[];
+  dependedOnBy: SystemDependency[];
+};
+
+export type CategoryDetails = {
+  categoryCode: string;
+  categoryName: string;
+  fields: DirectoryRecord | null;
+};
 export type DashboardTotals = {
   total: number;
   archived: number;

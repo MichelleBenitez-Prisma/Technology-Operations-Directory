@@ -85,12 +85,12 @@
 - [x] Build asset search and list view.
 - [x] Build asset detail view.
 - [x] Build add and edit asset forms.
-- [ ] Add category-specific detail sections.
+- [x] Add category-specific detail sections.
 - [x] Build vendor detail workflow.
-- [ ] Build integration detail workflow.
-- [ ] Build scheduled process workflow.
-- [ ] Build review workflow.
-- [ ] Add tag management.
+- [x] Build integration detail workflow.
+- [x] Build scheduled process workflow.
+- [x] Build review workflow.
+- [x] Add tag management.
 
 ## Phase Six: Security and Operations
 

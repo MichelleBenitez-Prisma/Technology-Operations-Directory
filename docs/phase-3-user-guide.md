@@ -67,6 +67,15 @@ Select a vendor name to open the vendor detail page. The detail page shows vendo
 
 Use **Edit** to update vendor information. Use **Archive** when the vendor should be hidden from the default list but retained for history.
 
+## Phase 5 Directory and Dependencies
+
+Open `#/directory` or use the **Directory** button to manafe integrations, scheduled processes, reviews, tags, and system dependencies.
+
+Each system detail page now includes dependency impact information. **This system depends on** shows upstream system the current record needs. **Systems affected if this system stops working** shows downstream system that may be impacted by a outage.
+
+Dependency records include source system, destiniation system, relationship description, data or service exchanged, importance level, and notes. Importance levels are `critical`, `important`, and `standard`.
+
+System detail pages also show category-specific fields when the category supports them, plus assigned tags. Use tag management in the directory to create tags, then assign or remove them from the system detail page. 
 
 ## Demo Records
 

@@ -1,7 +1,11 @@
 import type {
   AssetType,
+  CategoryDetails,
   DashboardTotals,
+  DirectoryRecord,
+  DirectoryResource,
   SystemRecord,
+  SystemDependencySummary,
   SystemRecordFormInput,
   SystemRecordMutationResult,
   Vendor,
@@ -24,6 +28,36 @@ export async function fetchSystems(query = "limit=100&sortBy=updatedAt&sortDirec
 
 export async function fetchSystem(id: number) {
   return getJson<SystemRecord>(`/api/system-records/${id}`);
+}
+
+export async function fetchSystemDependencies(id: number) {
+  return getJson<SystemDependencySummary>(`/api/system-records/${id}/dependencies`);
+}
+
+export async function fetchSystemCategoryDetails(id: number) {
+  return getJson<CategoryDetails>(`/api/system-records/${id}/category-details`);
+}
+
+export async function fetchSystemTags(id: number) {
+  return getJson<DirectoryRecord[]>(`/api/system-records/${id}/tags`);
+}
+
+export async function addSystemTag(id: number, tagId: number) {
+  return mutateJson<{ data: DirectoryRecord[] }>(`/api/system-records/${id}/tags`, "POST", {
+    tagId
+  });
+}
+
+export async function removeSystemTag(id: number, tagId: number) {
+  await mutateEmpty(`/api/system-records/${id}/tags/${tagId}`, "DELETE");
+}
+
+export async function updateSystemCategoryDetails(id: number, input: DirectoryRecord) {
+  return mutateJson<{ data: CategoryDetails }>(
+    `/api/system-records/${id}/category-details`,
+    "PUT",
+    input
+  );
 }
 
 export async function fetchAssetTypes() {
@@ -66,6 +100,30 @@ export async function archiveVendor(id: number) {
   return mutateJson<{ data: Vendor }>(`/api/vendors/${id}/archive`, "POST");
 }
 
+export async function fetchDirectoryRecords(resource: DirectoryResource, query = "limit=100") {
+  return getJson<DirectoryRecord[]>(`/api/${resource}?${query}`);
+}
+
+export async function fetchDirectoryRecord(resource: DirectoryResource, id: number) {
+  return getJson<DirectoryRecord>(`/api/${resource}/${id}`);
+}
+
+export async function createDirectoryRecord(resource: DirectoryResource, input: DirectoryRecord) {
+  return mutateJson<{ data: DirectoryRecord }>(`/api/${resource}`, "POST", input);
+}
+
+export async function updateDirectoryRecord(
+  resource: DirectoryResource,
+  id: number,
+  input: DirectoryRecord
+) {
+  return mutateJson<{ data: DirectoryRecord }>(`/api/${resource}/${id}`, "PUT", input);
+}
+
+export async function archiveDirectoryRecord(resource: DirectoryResource, id: number) {
+  return mutateJson<{ data: DirectoryRecord }>(`/api/${resource}/${id}/archive`, "POST");
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
 
@@ -80,7 +138,7 @@ async function getJson<T>(path: string): Promise<T> {
 async function mutateJson<T>(
   path: string,
   method: "POST" | "PUT",
-  body?: SystemRecordFormInput | VendorFormInput
+  body?: SystemRecordFormInput | VendorFormInput | DirectoryRecord
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,

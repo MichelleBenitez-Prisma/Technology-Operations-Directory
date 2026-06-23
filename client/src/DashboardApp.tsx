@@ -18,35 +18,52 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode, FormEvent } from "react";
+import type{ FormEvent as ReactFrom, ReactNode } from "react";
 
 import {
   ApiError,
+  addSystemTag,
+  archiveDirectoryRecord,
   archiveSystem,
   archiveVendor,
+  createDirectoryRecord,
   createSystem,
   createVendor,
   deleteSystem,
   fetchAssetTypes,
   fetchDashboardTotals,
+  fetchDirectoryRecord,
+  fetchDirectoryRecords,
   fetchSystem,
+  fetchSystemCategoryDetails,
+  fetchSystemDependencies,
+  fetchSystemTags,
   fetchSystems,
   fetchVendor,
   fetchVendors,
+  updateDirectoryRecord,
   updateSystem,
-  updateVendor
+  updateSystemCategoryDetails,
+  updateVendor,
+  removeSystemTag
 } from "./api";
 import { getRecordHref, getStatusCount, statusLabels } from "./dashboardData";
 import type {
   AssetType,
+  CategoryDetails,
   DashboardTotals,
+  DirectoryRecord,
+  DirectoryResource,
   SystemRecord,
+  SystemDependency,
+  SystemDependencySummary,
   SystemRecordFormInput,
   SystemRecordWarning,
   SystemStatus,
   Vendor,
   VendorFormInput
 } from "./types";
+import { ReactFormState } from "react-dom/client";
 
 type LoadState = "loading" | "ready" | "error";
 export type Route =
@@ -58,9 +75,13 @@ export type Route =
   | { name: "vendors"; query: URLSearchParams }
   | { name: "vendorDetail"; id: number }
   | { name: "newVendor" }
-  | { name: "editVendor"; id: number };
-
-
+  | { name: "editVendor"; id: number }
+  | { name: "directoryHome" }
+  | { name: "directoryList"; resource: DirectoryResource; query: URLSearchParams }
+  | { name: "directoryDetail"; resource: DirectoryResource; id: number }
+  | { name: "directoryNew"; resource: DirectoryResource }
+  | { name: "directoryEdit"; resource: DirectoryResource; id: number }
+  
 const systemStatuses = Object.keys(statusLabels) as SystemStatus[];
 const sortOptions = [
   { value: "systemName", label: "System name" },
@@ -71,6 +92,167 @@ const sortOptions = [
   { value: "lastReviewDate", label: "Last review date" },
   { value: "updatedAt", label: "Recently updated" }
 ];
+
+type DirectoryField = {
+  name: string;
+  label: string;
+  type?: "text" | "textarea" | "select" | "number" | "date" | "datetime-local";
+  options?: Array<{ value: string; label: string }>;
+  required?: boolean;
+  systemSelect?: boolean;
+};
+
+function parseRoute(): Route {
+  const raw = (typeof window !== "undefined" ? window.location.hash : "") || "";
+  const hash = raw.replace(/^#/, "");
+
+  // split path and query
+  const [pathPart, queryPart] = hash.split("?");
+  const parts = pathPart.split("/").filter(Boolean);
+
+  const parseQuery = (qp?: string) => new URLSearchParams(qp ?? "");
+
+  if (parts.length === 0) {
+    return { name: "dashboard" };
+  }
+
+  if (parts[0] === "systems") {
+    if (parts.length === 1) return { name: "systems", query: parseQuery(queryPart) };
+    if (parts[1] === "new") return { name: "newSystem" };
+    if (parts.length >= 2) {
+      const id = Number(parts[1]);
+      if (!Number.isNaN(id)) {
+        if (parts[2] === "edit") return { name: "editSystem", id };
+        return { name: "systemDetail", id };
+      }
+    }
+  }
+
+  if (parts[0] === "vendors") {
+    if (parts.length === 1) return { name: "vendors", query: parseQuery(queryPart) };
+    if (parts[1] === "new") return { name: "newVendor" };
+    if (parts.length >= 2) {
+      const id = Number(parts[1]);
+      if (!Number.isNaN(id)) {
+        if (parts[2] === "edit") return { name: "editVendor", id };
+        return { name: "vendorDetail", id };
+      }
+    }
+  }
+
+  if (parts[0] === "directory") {
+    // /directory -> home
+    if (parts.length === 1) return { name: "directoryHome" };
+
+    const resource = parts[1] as DirectoryResource;
+    if (parts.length === 2) return { name: "directoryList", resource, query: parseQuery(queryPart) };
+    if (parts[2] === "new") return { name: "directoryNew", resource };
+    const id = Number(parts[2]);
+    if (!Number.isNaN(id)) {
+      if (parts[3] === "edit") return { name: "directoryEdit", resource, id };
+      return { name: "directoryDetail", resource, id };
+    }
+  }
+
+  // default
+  return { name: "dashboard" };
+}
+
+const optionValues = (values: string[]) =>
+  values.map((value) => ({
+    value,
+    label: value
+      .split("_")
+      .map((segment) => segment[0].toUpperCase() + segment.slice(1).toLowerCase())
+      .join(" ")
+  }));
+
+function dependencyFields(): DirectoryField[] {
+  return [
+    { name: "source_asset_id", label: "Source system", systemSelect: true, required: true },
+    { name: "destination_asset_id", label: "Destination system", systemSelect: true, required: true },
+    { name: "relationship_description", label: "Relationship description", required: true },
+    { name: "data_or_service_exchanged", label: "Data or service exchanged", type: "textarea" },
+    {
+      name: "importance_level",
+      label: "Importance level",
+      type: "select",
+      options: optionValues(["critical", "important", "standard"]),
+      required: true
+    },
+    { name: "notes", label: "Notes", type: "textarea" }
+  ];
+}
+
+const directoryConfigs: Record<
+  DirectoryResource,
+  { title: string; singular: string; fields: DirectoryField[]; summaryFields: string[] }
+> = {
+  integrations: {
+    title: "Integrations",
+    singular: "Integration",
+    summaryFields: ["name", "source_asset_id", "target_asset_id", "criticality"],
+    fields: [
+      { name: "name", label: "Name", required: true },
+      { name: "source_asset_id", label: "Source system", systemSelect: true },
+      { name: "target_asset_id", label: "Target system", systemSelect: true },
+      { name: "source_external_name", label: "Source external name" },
+      { name: "target_external_name", label: "Target external name" },
+      { name: "integration_type", label: "Integration type" },
+      { name: "direction", label: "Direction", type: "select", options: optionValues(["inbound", "outbound", "bidirectional"]) },
+      { name: "protocol", label: "Protocol" },
+      { name: "data_description", label: "Data description", type: "textarea" },
+      { name: "schedule_description", label: "Schedule description", type: "textarea" },
+      { name: "criticality", label: "Criticality", type: "select", options: optionValues(["low", "medium", "high", "critical"]) },
+      { name: "documentation_url", label: "Documentation URL" },
+      { name: "notes", label: "Notes", type: "textarea" }
+    ]
+  },
+  "scheduled-processes": {
+    title: "Scheduled Processes",
+    singular: "Scheduled Process",
+    summaryFields: ["name", "asset_id", "schedule_kind", "lifecycle_status"],
+    fields: [
+      { name: "asset_id", label: "Related system", systemSelect: true },
+      { name: "name", label: "Name", required: true },
+      { name: "schedule_kind", label: "Schedule kind", type: "select", options: optionValues(["cron", "fixed_interval", "manual", "event_driven", "other"]) },
+      { name: "schedule_expression", label: "Schedule expression" },
+      { name: "schedule_timezone", label: "Schedule timezone" },
+      { name: "command_or_job_name", label: "Command or job name" },
+      { name: "run_location_asset_id", label: "Run location system", systemSelect: true },
+      { name: "failure_notification_channel", label: "Failure notification channel" },
+      { name: "runbook_url", label: "Runbook URL" },
+      { name: "notes", label: "Notes", type: "textarea" }
+    ]
+  },
+  reviews: {
+    title: "Reviews",
+    singular: "Review",
+    summaryFields: ["asset_id", "reviewed_at", "review_status", "next_review_due_at"],
+    fields: [
+      { name: "asset_id", label: "Related system", systemSelect: true, required: true },
+      { name: "reviewed_at", label: "Reviewed at", type: "datetime-local" },
+      { name: "review_status", label: "Review status", type: "select", options: optionValues(["approved", "needs_updates", "retirement_candidate"]) },
+      { name: "next_review_due_at", label: "Next review due", type: "date" },
+      { name: "notes", label: "Notes", type: "textarea" }
+    ]
+  },
+  tags: {
+    title: "Tags",
+    singular: "Tag",
+    summaryFields: ["name", "description"],
+    fields: [
+      { name: "name", label: "Name", required: true },
+      { name: "description", label: "Description", type: "textarea" }
+    ]
+  },
+  "system-dependencies": {
+    title: "System Dependencies",
+    singular: "System Dependency",
+    summaryFields: ["source_asset_id", "destination_asset_id", "importance_level"],
+    fields: dependencyFields()
+  }
+};
 
 export function DashboardApp() {
   const [route, setRoute] = useState<Route>(() => parseRoute());
@@ -112,6 +294,10 @@ export function DashboardApp() {
             <ListFilter size={16} aria-hidden="true" />
             Vendors
           </a>  
+            <a className="secondary-link" href="#/directory">
+            <ListFilter size={16} aria-hidden="true" />
+            Directory
+          </a>
           <a className="primary-link" href="#/systems/new">
             <Plus size={16} aria-hidden="true" />
             Add System
@@ -138,6 +324,7 @@ export function DashboardApp() {
       {route.name === "editVendor" ? (
        <VendorForm mode="edit" vendorId={route.id} navigate={navigate} /> 
       ) : null}
+      
     </main>
   );
 }
@@ -818,7 +1005,7 @@ function VendorForm({
     });
   }
 
-  async function saveVendor(event: FormEvent<HTMLFormElement>) {
+ async function saveRecord(event: ReactFormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setErrors({});
@@ -910,7 +1097,309 @@ function VendorForm({
   );
 }
 
+function DirectoryHome() {
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Phase 5</p>
+          <h2>Directory Workflows</h2>
+        </div>
+      </section>
+      <section className="panel-grid">
+        {(Object.keys(directoryConfigs) as DirectoryResource[]).map((resource) => (
+          <a className="metric-card neutral" href={`#/directory/${resource}`} key={resource}>
+            <span className="metric-icon">
+              <ListFilter size={20} aria-hidden="true" />
+            </span>
+            <span className="metric-value">{directoryConfigs[resource].title}</span>
+            <span className="metric-label">Manage records</span>
+          </a>
+        ))}
+      </section>
+    </>
+  );
+}
+function DirectoryList({
+  resource,
+  initialQuery
+}: {
+  resource: DirectoryResource;
+  initialQuery: URLSearchParams;
+}) {
+  const config = directoryConfigs[resource];
+  const [records, setRecords] = useState<DirectoryRecord[]>([]);
+  const [search, setSearch] = useState(initialQuery.get("search") ?? "");
+  const [includeArchived, setIncludeArchived] = useState(initialQuery.get("includeArchived") === "true");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [systems, setsystems] = useState<SystemRecord[]>([]);
 
+  useEffect(() => {
+    const query = new URLSearchParams({ limit: "100" });
+
+    if (search.trim()) {
+      query.set("search", search.trim());
+    }
+ if (includeArchived) {
+      query.set("includeArchived", "true");
+    }
+
+    window.history.replaceState(null, "", `#/directory/${resource}?${query.toString()}`);
+    setLoadState("loading");
+    void fetchDirectoryRecords(resource, query.toString())
+      .then((nextRecords) => {
+        setRecords(nextRecords);
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [resource, search, includeArchived]);
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Directory workflow</p>
+          <h2>{config.title}</h2>
+        </div>
+        <a className="primary-link" href={`#/directory/${resource}/new`}>
+          <Plus size={16} aria-hidden="true" />
+          Add {config.singular}
+        </a>
+      </section>
+      <section className="filter-bar">
+        <label className="field search-field">
+          <span>Search</span>
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <label className="check-field">
+          <input
+            type="checkbox"
+            checked={includeArchived}
+            onChange={(event) => setIncludeArchived(event.target.checked)}
+          />
+          Include archived
+        </label>
+      </section>
+      {loadState === "error" ? (
+        <section className="notice error" role="alert">
+          <ShieldAlert size={20} aria-hidden="true" />
+          <span>Unable to load records.</span>
+        </section>
+      ) : null}
+      <section className="panel wide">
+        <div className="list-summary">
+          <strong>{loadState === "loading" ? "Loading..." : `${records.length} records`}</strong>
+          <span>Open a row to view or edit details.</span>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                {config.summaryFields.map((field) => (
+                  <th key={field}>{humanizeField(field)}</th>
+                ))}
+                <th>Archived</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record) => (
+                <tr key={String(record.id)}>
+                  {config.summaryFields.map((field, index) => (
+                    <td key={field}>
+                      {index === 0 ? (
+                        <a href={`#/directory/${resource}/${record.id}`}>{formatDirectoryValue(record[field])}</a>
+                      ) : (
+                        formatDirectoryValue(record[field])
+                      )}
+                       </td>
+                  ))}
+                  <td>{record.archived_at ? formatDateTime(String(record.archived_at)) : "No"}</td>
+                </tr>
+              ))}
+              {records.length === 0 ? (
+                <tr>
+                  <td colSpan={config.summaryFields.length + 1} className="empty-table">
+                    No records found.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function DirectoryDetail({
+  resource,
+  id,
+  navigate
+}: {
+  resource: DirectoryResource;
+  id: number;
+  navigate: (hash: string) => void;
+}) {
+  const config = directoryConfigs[resource];
+  const [record, setRecord] = useState<DirectoryRecord | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+
+  useEffect(() => {
+    setLoadState("loading");
+    void fetchDirectoryRecord(resource, id)
+      .then((nextRecord) => {
+        setRecord(nextRecord);
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [resource, id]);
+
+  async function archiveRecord() {
+    const confirmed = window.confirm(`Archive this ${config.singular.toLowerCase()}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    await archiveDirectoryRecord(resource, id);
+    navigate(`/directory/${resource}`);
+  }
+
+  if (loadState === "loading") {
+    return <section className="panel wide">Loading record...</section>;
+  }
+
+  if (loadState === "error" || !record) {
+    return (
+      <section className="notice error" role="alert">
+        <ShieldAlert size={20} aria-hidden="true" />
+        <span>Unable to load record.</span>
+      </section>
+    );
+          </section>
+      <DetailSection title={`${config.singular} details`} wide>
+        {config.fields.map((field) => (
+          <DetailItem key={field.name} label={field.label} value={formatDirectoryValue(record[field.name])} />
+        ))}
+      </DetailSection>
+    </>
+  );
+}
+
+function DirectoryForm({
+  resource,
+  mode,
+  id,
+  navigate
+}: {
+  resource: DirectoryResource;
+  mode: "create" | "edit";
+  id?: number;
+  navigate: (hash: string) => void;
+}) {
+  const config = directoryConfigs[resource];
+  const [form, setForm] = useState<Record<string, string>>(() => createDirectoryForm(config.fields));
+  const [systems, setSystems] = useState<SystemRecord[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>(mode === "edit" ? "loading" : "ready");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (config.fields.some((field) => field.systemSelect)) {
+      void fetchSystems("limit=100&sortBy=systemName&sortDirection=asc&includeArchived=true")
+        .then(setSystems)
+        .catch((error) => console.error(error));
+    }
+  }, [config.fields]);
+
+  useEffect(() => {
+    if (mode !== "edit" || !id) {
+      return;
+    }
+
+    setLoadState("loading");
+    void fetchDirectoryRecord(resource, id)
+      .then((record) => {
+        setForm(recordToStringForm(record));
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [mode, resource, id]);
+
+  async function saveRecord(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const payload = formToDirectoryRecord(form, config.fields);
+      const result =
+        mode === "create"
+          ? await createDirectoryRecord(resource, payload)
+          : await updateDirectoryRecord(resource, Number(id), payload);
+
+      navigate(`/directory/${resource}/${result.data.id}`);
+    } catch (error) {
+      console.error(error);
+      window.alert(`Unable to save ${config.singular.toLowerCase()}.`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (loadState === "loading") {
+    return <section className="panel wide">Loading form...</section>;
+  }
+
+  if (loadState === "error") {
+    return (
+      <section className="notice error" role="alert">
+        <ShieldAlert size={20} aria-hidden="true" />
+        <span>Unable to load this record for editing.</span>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">{config.title}</p>
+          <h2>{mode === "create" ? `Add ${config.singular}` : `Edit ${config.singular}`}</h2>
+        </div>
+      </section>
+      <form className="record-form" onSubmit={(event) => void saveRecord(event)}>
+        <FormSection title={`${config.singular} information`}>
+          {config.fields.map((field) => (
+            <DirectoryFieldInput
+              key={field.name}
+              field={field}
+              value={form[field.name] ?? ""}
+              systems={systems}
+              onChange={(value) => setForm((current) => ({ ...current, [field.name]: value }))}
+            />
+          ))}
+        </FormSection>
+        <div className="form-actions">
+          <a className="secondary-link" href={mode === "edit" && id ? `#/directory/${resource}/${id}` : `#/directory/${resource}`}>
+            Cancel
+          </a>
+          <button className="primary-link" type="submit" disabled={isSaving}>
+            <Save size={16} aria-hidden="true" />
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
 
 function SystemDetail({
   id,
@@ -1081,8 +1570,312 @@ function SystemDetail({
           <DetailItem label="Replacement system" value={record.replacement_system} />
           <DetailItem label="Retirement notes" value={record.retirement_notes} />
         </DetailSection>
+
+        <CategoryDetailSection systemId={record.id} />
+        <SystemTagsSection systemId={record.id} />
+        <SystemDependenciesSection system={record} />
       </section>
     </>
+  );
+}
+
+function CategoryDetailSection({ systemId }: { systemId: number }) {
+  const [details, setDetails] = useState<CategoryDetails | null>(null);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    void fetchSystemCategoryDetails(systemId)
+      .then((nextDetails) => {
+        setDetails(nextDetails);
+        setForm(recordToStringForm(nextDetails.fields ?? {}));
+      })
+      .catch((error) => console.error(error));
+  }, [systemId]);
+
+  if (!details?.fields) {
+    return null;
+  }
+
+  async function saveDetails(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const result = await updateSystemCategoryDetails(systemId, formToDirectoryRecord(form));
+      setDetails(result.data);
+      setForm(recordToStringForm(result.data.fields ?? {}));
+    } catch (error) {
+      console.error(error);
+      window.alert("Unable to save category details.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <section className="panel detail-section wide">
+      <h3>{details.categoryName} details</h3>
+      <form className="form-grid" onSubmit={(event) => void saveDetails(event)}>
+        {Object.keys(details.fields).map((field) => (
+          <label className="field" key={field}>
+            <span>{humanizeField(field)}</span>
+            <input
+              value={form[field] ?? ""}
+              onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
+            />
+          </label>
+        ))}
+        <div className="form-actions full-field">
+          <button className="secondary-link" type="submit" disabled={isSaving}>
+            <Save size={16} aria-hidden="true" />
+            {isSaving ? "Saving..." : "Save Details"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function SystemTagsSection({ systemId }: { systemId: number }) {
+  const [assignedTags, setAssignedTags] = useState<DirectoryRecord[]>([]);
+  const [allTags, setAllTags] = useState<DirectoryRecord[]>([]);
+  const [selectedTagId, setSelectedTagId] = useState("");
+
+  useEffect(() => {
+    void loadTags();
+    void fetchDirectoryRecords("tags", "limit=100")
+      .then(setAllTags)
+      .catch((error) => console.error(error));
+  }, [systemId]);
+
+  async function loadTags() {
+    try {
+      setAssignedTags(await fetchSystemTags(systemId));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function assignTag(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+      if (!selectedTagId) {
+      return;
+    }
+
+    const result = await addSystemTag(systemId, Number(selectedTagId));
+    setAssignedTags(result.data);
+    setSelectedTagId("");
+  }
+
+  async function unassignTag(tagId: number) {
+    await removeSystemTag(systemId, tagId);
+    await loadTags();
+  }
+
+  const assignedIds = new Set(assignedTags.map((tag) => Number(tag.id)));
+  const availableTags = allTags.filter((tag) => !assignedIds.has(Number(tag.id)));
+
+  return (
+    <section className="panel detail-section wide">
+      <h3>Tags</h3>
+      <div className="tag-list">
+        {assignedTags.map((tag) => (
+          <span className="status-pill neutral" key={String(tag.id)}>
+            {formatDirectoryValue(tag.name)}
+            <button type="button" onClick={() => void unassignTag(Number(tag.id))}>
+              <X size={12} aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+        {assignedTags.length === 0 ? <p className="empty-state">No tags assigned.</p> : null}
+      </div>
+      <form className="filter-bar" onSubmit={(event) => void assignTag(event)}>
+        <label className="field">
+          <span>Add tag</span>
+          <select value={selectedTagId} onChange={(event) => setSelectedTagId(event.target.value)}>
+            <option value="">Select tag</option>
+            {availableTags.map((tag) => (
+              <option key={String(tag.id)} value={String(tag.id)}>
+                {formatDirectoryValue(tag.name)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="secondary-link" type="submit">
+          Add Tag
+        </button>
+      </form>
+    </section>
+  );
+}
+function SystemDependenciesSection({ system }: { system: SystemRecord }) {
+  const [summary, setSummary] = useState<SystemDependencySummary>({ dependsOn: [], dependedOnBy: [] });
+  const [systems, setSystems] = useState<SystemRecord[]>([]);
+  const [form, setForm] = useState<Record<string, string>>(() =>
+    createDependencyForm(system.id)
+  );
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    void loadDependencies();
+    void fetchSystems("limit=100&sortBy=systemName&sortDirection=asc&includeArchived=true")
+      .then(setSystems)
+      .catch((error) => console.error(error));
+  }, [system.id]);
+
+  async function loadDependencies() {
+    try {
+      setSummary(await fetchSystemDependencies(system.id));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function editDependency(dependency: SystemDependency) {
+    setEditingId(dependency.id);
+    setForm({
+      source_asset_id: String(dependency.source_asset_id),
+      destination_asset_id: String(dependency.destination_asset_id),
+      relationship_description: dependency.relationship_description,
+      data_or_service_exchanged: dependency.data_or_service_exchanged ?? "",
+      importance_level: dependency.importance_level,
+      notes: dependency.notes ?? ""
+    });
+  }
+async function saveDependency(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const payload = createDependencyPayload(form);
+
+      if (editingId) {
+        await updateDirectoryRecord("system-dependencies", editingId, payload);
+      } else {
+        await createDirectoryRecord("system-dependencies", payload);
+      }
+
+      setEditingId(null);
+      setForm(createDependencyForm(system.id));
+      await loadDependencies();
+    } catch (error) {
+      console.error(error);
+      window.alert("Unable to save dependency.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function archiveDependency(id: number) {
+    const confirmed = window.confirm("Archive this dependency?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    await archiveDirectoryRecord("system-dependencies", id);
+    await loadDependencies();
+  }
+
+  return (
+    <section className="panel detail-section wide">
+      <h3>Dependencies</h3>
+      <div className="dependency-columns">
+        <DependencyList
+          title="This system depends on"
+          dependencies={summary.dependsOn}
+          emptyText="No upstream dependencies recorded."
+          onEdit={editDependency}
+          onArchive={(id) => void archiveDependency(id)}
+        />
+        <DependencyList
+          title="Systems affected if this system stops working"
+          dependencies={summary.dependedOnBy}
+          emptyText="No downstream impact recorded."
+          onEdit={editDependency}
+          onArchive={(id) => void archiveDependency(id)}
+        />
+      </div>
+
+      
+      <form className="record-form compact-form" onSubmit={(event) => void saveDependency(event)}>
+        <FormSection title={editingId ? "Edit dependency" : "Add dependency"}>
+          {dependencyFields().map((field) => (
+            <DirectoryFieldInput
+              key={field.name}
+              field={field}
+              value={form[field.name] ?? ""}
+              systems={systems}
+              onChange={(value) => setForm((current) => ({ ...current, [field.name]: value }))}
+            />
+          ))}
+        </FormSection>
+        <div className="form-actions">
+          {editingId ? (
+            <button
+              className="secondary-link"
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setForm(createDependencyForm(system.id));
+              }}
+            >
+              Cancel
+            </button>
+          ) : null}
+          <button className="primary-link" type="submit" disabled={isSaving}>
+            <Save size={16} aria-hidden="true" />
+            {isSaving ? "Saving..." : "Save Dependency"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function DependencyList({
+  title,
+  dependencies,
+  emptyText,
+  onEdit,
+  onArchive
+}: {
+  title: string;
+  dependencies: SystemDependency[];
+  emptyText: string;
+  onEdit: (dependency: SystemDependency) => void;
+  onArchive: (id: number) => void;
+}) {
+  return (
+    <div className="attention-column">
+      <h3>{title}</h3>
+      {dependencies.length === 0 ? (
+        <p className="empty-state">{emptyText}</p>
+      ) : (
+        <ul>
+          {dependencies.map((dependency) => (
+            <li key={dependency.id}>
+              <a href={`#/systems/${dependency.related_system_id}`}>
+                {dependency.related_system_name}
+              </a>
+              <span className={`status-pill ${dependency.importance_level}`}>{dependency.importance_level}</span>
+              <span>{dependency.relationship_description}</span>
+              <span>{dependency.data_or_service_exchanged ?? "No data or service recorded"}</span>
+              <span>{dependency.notes ?? "No notes"}</span>
+              <div className="top-actions">
+                <button className="secondary-link" type="button" onClick={() => onEdit(dependency)}>
+                  Edit
+                </button>
+                <button className="danger-button" type="button" onClick={() => onArchive(dependency.id)}>
+                  Archive
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -1620,6 +2413,80 @@ function VendorTextArea({
   );
 }
 
+function DirectoryFieldInput({
+  field,
+  value,
+  systems,
+  onChange
+}: {
+  field: DirectoryField;
+  value: string;
+  systems: SystemRecord[];
+  onChange: (value: string) => void;
+}) {
+  if (field.systemSelect) {
+    return (
+      <label className="field">
+        <span>
+          {field.label}
+          {field.required ? " *" : ""}
+        </span>
+        <select value={value} onChange={(event) => onChange(event.target.value)} required={field.required}>
+          <option value="">Select system</option>
+          {systems.map((system) => (
+            <option key={system.id} value={system.id}>
+              {system.system_name}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  if (field.type === "textarea") {
+    return (
+      <label className="field full-field">
+        <span>{field.label}</span>
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} required={field.required} />
+      </label>
+    );
+  }
+
+   if (field.type === "select") {
+    return (
+      <label className="field">
+        <span>
+          {field.label}
+          {field.required ? " *" : ""}
+        </span>
+        <select value={value} onChange={(event) => onChange(event.target.value)} required={field.required}>
+          <option value="">Select value</option>
+          {field.options?.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <label className="field">
+      <span>
+        {field.label}
+        {field.required ? " *" : ""}
+      </span>
+      <input
+        type={field.type ?? "text"}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={field.required}
+      />
+    </label>
+  );
+}
+
 function parseRoute(): Route {
   return parseRouteFromHash(window.location.hash);
 }
@@ -1630,6 +2497,38 @@ export function parseRouteFromHash(rawHash: string): Route {
   const path = pathPart || "/";
   const query = new URLSearchParams(queryPart ?? "");
   const segments = path.split("/").filter(Boolean);
+
+   if (segments[0] === "directory") {
+    if (segments.length === 1) {
+      return { name: "directoryHome" };
+    }
+
+    const resource = parseDirectoryResource(segments[1]);
+
+    if (!resource) {
+      return { name: "directoryHome" };
+    }
+
+    if (segments.length === 2) {
+      return { name: "directoryList", resource, query };
+    }
+
+    if (segments[2] === "new") {
+      return { name: "directoryNew", resource };
+    }
+
+    const id = Number(segments[2]);
+
+    if (Number.isInteger(id) && id > 0 && segments[3] === "edit") {
+      return { name: "directoryEdit", resource, id };
+    }
+
+    if (Number.isInteger(id) && id > 0) {
+      return { name: "directoryDetail", resource, id };
+    }
+
+    return { name: "directoryList", resource, query };
+  }
 
   if (segments[0] === "vendors") {
     if (segments.length === 1) {
@@ -1725,6 +2624,59 @@ export function buildVendorsQuery(filters: { search: string; includeArchived: bo
   }
 
   return query;
+}
+
+function parseDirectoryResource(value: string | undefined): DirectoryResource | undefined {
+  return (Object.keys(directoryConfigs) as DirectoryResource[]).find((resource) => resource === value);
+}
+
+function optionValues(values: string[]) {
+  return values.map((value) => ({ value, label: humanizeField(value) }));
+}
+
+function createDependencyForm(systemId: number) {
+  return {
+    source_asset_id: String(systemId),
+    destination_asset_id: "",
+    relationship_description: "",
+    data_or_service_exchanged: "",
+    importance_level: "standard",
+    notes: ""
+  };
+}
+
+function createDependencyPayload(form: Record<string, string>): DirectoryRecord {
+  return {
+    source_asset_id: Number(form.source_asset_id),
+    destination_asset_id: Number(form.destination_asset_id),
+    relationship_description: form.relationship_description,
+    data_or_service_exchanged: form.data_or_service_exchanged,
+    importance_level: form.importance_level || "standard",
+    notes: form.notes
+  };
+}
+
+function createDirectoryForm(fields: DirectoryField[]) {
+  return Object.fromEntries(
+    fields.map((field) => [field.name, field.name === "importance_level" ? "standard" : ""])
+  );
+}
+
+function recordToStringForm(record: DirectoryRecord) {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, value === null ? "" : String(value)])
+  );
+}
+
+function formToDirectoryRecord(form: Record<string, string>, fields?: DirectoryField[]): DirectoryRecord {
+  const numericFields = new Set(fields?.filter((field) => field.type === "number" || field.systemSelect).map((field) => field.name));
+
+  return Object.fromEntries(
+    Object.entries(form).map(([key, value]) => [
+      key,
+      value.trim() === "" ? null : numericFields.has(key) ? Number(value) : value
+    ])
+  );
 }
 
  export function createEmptyForm(): SystemRecordFormInput {
@@ -1830,6 +2782,33 @@ function uniqueNonEmpty(values: Array<string | null>) {
   );
 }
 
+function formatDirectoryValue(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") {
+    return "Not recorded";
+  }
+
+  return String(value);
+}
+function formatDirectoryFieldValue(
+  fieldName: string,
+  value: string | number | null | undefined,
+  systems: SystemRecord[]
+){
+
+  if (fieldName.endsWith("_asset_id") || fieldName === "asset_id") {
+    const system = systems.find((record) => record.id === Number(value));
+    return system?.system_name ?? formatDirectoryValue(value);
+  }
+
+  return formatDirectoryValue(value);
+}
+function humanizeField(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function formatDate(value: string | null) {
   if (!value) {
     return "No date";
@@ -1849,3 +2828,4 @@ function formatDateTime(value: string) {
     year: "numeric"
   }).format(new Date(value));
 }
+
