@@ -300,18 +300,6 @@ function requireAtLeastOne<T extends Record<string, unknown>>(value: T) {
   return value;
 }
 
-function validateSystemDependency(resourceName: keyof typeof directorySchemas, value: Record<string, unknown>) {
-  if (resourceName !== "systemDependencies") {
-    return;
-  }
-
-  if (value.source_asset_id && value.destination_asset_id && value.source_asset_id === value.destination_asset_id) {
-    const error = new Error("source_asset_id and destination_asset_id must be different systems.");
-    error.name = "ValidationError";
-    throw error;
-  }
-}
-
 function isValidDateString(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
