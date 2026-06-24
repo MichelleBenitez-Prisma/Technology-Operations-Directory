@@ -18,7 +18,7 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type{ FormEvent as ReactFrom, ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 import {
   ApiError,
@@ -63,7 +63,6 @@ import type {
   Vendor,
   VendorFormInput
 } from "./types";
-import { ReactFormState } from "react-dom/client";
 
 type LoadState = "loading" | "ready" | "error";
 export type Route =
@@ -80,7 +79,7 @@ export type Route =
   | { name: "directoryList"; resource: DirectoryResource; query: URLSearchParams }
   | { name: "directoryDetail"; resource: DirectoryResource; id: number }
   | { name: "directoryNew"; resource: DirectoryResource }
-  | { name: "directoryEdit"; resource: DirectoryResource; id: number }
+  | { name: "directoryEdit"; resource: DirectoryResource; id: number };
   
 const systemStatuses = Object.keys(statusLabels) as SystemStatus[];
 const sortOptions = [
@@ -103,69 +102,12 @@ type DirectoryField = {
 };
 
 function parseRoute(): Route {
-  const raw = (typeof window !== "undefined" ? window.location.hash : "") || "";
-  const hash = raw.replace(/^#/, "");
-
-  // split path and query
-  const [pathPart, queryPart] = hash.split("?");
-  const parts = pathPart.split("/").filter(Boolean);
-
-  const parseQuery = (qp?: string) => new URLSearchParams(qp ?? "");
-
-  if (parts.length === 0) {
-    return { name: "dashboard" };
-  }
-
-  if (parts[0] === "systems") {
-    if (parts.length === 1) return { name: "systems", query: parseQuery(queryPart) };
-    if (parts[1] === "new") return { name: "newSystem" };
-    if (parts.length >= 2) {
-      const id = Number(parts[1]);
-      if (!Number.isNaN(id)) {
-        if (parts[2] === "edit") return { name: "editSystem", id };
-        return { name: "systemDetail", id };
-      }
-    }
-  }
-
-  if (parts[0] === "vendors") {
-    if (parts.length === 1) return { name: "vendors", query: parseQuery(queryPart) };
-    if (parts[1] === "new") return { name: "newVendor" };
-    if (parts.length >= 2) {
-      const id = Number(parts[1]);
-      if (!Number.isNaN(id)) {
-        if (parts[2] === "edit") return { name: "editVendor", id };
-        return { name: "vendorDetail", id };
-      }
-    }
-  }
-
-  if (parts[0] === "directory") {
-    // /directory -> home
-    if (parts.length === 1) return { name: "directoryHome" };
-
-    const resource = parts[1] as DirectoryResource;
-    if (parts.length === 2) return { name: "directoryList", resource, query: parseQuery(queryPart) };
-    if (parts[2] === "new") return { name: "directoryNew", resource };
-    const id = Number(parts[2]);
-    if (!Number.isNaN(id)) {
-      if (parts[3] === "edit") return { name: "directoryEdit", resource, id };
-      return { name: "directoryDetail", resource, id };
-    }
-  }
-
-  // default
-  return { name: "dashboard" };
+  return parseRouteFromHash(window.location.hash);
 }
 
-const optionValues = (values: string[]) =>
-  values.map((value) => ({
-    value,
-    label: value
-      .split("_")
-      .map((segment) => segment[0].toUpperCase() + segment.slice(1).toLowerCase())
-      .join(" ")
-  }));
+function optionValues(values: string[]) {
+  return values.map((value) => ({ value, label: humanizeField(value) }));
+}
 
 function dependencyFields(): DirectoryField[] {
   return [
@@ -324,7 +266,19 @@ export function DashboardApp() {
       {route.name === "editVendor" ? (
        <VendorForm mode="edit" vendorId={route.id} navigate={navigate} /> 
       ) : null}
-      
+      {route.name === "directoryHome" ? <DirectoryHome /> : null}
+      {route.name === "directoryList" ? (
+        <DirectoryList resource={route.resource} initialQuery={route.query} />
+      ) : null}
+      {route.name === "directoryDetail" ? (
+        <DirectoryDetail resource={route.resource} id={route.id} navigate={navigate} />
+      ) : null}
+      {route.name === "directoryNew" ? (
+        <DirectoryForm resource={route.resource} mode="create" navigate={navigate} />
+      ) : null}
+      {route.name === "directoryEdit" ? (
+        <DirectoryForm resource={route.resource} mode="edit" id={route.id} navigate={navigate} />
+      ) : null} 
     </main>
   );
 }
@@ -535,11 +489,11 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
 
 function SystemsList({
   assetTypes,
-  initialQuery
+  initialQuery,
+  navigate
 }: {
   assetTypes: AssetType[];
   initialQuery: URLSearchParams;
-  navigate: (hash: string) => void;
 }) {
   const [records, setRecords] = useState<SystemRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -800,7 +754,7 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
           <strong>{loadState === "loading" ? "Loading..." : `${vendors.length} vendors`}</strong>
           <span>Open a vendor to review support and contract information.</span>
         </div>
-        <div className="table-table">
+        <div className="table-wrap">
           <table> 
             <thead>
               <tr>
@@ -817,7 +771,7 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
                   <td>
                     <a href={`#/vendors/${vendor.id}`}>{vendor.name}</a>
                   </td>
-                  <td>{vendor.website_url ?? "Not Reocrded"}</td>
+                  <td>{vendor.website_url ?? "Not Recorded"}</td>
                   <td>{vendor.support_email ?? vendor.support_phone ?? "Not Recorded"}</td>
                   <td>{vendor.account_representative ?? "Not Recorded"}</td>
                   <td>{vendor.archived_at ? formatDateTime(vendor.archived_at) : "No"}</td>
@@ -1005,7 +959,7 @@ function VendorForm({
     });
   }
 
- async function saveRecord(event: ReactFormEvent<HTMLFormElement>) {
+ async function saveRecord(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setErrors({});
@@ -1051,7 +1005,7 @@ function VendorForm({
         </div>
       </section>
 
-      <form className="record-form" onSubmit={(event) => void saveVendor(event)}>
+      <form className="record-form" onSubmit={(event) => void saveRecord(event)}>
         {message ? (
           <section className={`notice ${Object.keys(errors).length > 0 ? "error" : "success"}`}>
             <span>{message}</span>
@@ -1060,27 +1014,27 @@ function VendorForm({
         <FormSection title="Vendor information">
           <VendorTextField
             label="Vendor name"
-            name={"name" as unknown as keyof VendorFormInput}
+            name= "name"
             value={form.name}
             onChange={updateField}
             error={errors.name}
             required
           />
-          <VendorTextField label="Website" name={"website_url" as unknown as keyof VendorFormInput} value={form.website_url} onChange={updateField} error={errors.website_url} />
-          <VendorTextField label="Support email" name={"support_email" as unknown as keyof VendorFormInput} value={form.support_email} onChange={updateField} />
-          <VendorTextField label="Support phone number" name={"support_phone" as unknown as keyof VendorFormInput} value={form.support_phone} onChange={updateField} />
-          <VendorTextField label="Support portal" name={"support_portal_url" as unknown as keyof VendorFormInput} value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
-          <VendorTextField label="Account representative" name={"account_representative" as unknown as keyof VendorFormInput} value={form.account_representative} onChange={updateField} />
-          <VendorTextArea label="Description" name={"description" as unknown as keyof VendorFormInput} value={form.description} onChange={updateField} />
+          <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} />
+          <VendorTextField label="Support email" name="support_email" value={form.support_email} onChange={updateField} />
+          <VendorTextField label="Support phone number" name="support_phone" value={form.support_phone} onChange={updateField} />
+          <VendorTextField label="Support portal" name="support_portal_url"  value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
+          <VendorTextField label="Account representative" name="account_representative" value={form.account_representative} onChange={updateField} />
+          <VendorTextArea label="Description" name="description" value={form.description} onChange={updateField} />
         </FormSection>
 
         <FormSection title="Contract and notes">
-          <VendorTextField label="Contract start date" name={"contract_start_date" as unknown as keyof VendorFormInput} type="date" value={form.contract_start_date} onChange={updateField} error={errors.contract_start_date} />
-          <VendorTextField label="Contract end date" name={"contract_end_date" as unknown as keyof VendorFormInput} type="date" value={form.contract_end_date} onChange={updateField} error={errors.contract_end_date} />
-          <VendorTextField label="Renewal notice days" name={"renewal_notice_days" as unknown as keyof VendorFormInput} type="number" value={form.renewal_notice_days} onChange={updateField} error={errors.renewal_notice_days} />
-          <VendorTextArea label="Contract notes" name={"contract_notes" as unknown as keyof VendorFormInput} value={form.contract_notes} onChange={updateField} />
-          <VendorTextArea label="Renewal notes" name={"renewal_notes" as unknown as keyof VendorFormInput} value={form.renewal_notes} onChange={updateField} />
-          <VendorTextArea label="General notes" name={"notes" as unknown as keyof VendorFormInput} value={form.notes} onChange={updateField} />
+          <VendorTextField label="Contract start date" name="contract_start_date" type="date" value={form.contract_start_date} onChange={updateField} error={errors.contract_start_date} />
+          <VendorTextField label="Contract end date" name="contract_end_date" type="date" value={form.contract_end_date} onChange={updateField} error={errors.contract_end_date} />
+          <VendorTextField label="Renewal notice days" name="renewal_notice_days" type="number" value={form.renewal_notice_days} onChange={updateField} error={errors.renewal_notice_days} />
+          <VendorTextArea label="Contract notes" name="contract_notes" value={form.contract_notes} onChange={updateField} />
+          <VendorTextArea label="Renewal notes" name="renewal_notes" value={form.renewal_notes} onChange={updateField} />
+          <VendorTextArea label="General notes" name="notes" value={form.notes} onChange={updateField} />
         </FormSection>
 
         <div className="form-actions">
@@ -1132,7 +1086,7 @@ function DirectoryList({
   const [search, setSearch] = useState(initialQuery.get("search") ?? "");
   const [includeArchived, setIncludeArchived] = useState(initialQuery.get("includeArchived") === "true");
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [systems, setsystems] = useState<SystemRecord[]>([]);
+  const [systems, setSystems] = useState<SystemRecord[]>([]);
 
   useEffect(() => {
     const query = new URLSearchParams({ limit: "100" });
@@ -1282,7 +1236,29 @@ function DirectoryDetail({
         <span>Unable to load record.</span>
       </section>
     );
-          </section>
+  }
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">{config.title}</p>
+          <h2>{config.singular} #{id}</h2>
+        </div>
+        <div className="top-actions">
+          <a className="secondary-link" href={`#/directory/${resource}`}>
+            {config.title}
+          </a>
+          <a className="secondary-link" href={`#/directory/${resource}/${id}/edit`}>
+            <Edit3 size={16} aria-hidden="true" />
+            Edit
+          </a>
+          <button className="danger-button" onClick={() => void archiveRecord()}>
+            <Archive size={16} aria-hidden="true" />
+            Archive
+          </button>
+        </div>
+      </section>
       <DetailSection title={`${config.singular} details`} wide>
         {config.fields.map((field) => (
           <DetailItem key={field.name} label={field.label} value={formatDirectoryValue(record[field.name])} />
@@ -1334,7 +1310,7 @@ function DirectoryForm({
       });
   }, [mode, resource, id]);
 
-  async function saveRecord(event: ReactFormEvent<HTMLFormElement>) {
+  async function saveRecord(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
 
@@ -1468,7 +1444,7 @@ function SystemDetail({
 
     try {
       await deleteSystem(record.id);
-      navigate("#/systems");
+      navigate("/systems");
     } catch (error) {
       console.error(error);
       window.alert("Unable to delete this system record.");
@@ -1597,7 +1573,7 @@ function CategoryDetailSection({ systemId }: { systemId: number }) {
     return null;
   }
 
-  async function saveDetails(event: ReactFormEvent<HTMLFormElement>) {
+  async function saveDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
 
@@ -2240,7 +2216,7 @@ function SystemTable({
           ))}
           {records.length === 0 ? (
             <tr>
-              <td colSpan={showVendor || showLastReview || showArchived ? 8 : 5} className="empty-table">
+              <td colSpan={4 + (showVendor ? 1 : 0) + (showLastReview ? 1 :0) + (showArchived ? 1 : 0)+1} className="empty-table">
                 No matching systems found.
               </td>
             </tr>
@@ -2487,10 +2463,6 @@ function DirectoryFieldInput({
   );
 }
 
-function parseRoute(): Route {
-  return parseRouteFromHash(window.location.hash);
-}
-
 export function parseRouteFromHash(rawHash: string): Route {
   const hash = rawHash.replace(/^#/, "");
   const [pathPart, queryPart] = hash.split("?");
@@ -2628,10 +2600,6 @@ export function buildVendorsQuery(filters: { search: string; includeArchived: bo
 
 function parseDirectoryResource(value: string | undefined): DirectoryResource | undefined {
   return (Object.keys(directoryConfigs) as DirectoryResource[]).find((resource) => resource === value);
-}
-
-function optionValues(values: string[]) {
-  return values.map((value) => ({ value, label: humanizeField(value) }));
 }
 
 function createDependencyForm(systemId: number) {
