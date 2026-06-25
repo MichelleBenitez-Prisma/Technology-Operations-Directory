@@ -105,6 +105,13 @@ function parseRoute(): Route {
   return parseRouteFromHash(window.location.hash);
 }
 
+function humanizeField(value: string){
+  return value
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function optionValues(values: string[]) {
   return values.map((value) => ({ value, label: humanizeField(value) }));
 }
@@ -494,6 +501,7 @@ function SystemsList({
 }: {
   assetTypes: AssetType[];
   initialQuery: URLSearchParams;
+  navigate: (hash: string) => void;
 }) {
   const [records, setRecords] = useState<SystemRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -1060,7 +1068,7 @@ function DirectoryHome() {
           <h2>Directory Workflows</h2>
         </div>
       </section>
-      <section className="panel-grid">
+      <section className="metric-grid">
         {(Object.keys(directoryConfigs) as DirectoryResource[]).map((resource) => (
           <a className="metric-card neutral" href={`#/directory/${resource}`} key={resource}>
             <span className="metric-icon">
@@ -2770,13 +2778,6 @@ function formatDirectoryFieldValue(
 
   return formatDirectoryValue(value);
 }
-function humanizeField(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function formatDate(value: string | null) {
   if (!value) {
     return "No date";

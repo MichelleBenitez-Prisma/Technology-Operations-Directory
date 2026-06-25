@@ -19,6 +19,7 @@ import {
     fetchSystemTags,
     fetchVendors,
 } from "../client/src/api.ts";
+
 import {
     buildSystemsQuery,
     buildVendorsQuery,
@@ -29,8 +30,16 @@ import {
     mapVendorToForm,
     parseRouteFromHash,
 } from "../client/src/DashboardApp.tsx";
-import { getRecordHref, getStatusCount } from "../client/src/dashboardData.ts";
-import type { DashboardTotals, SystemRecord, Vendor } from '../client/src/types.ts';
+
+import { 
+  getRecordHref, 
+  getStatusCount
+} from "../client/src/dashboardData.ts";
+
+import type { DashboardTotals,
+   SystemRecord,
+   Vendor
+} from '../client/src/types.ts';
 import { create } from "node:domain";
 
 const originalFetch = globalThis.fetch;
