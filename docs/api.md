@@ -379,6 +379,28 @@ GET /api/systems/incomplete
 
 Returns records missing important ownership or support fields.
 
+System record responses include computed data-quality fields:
+
+- `quality_warnings`: warning objects with `code` and user-facing `message`.
+- `quality_warning_count`: total warnings for the record.
+
+Warnings cover missing description, technical owner, vendor, support contact, documentation link, hosting information, last review date, approaching renewal dates, and overdue review dates.
+
+### CSV Export
+
+```http
+GET /api/system-records/export.csv
+```
+
+Alias:
+
+```http
+GET /api/systems/export.csv
+```
+
+Exports matching system records as CSV. The endpoint accepts the same search, filter, and sort parameters as `GET /api/system-records`; pagination is ignored so the export contains all matching rows.
+
+
 ### Dashboard Totals
 
 ```http
@@ -404,6 +426,34 @@ Returns:
 - Recently updated records
 - Missing documentation records
 - Records without technical owner
+
+## Reports
+
+```http
+GET /api/reports
+```
+
+Returns report summaries with keys, titles, descriptions, and counts.
+
+```http
+GET /api/reports/:reportKey
+```
+
+Supported report keys:
+
+- `active-systems`
+- `being-replaced`
+- `retired-systems`
+- `missing-documentation`
+- `missing-owners`
+- `upcoming-renewals`
+- `by-vendor`
+- `by-category`
+- `recently-reviewed`
+- `data-quality`
+
+Report detail responses include `columns` and `rows` for the dashboard reports page.
+
 
 ## Local Commands
 

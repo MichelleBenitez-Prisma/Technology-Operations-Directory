@@ -5,10 +5,12 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
+  Download,
   Edit3,
   FileQuestion,
   ListFilter,
   Plus,
+  BarChart3,
   RefreshCcw,
   Save,
   Search,
@@ -26,6 +28,7 @@ import {
   archiveDirectoryRecord,
   archiveSystem,
   archiveVendor,
+  buildSystemRecordsExportUrl,
   createDirectoryRecord,
   createSystem,
   createVendor,
@@ -34,6 +37,8 @@ import {
   fetchDashboardTotals,
   fetchDirectoryRecord,
   fetchDirectoryRecords,
+  fetchReport,
+  fetchReportSummaries,
   fetchSystem,
   fetchSystemCategoryDetails,
   fetchSystemDependencies,
@@ -48,7 +53,7 @@ import {
   removeSystemTag
 } from "./api";
 import { getRecordHref, getStatusCount, statusLabels } from "./dashboardData";
-import type {
+import {
   AssetType,
   CategoryDetails,
   DashboardTotals,
@@ -59,14 +64,19 @@ import type {
   SystemDependencySummary,
   SystemRecordFormInput,
   SystemRecordWarning,
+  SystemReport,
+  SystemReportKey,
+  SystemReportSummary,
   SystemStatus,
   Vendor,
   VendorFormInput
 } from "./types";
+import { URLSearchParams } from "url";
 
 type LoadState = "loading" | "ready" | "error";
 export type Route =
   | { name: "dashboard" }
+  | { name: "reports"; query: URLSearchParams}
   | { name: "systems"; query: URLSearchParams }
   | { name: "systemDetail"; id: number }
   | { name: "newSystem" }
@@ -91,6 +101,27 @@ const sortOptions = [
   { value: "lastReviewDate", label: "Last review date" },
   { value: "updatedAt", label: "Recently updated" }
 ];
+const reportKeys: SystemReportKey[] = [
+  "data-quality",
+  "missing-documentation",
+  "upcoming-renewals",
+  "active-systems",
+  "being-replaced",
+  "retired-systems",
+  "by-vendor",
+  "by-category",
+  "recently-reviewed"
+];
+const reportTitles: Record<SystemReportKey, string> ={
+  "active-systems": "Active Systems",
+  "being-replaced": "System being Replaced",
+  "retired-systems": "Retired Systems",
+  "missing-documentation": "Systems Missing Documentation",
+  "upcoming-renewals": "Upcoming Renewals",
+  "by-vendor": "System Grouped By Vendor",
+  "recently-reviewed": "Recently Reviewed Systems",
+  "data-quality": "Data Quality Warnings"
+};
 
 type DirectoryField = {
   name: string;
@@ -247,6 +278,10 @@ export function DashboardApp() {
             <ListFilter size={16} aria-hidden="true" />
             Directory
           </a>
+          <a className= "secondary_link" href="#/report">
+            <BarChart3 size={16} aria-hidden="true"/>
+            Reports
+          </a>
           <a className="primary-link" href="#/systems/new">
             <Plus size={16} aria-hidden="true" />
             Add System
@@ -255,6 +290,7 @@ export function DashboardApp() {
       </header>
 
       {route.name === "dashboard" ? <DashboardHome navigate={navigate} /> : null}
+      {route.name === "reports" ? <ReportsPage initialQuery={route.query} /> : null}
       {route.name === "systems" ? (
         <SystemsList assetTypes={assetTypes} initialQuery={route.query} navigate={navigate} />
       ) : null}
@@ -401,7 +437,7 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         <MetricCard
           label="Active Systems"
           value={getStatusCount(totals, "active")}
-          href="#/systems?status=active"
+          href="#/reports?report=active-systems"
           icon={<CheckCircle2 size={22} aria-hidden="true" />}
           tone="good"
           loading={loadState === "loading"}
@@ -409,7 +445,7 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         <MetricCard
           label="Being Replaced"
           value={getStatusCount(totals, "being_replaced")}
-          href="#/systems?status=being_replaced"
+          href="#/reports?report=being_replaced"
           icon={<RefreshCcw size={22} aria-hidden="true" />}
           tone="watch"
           loading={loadState === "loading"}
@@ -417,14 +453,14 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         <MetricCard
           label="Retired Systems"
           value={getStatusCount(totals, "retired")}
-          href="#/systems?status=retired"
+          href="#/reports?report=retired-systems"
           icon={<Archive size={22} aria-hidden="true" />}
           loading={loadState === "loading"}
         />
         <MetricCard
           label="Missing Documentation"
           value={totals?.missingDocumentation ?? 0}
-          href="#/systems?incompleteOnly=true"
+          href="#/reports?report=missing-owners"
           icon={<FileQuestion size={22} aria-hidden="true" />}
           tone="risk"
           loading={loadState === "loading"}
@@ -432,7 +468,7 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         <MetricCard
           label="Without Technical Owner"
           value={totals?.withoutTechnicalOwner ?? 0}
-          href="#/systems?incompleteOnly=true"
+          href="#/reports?report=missing-owners"
           icon={<UserRoundX size={22} aria-hidden="true" />}
           tone="risk"
           loading={loadState === "loading"}
@@ -451,6 +487,9 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
               </>
             )}
           />
+          <a className="inline-link" hrefLang="#/reports?report=upcoming-renwals">
+            View renewal report
+          </a>
         </Panel>
 
         <Panel title="Recently Updated" subtitle="Latest record changes" icon={<Clock3 size={18} />}>
@@ -491,6 +530,130 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         </Panel>
       </section>
     </>
+  );
+}
+
+function ReportsPage({ initialQuery }: { initialQuery: URLSearchParams }) {
+  const initialReport = parseReportKey(initialQuery.get("report"));
+  const [summaries, setSummaries] = useState<SystemReportSummary[]>([]);
+  const [selectedReport, setSelectedReport] = useState<SystemReportKey>(initialReport);
+  const [report, setReport] = useState<SystemReport | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+
+  useEffect(() => {
+    void fetchReportSummaries()
+      .then(setSummaries)
+      .catch((error) => console.error(error));
+  }, []);
+
+   useEffect(() => {
+    window.history.replaceState(null, "", `#/reports?report=${selectedReport}`);
+    setLoadState("loading");
+
+    void fetchReport(selectedReport)
+      .then((nextReport) => {
+        setReport(nextReport);
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, [selectedReport]);
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Phase 6</p>
+          <h2>Reports</h2>
+        </div>
+        <a className="secondary-link" href="#/systems">
+          <ListFilter size={16} aria-hidden="true" />
+          Systems
+        </a>
+      </section>
+
+      <section className="filter-bar" aria-label="Report selector">
+        <label className="field">
+          <span>Report</span>
+          <select
+            value={selectedReport}
+            onChange={(event) => setSelectedReport(parseReportKey(event.target.value))}
+          >
+            {reportKeys.map((key) => (
+              <option key={key} value={key}>
+                {reportTitles[key]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      <section className="report-card-grid" aria-label="Available reports">
+        {summaries.map((summary) => (
+          <a
+            className={`report-card ${summary.key === selectedReport ? "selected" : ""}`}
+            href={`#/reports?report=${summary.key}`}
+            key={summary.key}
+            onClick={(event) => {
+              event.preventDefault();
+              setSelectedReport(summary.key);
+            }}
+          >
+            <strong>{summary.count}</strong>
+            <span>{summary.title}</span>
+          </a>
+        ))}
+      </section>
+
+      {loadState === "error" ? (
+        <section className="notice error" role="alert">
+          <ShieldAlert size={20} aria-hidden="true" />
+          <span>Unable to load this report.</span>
+        </section>
+      ) : null}
+
+      <section className="panel wide">
+        <div className="list-summary">
+          <strong>{loadState === "loading" ? "Loading..." : `${report?.count ?? 0} results`}</strong>
+          <span>{report?.description ?? "Select a report to review matching records."}</span>
+        </div>
+        {report ? <ReportTable report={report} /> : null}
+      </section>
+    </>
+  );
+}
+
+function ReportTable({ report }: { report: SystemReport }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {report.columns.map((column) => (
+              <th key={column.key}>{column.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {report.rows.map((row, index) => (
+            <tr key={`${row.id ?? "group"}-${index}`}>
+              {report.columns.map((column) => (
+                <td key={column.key}>{formatReportCell(column.key, row[column.key], row)}</td>
+              ))}
+            </tr>
+          ))}
+          {report.rows.length === 0 ? (
+            <tr>
+              <td colSpan={report.columns.length} className="empty-table">
+                No matching report results.
+              </td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -535,6 +698,7 @@ function SystemsList({
 
   const ownerOptions = useMemo(() => uniqueNonEmpty(records.map((record) => record.technical_owner)), [records]);
   const vendorOptions = useMemo(() => uniqueNonEmpty(records.map((record) => record.vendor)), [records]);
+  const exportUrl = buildSystemRecordsExportUrl(buildSystemsQuery(filters));
 
   function updateFilter(name: keyof typeof filters, value: string | boolean) {
     setFilters((current) => ({
@@ -670,6 +834,10 @@ function SystemsList({
           <X size={16} aria-hidden="true" />
           Reset
         </button>
+        <a className="icon_button" href={exportUrl}>
+          <Download size={16} aria-hidden="true" />
+          export CSV
+        </a>
       </section>
 
       {loadState === "error" ? (
@@ -1060,6 +1228,18 @@ function VendorForm({
 }
 
 function DirectoryHome() {
+  const [dependencies, setDependencies] = useState<DirectoryRecord[]>([]);
+  const [systems, setSystems] = useState<SystemRecord[]>([]);
+
+  useEffect(() =>{
+    void fetchDirectoryRecords("system-dependencies", "limit=8")
+      .then(setDependencies)
+      .catch((error) => console.error(error));
+    void fetchSystems("limit=100&sortBy=systemName&sortDirection=asc&includeArchived=true")
+      .then(setSystems)
+      .catch((error) => console.error(error));
+  }, []);
+
   return (
     <>
       <section className="page-heading">
@@ -1078,6 +1258,27 @@ function DirectoryHome() {
             <span className="metric-label">Manage records</span>
           </a>
         ))}
+      </section>
+      <section className="panel wide">
+        <div className ="list-summary">
+          <strong>Dependency Map</strong>
+          <span>Quick impact view for system connected by Phase 5 dependencies.</span>
+        </div>
+        <div className="dependency-map">
+          {dependencies.map((dependency) => (
+            <a className="dependencies-map-row" href={`#/directory/system-dependencies/${dependency.id}`} key={String(dependency.id)}>
+              <span>{systemNameById(systems, dependency.source_asset_id)}</span>
+              <span> className={`status-pill ${dependency.importance_level ?? "standard"}`}
+                {formatDirectoryValue(dependency.importance_level)}
+              </span>
+              <span>{systemNameById(systems, dependency.destination_asset_id)}</span>
+              <small>{formatDirectoryValue(dependency.relationship_description)}</small>
+            </a>
+          ))}
+          {dependencies.length === 0 ? (
+            <p className="empty-state">No system dependencies are recorded yet.</p>
+          ):null}
+        </div>
       </section>
     </>
   );
@@ -1516,6 +1717,20 @@ function SystemDetail({
           <Archive size={20} aria-hidden="true" />
           <span>Archived on {formatDateTime(record.archived_at)}. The record remains available for history.</span>
         </section>
+      ) : null}
+
+      {record.quality_warnings.length > 0 ? (
+        <section className="notice warning quality-summary">
+        <AlertTriangle size={20} aria-hidden="true"/>
+        <div>
+          <strong>{record.quality_warning_count} data-quality warning(s)</strong>
+          <ul>
+            {record.quality_warnings.map((warning) => (
+              <li key={warning.code}>{warning.message}</li>
+            ))}
+          </ul>
+        </div>
+       </section>
       ) : null}
 
       <section className="detail-grid">
@@ -2190,6 +2405,8 @@ function SystemTable({
   showLastReview?: boolean;
   showArchived?: boolean;
 }) {
+  const columnCount = 
+    5 + 1 + (showVendor ? 1 : 0) + (showLastReview ? 1 : 0) + (showArchived ? 1 : 0);
   return (
     <div className="table-wrap">
       <table>
@@ -2201,6 +2418,7 @@ function SystemTable({
             <th>Technical owner</th>
             {showVendor ? <th>Vendor</th> : null}
             <th>Department</th>
+            <th>Warnings</th>
             {showLastReview ? <th>Last review</th> : null}
             {showArchived ? <th>Archived</th> : null}
           </tr>
@@ -2218,13 +2436,20 @@ function SystemTable({
               <td>{system.technical_owner ?? "Not assigned"}</td>
               {showVendor ? <td>{system.vendor ?? "Not assigned"}</td> : null}
               <td>{system.business_department ?? "Not assigned"}</td>
+              <td>
+                {system.quality_warning_count > 0 ? (
+                  <span className="quality-badge">{system.quality_warning_count}</span>
+                ) : (
+                  "None"
+                )}
+              </td>
               {showLastReview ? <td>{formatDate(system.last_review_date)}</td> : null}
               {showArchived ? <td>{system.archived_at ? formatDateTime(system.archived_at) : "No"}</td> : null}
             </tr>
           ))}
           {records.length === 0 ? (
             <tr>
-              <td colSpan={4 + (showVendor ? 1 : 0) + (showLastReview ? 1 :0) + (showArchived ? 1 : 0)+1} className="empty-table">
+              <td colSpan={columnCount} className="empty-table">
                 No matching systems found.
               </td>
             </tr>
@@ -2478,6 +2703,10 @@ export function parseRouteFromHash(rawHash: string): Route {
   const query = new URLSearchParams(queryPart ?? "");
   const segments = path.split("/").filter(Boolean);
 
+   if (segments[0] === "reports") {
+    return {name: "reports", query};
+   }
+
    if (segments[0] === "directory") {
     if (segments.length === 1) {
       return { name: "directoryHome" };
@@ -2588,6 +2817,34 @@ export function buildSystemsQuery(filters: {
   }
 
   return query;
+}
+
+export function buildSystemsExportUrl(query: URLSearchParams){
+  return buildSystemRecordsExportUrl(query.toString());
+}
+
+export function parseReportKey(value: string | null | undefined): SystemReportKey {
+  return reportKeys.find((key) => key === value) ?? "data-quality";
+}
+
+function formatReportCell(
+  key: string,
+  value: string | number | null | undefined,
+  row: Record<string, string | number | null>
+){
+  if (key === "system_name" && row.id) {
+    return <a href={`#/systems/${row.id}`}>{value ?? "Not recorded"}</a>;
+  }
+
+  if (key == "status" && typeof value === "string" && value in statusLabels){
+    return statusLabels[value as SystemStatus];
+  }
+
+  if (key.includes("date") && typeof value === "string"){
+    return formatDate(value);
+  }
+
+  return value ?? "Not recorded";
 }
 
 export function buildVendorsQuery(filters: { search: string; includeArchived: boolean }) {
@@ -2778,6 +3035,13 @@ function formatDirectoryFieldValue(
 
   return formatDirectoryValue(value);
 }
+
+function systemNameById(systems: SystemRecord[], id: string | number | null | undefined) {
+  const system = systems.find((record) => record.id === Number(id));
+
+  return system?.system_name ?? formatDirectoryValue(id);
+}
+
 function formatDate(value: string | null) {
   if (!value) {
     return "No date";

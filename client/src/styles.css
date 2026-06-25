@@ -177,6 +177,16 @@ h1 {
   color: #7c4d07;
 }
 
+.quality-summary {
+  align-items: flex-start;
+}
+
+.quality-summary ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-weight: 650;
+}
+
 .notice.archived {
   border: 1px solid #d6dce2;
   background: #f7f9fb;
@@ -240,6 +250,18 @@ h1 {
 
 .metric-card.risk .metric-icon {
   color: #a13f2a;
+}
+
+.inline-link{
+  display: inline-flex;
+  margin-top: 12px;
+  color: #174f78;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.inline-link:hover{
+  text-decoration: underline;
 }
 
 .metric-value {
@@ -392,6 +414,32 @@ td a:hover {
   overflow-x: auto;
 }
 
+.dependency-map {
+  display: grid;
+  gap: 10px;
+}
+
+.dependency-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  border: 1px soild #e0e7ee;
+  border-radius: 8px;
+  padding: 12px;
+  color: #17212b;
+  text-decoration: none;
+}
+
+.dependency-map-row:hover {
+  border-color: #8aa8c3;
+}
+
+.dependency-map-row small {
+  grid-column: 1 / -1;
+  color: #647482;
+  font-weight: 650;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -440,6 +488,53 @@ th {
 .status-pill.retired {
   background: #e7e9ed;
   color: #4b5661;
+}
+
+.quality-badge {
+  display: inline-flex;
+  min-width: 26px;
+  min-height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fff1d8;
+  color:#7c4d07;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.report-card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 10px;
+  margin: 14px 0 16px;
+}
+
+.report-card {
+  display: grid;
+  gap: 4px;
+  min-height: 82px;
+  border: 1px solid #d5dee6;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  color: #17212b;
+  text-decoration: none;
+}
+
+.report-card.selected{
+  border-color: #205b84;
+  box-shadow: inset 0 0 0 1px #205b84;
+}
+
+.report-card strong {
+  font-size: 1.4rem;
+}
+
+.report-card span {
+  color: #586876;
+  font-size: 0086rem;
+  font-weight: 800;
 }
 
 .filter-bar,
@@ -605,6 +700,10 @@ th {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .report-card-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .filter-bar,
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -629,6 +728,7 @@ th {
   }
 
   .metric-grid,
+  .report-card-grid,
   .content-grid,
   .attention-grid,
   .filter-bar,

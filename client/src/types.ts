@@ -33,6 +33,8 @@ export type SystemRecord = {
   archived_at: string | null;
   is_incomplete: 0 | 1;
   missing_fields: string;
+  quality_warnings: SystemRecordQualityWarning[];
+  quality_warning_count: number;
   created_at: string;
   updated_at: string;
 };
@@ -65,6 +67,20 @@ export type SystemRecordWarning = {
   code: "duplicate_system_name";
   message: string;
   matchingSystemIds: number[];
+};
+
+export type SystemRecordQualityWarning = {
+  code:
+    |"missing_description"
+    |"missing_technical_owner"
+    |"missing_vendor"
+    |"missing_support_contact"
+    |"missing_documentation_link"
+    |"missing_hosting_information"
+    |"missing_last_review_date"
+    |"renewal_date_approaching"
+    |"last_review_overdue";
+  message: string;
 };
 
 export type SystemRecordMutationResult = {
@@ -174,4 +190,27 @@ export type DashboardTotals = {
   recentlyUpdated: SystemRecord[];
   missingDocumentationRecords: SystemRecord[];
   withoutTechnicalOwnerRecords: SystemRecord[];
+};
+export type SystemReportKey =
+  | "active-systems"
+  | "being-replaced"
+  | "retired-systems"
+  | "missing-documentation"
+  | "missing-owners"
+  | "upcoming-renewals"
+  | "by-vendor"
+  | "by-category"
+  | "recently-reviewed"
+  | "data-quality";
+
+export type SystemReportSummary = {
+  key: SystemReportKey;
+  title: string;
+  description: string;
+  count: number;
+};
+
+export type SystemReport = SystemReportSummary & {
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<Record<string, string | number | null>>;
 };
