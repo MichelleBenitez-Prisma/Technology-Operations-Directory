@@ -746,6 +746,8 @@ export function getSystemRecordDashboardTotals() {
     ORDER BY system_name ASC
     LIMIT 8
     `
+    )
+  
   );
 
   return {
