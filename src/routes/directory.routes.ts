@@ -61,7 +61,7 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
     });
   });
 
-   router.post("/:id/archive", (request, response) => {
+  router.post("/:id/archive", (request, response) => {
     const id = parseId(request.params.id);
 
     if (!id) {
@@ -86,6 +86,7 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
       data: row
     });
   });
+
   router.patch("/:id", (request, response) => {
     const id = parseId(request.params.id);
 

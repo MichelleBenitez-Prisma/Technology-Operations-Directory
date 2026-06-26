@@ -1,5 +1,6 @@
 import type {
   AssetType,
+  AuthUser,
   CategoryDetails,
   DashboardTotals,
   DirectoryRecord,
@@ -22,6 +23,18 @@ const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "";
 
 export async function fetchDashboardTotals() {
   return getJson<DashboardTotals>("/api/system-records/dashboard-totals");
+}
+
+export async function fetchCurrentUser() {
+  return getJson<AuthUser>("/api/auth/me");
+}
+
+export async function login(email: string, password: string) {
+  return mutateJson<{ data: AuthUser }>("/api/auth/login", "POST", { email, password });
+}
+
+export async function logout() {
+  await mutateEmpty("/api/auth/logout", "POST");
 }
 
 export async function fetchSystems(query = "limit=100&sortBy=updatedAt&sortDirection=desc") {
@@ -135,7 +148,9 @@ export async function archiveDirectoryRecord(resource: DirectoryResource, id: nu
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include"
+  });
 
   if (!response.ok) {
     throw await ApiError.fromResponse(response);
@@ -148,10 +163,11 @@ async function getJson<T>(path: string): Promise<T> {
 async function mutateJson<T>(
   path: string,
   method: "POST" | "PUT",
-  body?: SystemRecordFormInput | VendorFormInput | DirectoryRecord
+  body?: SystemRecordFormInput | VendorFormInput | DirectoryRecord | { email: string; password: string }
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    credentials: "include",
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined
   });
@@ -163,9 +179,10 @@ async function mutateJson<T>(
   return (await response.json()) as T;
 }
 
-async function mutateEmpty(path: string, method: "DELETE"): Promise<void> {
+async function mutateEmpty(path: string, method: "DELETE" | "POST"): Promise<void> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    method
+    method,
+    credentials: "include"
   });
 
   if (!response.ok) {

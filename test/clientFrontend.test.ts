@@ -1,114 +1,135 @@
-// <reference types="node" />
+/// <reference types="node" />
+
 import assert from "node:assert/strict";
-import {afterEach, test} from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { afterEach, test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
-    addSystemTag,
-    archiveDirectoryRecord,
-    archiveSystem,
-    archiveVendor,
-    createDirectoryRecord,
-    createVendor,
-    createSystem,
-    deleteSystem,
-    fetchDashboardTotals,
-    fetchDirectoryRecords,
-    fetchReport,
-    fetchReportSummaries,
-    fetchSystems,
-    fetchSystemCategoryDetails,
-    fetchSystemDependencies,
-    fetchSystemTags,
-    fetchVendors,
+  addSystemTag,
+  archiveDirectoryRecord,
+  archiveSystem,
+  archiveVendor,
+  createDirectoryRecord,
+  createVendor,
+  createSystem,
+  deleteSystem,
+  fetchCurrentUser,
+  fetchDashboardTotals,
+  fetchDirectoryRecords,
+  fetchReport,
+  fetchReportSummaries,
+  fetchSystems,
+  fetchSystemCategoryDetails,
+  fetchSystemDependencies,
+  fetchSystemTags,
+  fetchVendors,
+  login,
+  logout
 } from "../client/src/api.ts";
-
 import {
-    buildSystemsQuery,
-    buildSystemsExportUrl,
-    buildVendorsQuery,
-    createEmptyForm,
-    createEmptyVendorForm,
-    mapApiIssues,
-    mapRecordToForm,
-    parseReportKey,
-    mapVendorToForm,
-    parseRouteFromHash,
+  buildSystemsQuery,
+  buildSystemsExportUrl,
+  buildVendorsQuery,
+  createEmptyForm,
+  createEmptyVendorForm,
+  mapApiIssues,
+  mapRecordToForm,
+  mapVendorToForm,
+  parseReportKey,
+  parseRouteFromHash
 } from "../client/src/DashboardApp.tsx";
-
-import { 
-  getRecordHref, 
-  getStatusCount
-} from "../client/src/dashboardData.ts";
-
-import type { DashboardTotals,
-   SystemRecord,
-   Vendor
-} from '../client/src/types.ts';
-import { create } from "node:domain";
+import { getRecordHref, getStatusCount } from "../client/src/dashboardData.ts";
+import type { DashboardTotals, SystemRecord, Vendor } from "../client/src/types.ts";
 
 const originalFetch = globalThis.fetch;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "..");
 
 afterEach(() => {
-    globalThis.fetch = originalFetch;
+  globalThis.fetch = originalFetch;
 });
 
-test("dashboard helpers calculate counts and link to details pages", () => {
-    const totals = {
-        byStatus: [
-            {status: "active", label: "Active", count: 3},
-            {status: "retired", label: "retired", count: 1}
-        ]
-    } as DashboardTotals;
+test("dashboard helpers calculate counts and link to detail pages", () => {
+  const totals = {
+    byStatus: [
+      { status: "active", label: "Active", count: 3 },
+      { status: "retired", label: "Retired", count: 1 }
+    ]
+  } as DashboardTotals;
 
-    assert.equal(getStatusCount(totals, "active"), 3);
-    assert.equal(getStatusCount(totals, "being_replaced"), 0);
-    assert.equal(getRecordHref({id: 42} as SystemRecord), "#/systems/42");
+  assert.equal(getStatusCount(totals, "active"), 3);
+  assert.equal(getStatusCount(totals, "being_replaced"), 0);
+  assert.equal(getRecordHref({ id: 42 } as SystemRecord), "#/systems/42");
 });
 
-test("system list route and query and helpers preserve filters and sorting", () => {
-    const route = parseRouteFromHash(
-        "#/systems?search=payroll&status=active&technicalOwner=App&includeArchived=true"
-    );
-    const route = parseRouteFromHash("#/directory/integrations?search=api")
-    const reportRoute = parseRouteFromHash("#/reports?report=missing-documentation"); 
-    
-    assert.equal(route.name, "systems");
-    assert.equal(directoryRoute.name, "directoryList");
+test("client shell keeps primary links and responsive layout hooks intact", () => {
+  const dashboardSource = readFileSync(
+    path.join(projectRoot, "client", "src", "DashboardApp.tsx"),
+    "utf8"
+  );
+  const cssSource = readFileSync(path.join(projectRoot, "client", "src", "styles.css"), "utf8");
 
-    if (route.name === "systems") {
-        assert.equal(route.query.get("search"), "payroll");
-        assert.equal(route.query.get("includeArchived"), "true");
-    }
+  for (const hash of ["#/systems", "#/vendors", "#/directory", "#/reports", "#/systems/new"]) {
+    assert.match(dashboardSource, new RegExp(`href="${hash.replace("#", "#")}`));
+    assert.notEqual(parseRouteFromHash(hash).name, "dashboard");
+  }
 
-    const query = buildSystemsQuery({
-        search: "payroll",
-        categoryCode: "software_application",
-        status: "active",
-        technicalOwner: "Apps",
-        vendor: "Internal",
-        incompleteOnly: true,
-        includeArchived: true,
-        sortBy: "systemName",
-        sortDirection: "asc"
-    });     
+  assert.match(cssSource, /@media\s*\(max-width:\s*760px\)/);
+  assert.match(cssSource, /\.app-shell/);
+  assert.doesNotMatch(dashboardSource, /hrefLang=/);
+  assert.doesNotMatch(dashboardSource, /className="[^"]*_/);
+});
 
-    assert.equal(query.get("limit"), "100");
-    assert.equal(query.get("search"), "payroll");
-    assert.equal(query.get("categoryCode"), "software_application");
-    assert.equal(query.get("status"), "active");
-    assert.equal(query.get("technicalOwner"), "Apps");
-    assert.equal(query.get("vendor"), "Internal");
-    assert.equal(query.get("incompleteOnly"), "true");
-    assert.equal(query.get("includeArchived"), "true");
-    assert.equal(
-      buildSystemRecordsExportUrl(query),
-      "/api/system-records/export.csv?limit=100&sortBy=systemName&sortDirection=asc&search=payroll&categoryCode=software_application&status=active&technicalOwner=Apps&vender=Internal&incompleteOnly=true&includeArchived=true"
-    );
+test("systems list route and query helpers preserve filters and sorting", () => {
+  const route = parseRouteFromHash(
+    "#/systems?search=payroll&status=active&technicalOwner=Apps&includeArchived=true"
+  );
+  const directoryRoute = parseRouteFromHash("#/directory/integrations?search=api");
+  const reportRoute = parseRouteFromHash("#/reports?report=missing-documentation");
+
+  assert.equal(route.name, "systems");
+  assert.equal(directoryRoute.name, "directoryList");
+  assert.equal(reportRoute.name, "reports");
+  assert.equal(parseReportKey("missing-documentation"), "missing-documentation");
+  assert.equal(parseReportKey("unknown"), "data-quality");
+
+  if (route.name === "systems") {
+    assert.equal(route.query.get("search"), "payroll");
+    assert.equal(route.query.get("includeArchived"), "true");
+  }
+
+  const query = buildSystemsQuery({
+    search: "payroll",
+    categoryCode: "software_application",
+    status: "active",
+    technicalOwner: "Apps",
+    vendor: "Internal",
+    incompleteOnly: true,
+    includeArchived: true,
+    sortBy: "systemName",
+    sortDirection: "asc"
+  });
+
+  assert.equal(query.get("limit"), "100");
+  assert.equal(query.get("search"), "payroll");
+  assert.equal(query.get("categoryCode"), "software_application");
+  assert.equal(query.get("status"), "active");
+  assert.equal(query.get("technicalOwner"), "Apps");
+  assert.equal(query.get("vendor"), "Internal");
+  assert.equal(query.get("incompleteOnly"), "true");
+  assert.equal(query.get("includeArchived"), "true");
+  assert.equal(
+    buildSystemsExportUrl(query),
+    "/api/system-records/export.csv?limit=100&sortBy=systemName&sortDirection=asc&search=payroll&categoryCode=software_application&status=active&technicalOwner=Apps&vendor=Internal&incompleteOnly=true&includeArchived=true"
+  );
 });
 
 test("detail and form helpers map records and validation issues", async () => {
-    const record = createSystemRecord();
-    const form = mapRecordToForm(record);
+  const record = createSystemRecord();
+  const form = mapRecordToForm(record);
 
   assert.equal(form.systemName, "Payroll API");
   assert.equal(form.categoryCode, "software_application");
@@ -171,25 +192,28 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       return new Response(null, { status: 204 });
     }
 
-    const url = String(input)
+    const url = String(input);
     const data =
       url.includes("/tags") && init?.method === "POST"
-        ? [{id: 1, name: "legacy"}]
+        ? [{ id: 1, name: "legacy" }]
         : url.includes("/api/vendors") && init?.method === "POST"
-        ?createVendorRecord()
-        :url.includes("/api/system-dependencies") && init?.method === "POST"
-          ? createDirectoryRecordFixture()
-        : init?.method === "POST"
-          ? createSystemRecord()
-          : [];
+          ? createVendorRecord()
+          : url.includes("/api/system-dependencies") && init?.method === "POST"
+            ? createDirectoryRecordFixture()
+            : init?.method === "POST"
+              ? createSystemRecord()
+              : [];
 
-    return new Response(JSON.stringify({ data: init?.method === "POST" ? createSystemRecord() : [] }), {
+    return new Response(JSON.stringify({ data }), {
       headers: { "Content-Type": "application/json" },
       status: init?.method === "POST" ? 201 : 200
     });
   };
 
   await fetchDashboardTotals();
+  await fetchCurrentUser();
+  await login("admin@example.com", "correct-password");
+  await logout();
   await fetchSystems("search=payroll");
   await fetchReportSummaries();
   await fetchReport("data-quality");
@@ -204,14 +228,15 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await archiveVendor(9);
   await fetchDirectoryRecords("integrations", "search=api");
   await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
-  await archiveDirectoryRecords("system-dependencies", 11);
+  await archiveDirectoryRecord("system-dependencies", 11);
   await addSystemTag(42, 1);
-  
-
   assert.deepEqual(
     calls.map((call) => `${call.method} ${call.url}`),
     [
       "GET /api/system-records/dashboard-totals",
+      "GET /api/auth/me",
+      "POST /api/auth/login",
+      "POST /api/auth/logout",
       "GET /api/system-records?search=payroll",
       "GET /api/reports",
       "GET /api/reports/data-quality",
@@ -223,7 +248,6 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "DELETE /api/system-records/7",
       "GET /api/vendors?search=print&includeArchived=true",
       "POST /api/vendors",
-      "POST /api/vendors/9/archive",
       "POST /api/vendors/9/archive",
       "GET /api/integrations?search=api",
       "POST /api/system-dependencies",
@@ -262,7 +286,7 @@ function createSystemRecord(): SystemRecord {
     archived_at: null,
     is_incomplete: 0,
     missing_fields: "",
-    quality_warning: [],
+    quality_warnings: [],
     quality_warning_count: 0,
     created_at: "2026-06-18T00:00:00.000Z",
     updated_at: "2026-06-18T00:00:00.000Z"

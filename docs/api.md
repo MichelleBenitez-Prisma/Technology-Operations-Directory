@@ -38,6 +38,24 @@ Validation errors return:
 }
 ```
 
+Unauthorized requests return:
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Please sign in to continue."
+}
+```
+
+Forbidden requests return:
+
+```json
+{
+  "error": "Forbidden",
+  "message": "editor access is required for this action."
+}
+```
+
 Repository-level validation errors, such as an unknown category, return:
 
 ```json
@@ -60,6 +78,24 @@ Use these API values:
 | `retired`          | Retired          |
 
 Archived records are tracked separately with `archived_at`.
+
+## Authentication
+
+Authentication uses an HttpOnly `tod_session` cookie.
+
+| Method | Path             | Purpose                    |
+| ------ | ---------------- | -------------------------- |
+| `POST` | `/api/auth/login`  | Sign in with email/password |
+| `POST` | `/api/auth/logout` | Clear the current session   |
+| `GET`  | `/api/auth/me`     | Return the signed-in user   |
+
+Roles:
+
+- `viewer`: read-only access.
+- `editor`: create, update, and archive access.
+- `admin`: delete and administrator-level access.
+
+`/health` remains public for deployment health checks. Other API routes require a valid session when `AUTH_REQUIRED` is enabled.
 
 ## Validation Rules
 
@@ -143,14 +179,13 @@ Supported resources:
 
 List endpoints support:
 
-| Parameter        | Description                                                        |
-| -----------------| -------------------------------------------------------------------|
-| `search`         | Searches the main text fields for the resource.                    |
-| `includeArchived`| Includes archived records for resorces that support archive.       |
-| `archivedOnly`   | Returns only archived records for resources that support archive.  |
-| `limit`          | Page size, from 1 to 100.                                          |
-| `offset`         | Starting row offset.                                               |
-
+| Parameter         | Description                                                    |
+| ----------------- | -------------------------------------------------------------- |
+| `search`          | Searches the main text fields for the resource.                |
+| `includeArchived` | Includes archived records for resources that support archive.  |
+| `archivedOnly`    | Returns only archived records for resources that support archive. |
+| `limit`           | Page size, from 1 to 100.                                      |
+| `offset`          | Starting row offset.                                           |
 
 ### Phase 5 Dependencies
 
@@ -190,13 +225,15 @@ Vendor create and update requests support:
 - `support_phone`
 - `support_portal_url`
 - `account_representative`
+- `contract_start_date`
+- `contract_end_date`
+- `renewal_notice_days`
 - `contract_notes`
 - `renewal_notes`
 - `notes`
 
 Existing compatibility fields are still accepted, including `support_url`,
-`account_manager_name`, `account_manager_email`, `contract_start_date`,
-`contract_end_date`, and `renewal_notice_days`.
+`account_manager_name`, and `account_manager_email`.
 
 ### Global Asset Search
 
@@ -400,7 +437,6 @@ GET /api/systems/export.csv
 
 Exports matching system records as CSV. The endpoint accepts the same search, filter, and sort parameters as `GET /api/system-records`; pagination is ignored so the export contains all matching rows.
 
-
 ### Dashboard Totals
 
 ```http
@@ -453,7 +489,6 @@ Supported report keys:
 - `data-quality`
 
 Report detail responses include `columns` and `rows` for the dashboard reports page.
-
 
 ## Local Commands
 

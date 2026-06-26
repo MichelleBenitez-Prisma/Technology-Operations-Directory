@@ -21,6 +21,7 @@
     "format:api:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.mjs\"",
     "start": "node scripts/migrate-database.mjs && node dist/server.js",
     "test": "node --test --import tsx ./test/*.test.ts",
+    "test:all": "npm run typecheck && npm run typecheck:client && npm run typecheck:test && npm test && npm run build",
     "typecheck": "tsc --noEmit",
     "typecheck:client": "tsc -p tsconfig.client.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",

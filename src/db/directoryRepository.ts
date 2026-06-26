@@ -5,7 +5,7 @@ export type DirectoryResourceConfig = {
   listOrderBy: string;
   allowedColumns: readonly string[];
   searchableColumns?: readonly string[];
-  supportsArchive: boolean;
+  supportsArchive?: boolean;
 };
 
 export type DirectoryListFilters = {
@@ -21,23 +21,19 @@ const RESOURCE_CONFIGS = {
     tableName: "asset_types",
     listOrderBy: "name ASC",
     allowedColumns: ["code", "name", "description"],
-    searchableColumns: ["code", "name", "description"],
-    supportsArchive: false // every config entry that doesn't support archive entered false.
+    searchableColumns: ["code", "name", "description"]
   },
   teams: {
     tableName: "teams",
     listOrderBy: "name ASC",
     allowedColumns: ["name", "department", "email", "description"],
-    searchableColumns: ["name", "department", "email", "description"],
-    supportsArchive: false
-
+    searchableColumns: ["name", "department", "email", "description"]
   },
   people: {
     tableName: "people",
     listOrderBy: "display_name ASC",
     allowedColumns: ["display_name", "email", "title", "team_id", "phone", "active"],
-    searchableColumns: ["display_name", "email", "title", "phone"],
-    supportsArchive: false
+    searchableColumns: ["display_name", "email", "title", "phone"]
   },
   vendors: {
     tableName: "vendors",
@@ -60,7 +56,7 @@ const RESOURCE_CONFIGS = {
       "renewal_notes",
       "notes"
     ],
-     searchableColumns: [
+    searchableColumns: [
       "name",
       "description",
       "website_url",
@@ -81,8 +77,7 @@ const RESOURCE_CONFIGS = {
     tableName: "asset_environments",
     listOrderBy: "asset_id ASC, environment_name ASC",
     allowedColumns: ["asset_id", "environment_name", "url", "host_name", "location", "notes"],
-    searchableColumns: ["environment_name", "url", "host_name", "location", "notes"],
-    supportsArchive: false
+    searchableColumns: ["environment_name", "url", "host_name", "location", "notes"]
   },
   integrations: {
     tableName: "integrations",
@@ -160,7 +155,7 @@ const RESOURCE_CONFIGS = {
     listOrderBy: "name ASC",
     allowedColumns: ["name", "description"],
     searchableColumns: ["name", "description"],
-    supportsArchive: true 
+    supportsArchive: true
   },
   systemDependencies: {
     tableName: "system_dependencies",
@@ -173,14 +168,21 @@ const RESOURCE_CONFIGS = {
       "importance_level",
       "notes"
     ],
-    searchableColumns: ["relationship_description", "data_or_service_exchanged", "importance_level", "notes"],
+    searchableColumns: [
+      "relationship_description",
+      "data_or_service_exchanged",
+      "importance_level",
+      "notes"
+    ],
     supportsArchive: true
   }
 } as const satisfies Record<string, DirectoryResourceConfig>;
 
 export type DirectoryResourceName = keyof typeof RESOURCE_CONFIGS;
 
-export function getDirectoryResourceConfig(resourceName: DirectoryResourceName) {
+export function getDirectoryResourceConfig(
+  resourceName: DirectoryResourceName
+): DirectoryResourceConfig {
   return RESOURCE_CONFIGS[resourceName];
 }
 
@@ -317,8 +319,6 @@ export function deleteDirectoryRow(resourceName: DirectoryResourceName, id: numb
 export function archiveDirectoryRow(resourceName: DirectoryResourceName, id: number) {
   const config = getDirectoryResourceConfig(resourceName);
 
-  // Some resource configs don't include the supportsArchive flag in their type.
-  // Treat missing flag as not supporting archive.
   if (!config.supportsArchive) {
     throwValidationError("This resource does not support archive.");
   }

@@ -33,6 +33,7 @@ import {
   createVendor,
   deleteSystem,
   fetchAssetTypes,
+  fetchCurrentUser,
   fetchDashboardTotals,
   fetchDirectoryRecord,
   fetchDirectoryRecords,
@@ -45,6 +46,8 @@ import {
   fetchSystems,
   fetchVendor,
   fetchVendors,
+  login,
+  logout,
   updateDirectoryRecord,
   updateSystem,
   updateSystemCategoryDetails,
@@ -54,6 +57,7 @@ import {
 import { getRecordHref, getStatusCount, statusLabels } from "./dashboardData";
 import type {
   AssetType,
+  AuthUser,
   CategoryDetails,
   DashboardTotals,
   DirectoryRecord,
@@ -198,6 +202,8 @@ const directoryConfigs: Record<
 export function DashboardApp() {
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const updateRoute = () => setRoute(parseRoute());
@@ -207,13 +213,50 @@ export function DashboardApp() {
   }, []);
 
   useEffect(() => {
-    void fetchAssetTypes()
+    void fetchCurrentUser()
+      .then((currentUser) => {
+        setUser(currentUser);
+        return fetchAssetTypes();
+      })
       .then(setAssetTypes)
-      .catch((error) => console.error(error));
+      .catch((error) => {
+        if (error instanceof ApiError) {
+          setUser(null);
+          return;
+        }
+
+        console.error(error);
+      })
+      .finally(() => setAuthChecked(true));
   }, []);
 
   function navigate(hash: string) {
     window.location.hash = hash;
+  }
+
+  function signIn(currentUser: AuthUser) {
+    setUser(currentUser);
+    void fetchAssetTypes()
+      .then(setAssetTypes)
+      .catch((error) => console.error(error));
+  }
+
+  async function signOut() {
+    await logout();
+    setUser(null);
+    setAssetTypes([]);
+  }
+
+  if (!authChecked) {
+    return (
+      <main className="app-shell">
+        <section className="notice">Loading Technology Operations Directory...</section>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen onAuthenticated={signIn} />;
   }
 
   return (
@@ -247,6 +290,9 @@ export function DashboardApp() {
             <Plus size={16} aria-hidden="true" />
             Add System
           </a>
+          <button className="secondary-link" type="button" onClick={() => void signOut()}>
+            Sign out
+          </button>
         </nav>
       </header>
 
@@ -283,6 +329,69 @@ export function DashboardApp() {
       {route.name === "directoryEdit" ? (
         <DirectoryForm resource={route.resource} mode="edit" id={route.id} navigate={navigate} />
       ) : null}
+    </main>
+  );
+}
+
+function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submitLogin(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const response = await login(email, password);
+      onAuthenticated(response.data);
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : "Unable to sign in.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="login-panel">
+        <p className="eyebrow">Technology Department</p>
+        <h1>Technology Operations Directory</h1>
+        <form className="form-grid" onSubmit={(event) => void submitLogin(event)}>
+          {error ? (
+            <section className="notice error" role="alert">
+              {error}
+            </section>
+          ) : null}
+          <label>
+            Email
+            <input
+              autoComplete="username"
+              name="email"
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              type="email"
+              value={email}
+            />
+          </label>
+          <label>
+            Password
+            <input
+              autoComplete="current-password"
+              name="password"
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+          <button className="primary-link" disabled={submitting} type="submit">
+            {submitting ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

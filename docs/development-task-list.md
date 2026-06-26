@@ -81,12 +81,9 @@
 
 ## Phase Five: Directory Workflows
 
-- [x] Build dashboard view.
-- [x] Build asset search and list view.
-- [x] Build asset detail view.
-- [x] Build add and edit asset forms.
+- [x] Add system dependency records.
+- [x] Show upstream and downstream dependencies on system detail pages.
 - [x] Add category-specific detail sections.
-- [x] Build vendor detail workflow.
 - [x] Build integration detail workflow.
 - [x] Build scheduled process workflow.
 - [x] Build review workflow.
@@ -102,19 +99,21 @@
 
 ## Phase Seven: Security and Operations
 
-- [ ] Add authentication.
-- [ ] Add role-based access control.
-- [ ] Add audit logging for important record changes.
-- [ ] Add backup and restore guidance for SQLite database file.
-- [ ] Add production deployment notes.
-- [ ] Add monitoring and error logging.
-- [ ] Add documentation for administrators.
+- [x] Add regression tests for required fields, invalid values, search, filters, sorting, add/edit/archive flows, database errors, empty data, and friendly errors.
+- [x] Verify sample records for DokShop, Pace, Control, Payment Gateway, Storefront Importer, Internal Reporting Database, and Technology Department Website.
+- [x] Add authentication.
+- [x] Add role-based access control.
+- [x] Add audit logging for important record changes.
+- [x] Add backup and restore guidance for SQLite database file.
+- [x] Add production deployment notes.
+- [x] Add monitoring and error logging.
+- [x] Add documentation for administrators.
 
 ## Phase Eight: Future Enhancements
 
-- [ ] Add CSV import and export.
+- [ ] Add CSV import.
 - [ ] Add relationship map visualization.
 - [ ] Add review due-date notifications.
 - [ ] Add attachment links or document references.
-- [ ] Add richer reporting by owner, category, criticality, vendor, and lifecycle.
+- [ ] Add richer reporting by owner, criticality, and lifecycle.
 - [ ] Add custom field administration for future asset categories.

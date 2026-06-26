@@ -30,7 +30,8 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
 
   response.status(500).json({
     error: "Internal Server Error",
-    message: "An unexpected error occurred."
+    message: "An unexpected error occurred.",
+    requestId: response.locals.requestId
   });
 };
 

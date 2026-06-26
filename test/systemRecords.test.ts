@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomBytes, scryptSync } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -15,6 +16,7 @@ const projectRoot = path.resolve(__dirname, "..");
 type JsonResponse = {
   status: number;
   body: Record<string, unknown> | undefined;
+  headers: Headers;
 };
 
 type TestSystemRecord = {
@@ -25,7 +27,7 @@ type TestSystemRecord = {
   replacement_system?: string | null;
   retirement_notes?: string | null;
   archived_at?: string | null;
-  quality_warnings: Array<{ code: string; message: string}>;
+  quality_warnings: Array<{ code: string; message: string }>;
   quality_warning_count: number;
 };
 
@@ -84,6 +86,8 @@ test("system records API supports main phase two flows", async () => {
   process.env.PORT = "3001";
 
   createTestDatabase(databasePath);
+  createTestUser(databasePath, "viewer@example.com", "viewer-password", "viewer");
+  createTestUser(databasePath, "admin@example.com", "correct-password", "admin");
 
   const { createApp } = await import("../src/app.js");
   const { closeDatabase } = await import("../src/db/database.js");
@@ -239,7 +243,10 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(vendorData.support_phone, "555-0100");
     assert.equal(vendorData.support_portal_url, "https://vendor.example.com/support");
     assert.equal(vendorData.account_representative, "Vendor Account Team");
-    assert.equal(vendorData.contract_notes, "Master agreement is tracked by Technology Operations.");
+    assert.equal(
+      vendorData.contract_notes,
+      "Master agreement is tracked by Technology Operations."
+    );
     assert.equal(vendorData.renewal_notes, "Review renewal 90 days before contract end.");
     const vendorId = Number(vendorData.id);
 
@@ -250,7 +257,10 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(updatedVendor.status, 200);
-    assert.equal(getResponseData<TestVendor>(updatedVendor).renewal_notes, "Updated renewal notes.");
+    assert.equal(
+      getResponseData<TestVendor>(updatedVendor).renewal_notes,
+      "Updated renewal notes."
+    );
 
     const archivedVendor = await requestJson(baseUrl, `/api/vendors/${vendorId}/archive`, {
       method: "POST"
@@ -267,7 +277,6 @@ test("system records API supports main phase two flows", async () => {
     const allVendors = await requestJson(baseUrl, "/api/vendors?includeArchived=true");
     assert.equal(allVendors.status, 200);
     assert.ok(getResponseData<TestVendor[]>(allVendors).some((vendor) => vendor.id === vendorId));
-
 
     const createdEnvironment = await requestJson(baseUrl, "/api/asset-environments", {
       method: "POST",
@@ -293,9 +302,9 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdIntegration.status, 201);
-    const integrationId = Number(getResponseData<{id: number}>(createdIntegration).id);
+    const integrationId = Number(getResponseData<{ id: number }>(createdIntegration).id);
 
-    const updatedIntegration = await requestJson(baseUrl, `api/integrations/${integrationId}`, {
+    const updatedIntegration = await requestJson(baseUrl, `/api/integrations/${integrationId}`, {
       method: "PATCH",
       body: {
         protocol: "HTTPS",
@@ -316,16 +325,14 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdScheduledProcess.status, 201);
-    const scheduledProcessId = Number(getResponseData<{id: number}>(createdScheduledProcess).id);
+    const scheduledProcessId = Number(getResponseData<{ id: number }>(createdScheduledProcess).id);
 
     const archivedScheduledProcess = await requestJson(
       baseUrl,
-      `/api/scheduled-processes/${scheduledProcessID}/archive`,
-      { method: "POST"}
+      `/api/scheduled-processes/${scheduledProcessId}/archive`,
+      { method: "POST" }
     );
     assert.equal(archivedScheduledProcess.status, 200);
-
-    )
 
     const createdReview = await requestJson(baseUrl, "/api/reviews", {
       method: "POST",
@@ -337,15 +344,16 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdReview.status, 201);
-    const reviewId = Number(getResponseData<{id: number }>(createdReview).id);
+    const reviewId = Number(getResponseData<{ id: number }>(createdReview).id);
 
-    const updatedReview = await requestJson(base64url, `/api/reviews/${reviewId}`, {
+    const updatedReview = await requestJson(baseUrl, `/api/reviews/${reviewId}`, {
       method: "PATCH",
       body: {
         review_status: "needs_updates",
         notes: "Needs dependency validation."
       }
     });
+    assert.equal(updatedReview.status, 200);
 
     const createdTag = await requestJson(baseUrl, "/api/tags", {
       method: "POST",
@@ -355,7 +363,7 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(createdTag.status, 201);
-    const tagID = Number(getResponseData<{id: number }>(createdTag).id);
+    const tagId = Number(getResponseData<{ id: number }>(createdTag).id);
 
     const assignedTags = await requestJson(baseUrl, `/api/system-records/${systemId}/tags`, {
       method: "POST",
@@ -364,9 +372,7 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(assignedTags.status, 201);
-    assert.ok(
-      getResponseData<Array<{ id: number }>>(assignedTags).some((tag) => tag.id === tagId)
-    );
+    assert.ok(getResponseData<Array<{ id: number }>>(assignedTags).some((tag) => tag.id === tagId));
 
     const dependency = await requestJson(baseUrl, "/api/system-dependencies", {
       method: "POST",
@@ -404,17 +410,19 @@ test("system records API supports main phase two flows", async () => {
       dependsOn: TestDependency[];
       dependedOnBy: TestDependency[];
     }>(dependencySummary);
-    assert.ok(
-      dependencySummaryData.dependsOn.some((record) => record.id === dependencyId)
-    );
+    assert.ok(dependencySummaryData.dependsOn.some((record) => record.id === dependencyId));
 
-    const updatedDependency = await requestJson(baseUrl, `/api/system-dependencies/${dependencyId}`, {
-      method: "PATCH",
-      body: {
-        importance_level: "important",
-        notes: "Updated dependency notes."
+    const updatedDependency = await requestJson(
+      baseUrl,
+      `/api/system-dependencies/${dependencyId}`,
+      {
+        method: "PATCH",
+        body: {
+          importance_level: "important",
+          notes: "Updated dependency notes."
+        }
       }
-    });
+    );
     assert.equal(updatedDependency.status, 200);
     assert.equal(getResponseData<TestDependency>(updatedDependency).importance_level, "important");
 
@@ -426,9 +434,13 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(archivedDependency.status, 200);
     assert.ok(getResponseData<TestDependency>(archivedDependency).archived_at);
 
-    const removedTags = await requestJson(baseUrl, `/api/system-records/${systemId}/tags/${tagId}`, {
-      method: "DELETE"
-    });
+    const removedTags = await requestJson(
+      baseUrl,
+      `/api/system-records/${systemId}/tags/${tagId}`,
+      {
+        method: "DELETE"
+      }
+    );
     assert.equal(removedTags.status, 200);
 
     const teamList = await requestJson(baseUrl, "/api/teams?search=print");
@@ -438,7 +450,7 @@ test("system records API supports main phase two flows", async () => {
     const invalidVendor = await requestJson(baseUrl, "/api/vendors", {
       method: "POST",
       body: {
-        name: "Invaild vendor",
+        name: "Invalid Vendor",
         website_url: "not-a-url"
       }
     });
@@ -489,14 +501,14 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(incompleteCreated.status, 201);
-    const incompleteCreatedData =getResponseData<TestSystemRecord>(incompleteCreated);
-    assert.ok(incompleteCreatedData.quality_warning_count>=1);
+    const incompleteCreatedData = getResponseData<TestSystemRecord>(incompleteCreated);
+    assert.ok(incompleteCreatedData.quality_warning_count >= 1);
     assert.ok(
       incompleteCreatedData.quality_warnings.some(
         (warning) => warning.code === "missing_technical_owner"
       )
     );
-     assert.ok(
+    assert.ok(
       incompleteCreatedData.quality_warnings.some(
         (warning) => warning.code === "missing_last_review_date"
       )
@@ -516,7 +528,7 @@ test("system records API supports main phase two flows", async () => {
         lastReviewDate: dateOffset(-370)
       }
     });
-     assert.equal(outdatedCreated.status, 201);
+    assert.equal(outdatedCreated.status, 201);
     const qualityWarningCodes = getResponseData<TestSystemRecord>(
       outdatedCreated
     ).quality_warnings.map((warning) => warning.code);
@@ -596,9 +608,117 @@ test("system records API supports main phase two flows", async () => {
 
     const deletedLookup = await requestJson(baseUrl, `/api/system-records/${duplicateId}`);
     assert.equal(deletedLookup.status, 404);
+
+    process.env.AUTH_REQUIRED = "true";
+    process.env.NODE_ENV = "development";
+
+    const blocked = await requestJson(baseUrl, "/api/system-records");
+    assert.equal(blocked.status, 401);
+    assert.match(String(blocked.body?.message), /sign in/i);
+
+    const viewerLogin = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: "viewer@example.com", password: "viewer-password" }
+    });
+    assert.equal(viewerLogin.status, 200);
+    const viewerCookie = viewerLogin.headers.get("set-cookie")?.split(";")[0];
+    assert.ok(viewerCookie);
+
+    const viewerArchive = await requestJson(baseUrl, `/api/system-records/${systemId}/archive`, {
+      method: "POST",
+      headers: { cookie: viewerCookie }
+    });
+    assert.equal(viewerArchive.status, 403);
+
+    const badLogin = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: "admin@example.com", password: "wrong-password" }
+    });
+    assert.equal(badLogin.status, 401);
+
+    const loginResponse = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: "admin@example.com", password: "correct-password" }
+    });
+    assert.equal(loginResponse.status, 200);
+
+    const adminCookie = loginResponse.headers.get("set-cookie")?.split(";")[0];
+    assert.ok(adminCookie);
+
+    const systemsWithAuth = await requestJson(baseUrl, "/api/system-records", {
+      headers: { cookie: adminCookie }
+    });
+    assert.equal(systemsWithAuth.status, 200);
+
+    const archivedWithAuth = await requestJson(baseUrl, `/api/system-records/${systemId}/archive`, {
+      method: "POST",
+      headers: { cookie: adminCookie }
+    });
+    assert.equal(archivedWithAuth.status, 200);
+
+    const database = new DatabaseSync(databasePath);
+    const auditCount = database
+      .prepare(
+        "SELECT COUNT(*) AS count FROM audit_logs WHERE action IN ('login_success', 'create_or_archive')"
+      )
+      .get() as { count: number };
+    database.close();
+    assert.ok(auditCount.count >= 2);
   } finally {
     await closeServer(server);
     closeDatabase();
+    delete process.env.AUTH_REQUIRED;
+    process.env.NODE_ENV = "test";
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+});
+
+test("phase seven sample records are present and avoid protected secret values", () => {
+  const tempDirectory = mkdtempSync(path.join(tmpdir(), "tod-seed-"));
+  const databasePath = path.join(tempDirectory, "test.sqlite");
+
+  try {
+    createTestDatabase(databasePath);
+
+    const database = new DatabaseSync(databasePath);
+    const rows = database
+      .prepare(
+        `
+        SELECT name
+        FROM technology_assets
+        WHERE asset_key IN (?, ?, ?, ?, ?, ?, ?)
+        `
+      )
+      .all(
+        "DOKSHOP",
+        "PACE",
+        "CONTROL",
+        "PAYMENT-GATEWAY",
+        "STOREFRONT-IMPORTER",
+        "INTERNAL-REPORTING-DB",
+        "TECH-DEPT-WEBSITE"
+      ) as Array<{ name: string }>;
+    database.close();
+
+    assert.deepEqual(
+      rows.map((row) => row.name).sort(),
+      [
+        "Control",
+        "DokShop",
+        "Internal Reporting Database",
+        "Pace",
+        "Payment Gateway",
+        "Storefront Importer",
+        "Technology Department Website"
+      ].sort()
+    );
+
+    const seedText = readFileSync(
+      path.join(projectRoot, "database", "migrations", "002_seed_phase_3_demo_records.sql"),
+      "utf8"
+    );
+    assert.doesNotMatch(seedText, /api\s*key|card\s*number|4111|sk_[a-z0-9]/i);
+  } finally {
     rmSync(tempDirectory, { recursive: true, force: true });
   }
 });
@@ -626,6 +746,27 @@ function createTestDatabase(databasePath: string) {
   database.close();
 }
 
+function createTestUser(
+  databasePath: string,
+  email: string,
+  password: string,
+  role: "viewer" | "editor" | "admin"
+) {
+  const salt = randomBytes(16).toString("hex");
+  const passwordHash = scryptSync(password, salt, 64).toString("hex");
+  const database = new DatabaseSync(databasePath);
+
+  database
+    .prepare(
+      `
+      INSERT INTO users (email, display_name, password_hash, password_salt, role)
+      VALUES (?, ?, ?, ?, ?)
+      `
+    )
+    .run(email, email, passwordHash, salt, role);
+  database.close();
+}
+
 function getBaseUrl(server: Server) {
   const address = server.address();
 
@@ -639,18 +780,22 @@ function getBaseUrl(server: Server) {
 async function requestJson(
   baseUrl: string,
   pathname: string,
-  options: { method?: string; body?: Record<string, unknown> } = {}
+  options: { method?: string; body?: Record<string, unknown>; headers?: Record<string, string> } = {}
 ): Promise<JsonResponse> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: options.method ?? "GET",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers ?? {})
+    },
     body: options.body ? JSON.stringify(options.body) : undefined
   });
   const text = await response.text();
 
   return {
     status: response.status,
-    body: text ? JSON.parse(text) : undefined
+    body: text ? JSON.parse(text) : undefined,
+    headers: response.headers
   };
 }
 

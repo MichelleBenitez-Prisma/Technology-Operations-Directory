@@ -85,7 +85,7 @@ const optionalBoolean = z.preprocess((value) => {
 
 const listQuerySchema = z.object({
   search: optionalText,
-   includeArchived: optionalBoolean.default(false),
+  includeArchived: optionalBoolean.default(false),
   archivedOnly: optionalBoolean.default(false),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).default(0)
@@ -285,7 +285,7 @@ export function parseUpdateInput(resourceName: keyof typeof directorySchemas, bo
     unknown
   >;
 
-  validateSystemDependency(resourceName,value);
+  validateSystemDependency(resourceName, value);
 
   return value;
 }
@@ -298,6 +298,25 @@ function requireAtLeastOne<T extends Record<string, unknown>>(value: T) {
   }
 
   return value;
+}
+
+function validateSystemDependency(
+  resourceName: keyof typeof directorySchemas,
+  value: Record<string, unknown>
+) {
+  if (resourceName !== "systemDependencies") {
+    return;
+  }
+
+  if (
+    value.source_asset_id &&
+    value.destination_asset_id &&
+    value.source_asset_id === value.destination_asset_id
+  ) {
+    const error = new Error("source_asset_id and destination_asset_id must be different systems.");
+    error.name = "ValidationError";
+    throw error;
+  }
 }
 
 function isValidDateString(value: string) {
@@ -315,33 +334,4 @@ function isValidDateString(value: string) {
   return (
     date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
-}
-
-function validateSystemDependency(
-  resourceName: keyof typeof directorySchemas | string,
-  value: Record<string, unknown>
-) {
-  if (resourceName !== "systemDependencies") return;
-
-  const src = value["source_asset_id"];
-  const dst = value["destination_asset_id"];
-  const rel = value["relationship_description"];
-
-  if (src == null || dst == null) {
-    const error = new Error("source_asset_id and destination_asset_id are required.");
-    error.name = "ValidationError";
-    throw error;
-  }
-
-  if (src === dst) {
-    const error = new Error("source_asset_id and destination_asset_id must be different.");
-    error.name = "ValidationError";
-    throw error;
-  }
-
-  if (rel == null || (typeof rel === "string" && rel.trim() === "")) {
-    const error = new Error("relationship_description is required.");
-    error.name = "ValidationError";
-    throw error;
-  }
 }

@@ -154,6 +154,44 @@ Use this to rebuild the database from scratch:
 npm run db:reset
 ```
 
+## Administrator Setup
+
+Authentication is enabled by default outside tests. Set these environment variables before first production startup so the app can create the first administrator:
+
+```bash
+AUTH_REQUIRED=true
+INITIAL_ADMIN_EMAIL=admin@example.com
+INITIAL_ADMIN_PASSWORD=<strong temporary password>
+```
+
+After the first admin exists, remove or rotate the temporary password value. Users have one of three roles: `viewer` for read-only use, `editor` for add/edit/archive work, and `admin` for delete and administrator actions.
+
+Important record changes are written to `audit_logs`. Server errors include an `X-Request-Id` response header and a `requestId` value in 500 responses so logs can be matched to user reports.
+
+## SQLite Backup And Restore
+
+Before upgrades or production maintenance, stop writes to the app and copy the SQLite file configured by `DATABASE_PATH`.
+
+```bash
+cp data/technology_operations_directory.sqlite backups/technology_operations_directory-YYYY-MM-DD.sqlite
+```
+
+To restore, stop the app, replace the configured database file with the selected backup, then restart the app and run:
+
+```bash
+npm run db:migrate:status
+```
+
+## Production Deployment Notes
+
+For Render or another Node host, use Node 24 or newer. The production start command is:
+
+```bash
+npm start
+```
+
+`npm start` applies pending database migrations before starting the Express server. Configure persistent disk storage for the SQLite database path, keep `.env` values out of Git, and leave `/health` available for platform health checks.
+
 Schema changes after the baseline should be added as numbered `.sql` files in
 `database/migrations/` and applied with:
 

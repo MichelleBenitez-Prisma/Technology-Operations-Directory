@@ -134,6 +134,13 @@ export type VendorFormInput = {
   notes: string;
 };
 
+export type AuthUser = {
+  id: number;
+  email: string;
+  display_name: string;
+  role: "viewer" | "editor" | "admin";
+};
+
 export type DirectoryResource =
   | "integrations"
   | "scheduled-processes"

@@ -6,11 +6,14 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 
+import { ensureInitialAdmin } from "./db/authRepository.js";
+import { auditMutations, requestContext, requireApiRole, requireAuth } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { assetTypesRouter } from "./routes/assetTypes.routes.js";
+import { authRouter } from "./routes/auth.routes.js";
 import { createDirectoryRouter } from "./routes/directory.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
-import { reportsRouter } from "./routes/Report.routes.js";
+import { reportsRouter } from "./routes/reports.routes.js";
 import { searchRouter } from "./routes/search.routes.js";
 import { systemRecordsRouter } from "./routes/systemRecords.routes.js";
 
@@ -22,12 +25,17 @@ export function createApp() {
   app.use(helmet());
   app.use(cors());
   app.use(express.json({ limit: "1mb" }));
+  app.use(requestContext);
 
   if (process.env.NODE_ENV !== "test") {
     app.use(morgan("dev"));
   }
 
+  ensureInitialAdmin();
+
   app.use("/health", healthRouter);
+  app.use("/api/auth", authRouter);
+  app.use("/api", requireAuth, requireApiRole, auditMutations);
   app.use("/api/asset-types", assetTypesRouter);
   app.use("/api/teams", createDirectoryRouter("teams"));
   app.use("/api/people", createDirectoryRouter("people"));
