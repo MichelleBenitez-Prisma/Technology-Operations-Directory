@@ -55,10 +55,7 @@ export type systemReport = SystemReportSummary & {
   rows: Array<Record<string, unknown>>;
 };
 
-type SystemRecordRow = SystemRecord & {
-  review_interval_days?: number | null;
-
-};
+type SystemRecordRow = SystemRecord;
 
 const SORT_COLUMNS: Record<SystemRecordSortField, string> = {
   systemName: "system_name",
@@ -92,9 +89,7 @@ const SYSTEM_DETAIL_FIELDS = {
   notes: "notes"
 } as const;
 
-const SYSTEM_RECORD_SELECT =
-  "system_record_view.*, (SELECT review_interval_days FROM technology_assets WHERE technology_assets.id = system_record_view.id) AS review_interval_days";
-const SYSTEM_RECORD_FROM = "system_record_view";
+const SYSTEM_RECORD_FROM = "system_record_view.*";
 
 const SYSTEM_REPORT_DEFINITIONS: Record<
   SystemReportKey,
@@ -1151,8 +1146,7 @@ function enrichSystemRecords(records: SystemRecordRow[]): SystemRecord[] {
 }
 
 function enrichSystemRecord(row: SystemRecordRow): SystemRecord {
-  const { review_interval_days: reviewIntervalDays, ...record } = row;
-  const qualityWarnings = buildSystemRecordQualityWarnings(record, reviewIntervalDays ?? 180);
+  const qualityWarnings = buildSystemRecordQualityWarnings(record, 180);
 
   return {
     ...record,

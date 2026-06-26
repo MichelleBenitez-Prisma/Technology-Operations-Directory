@@ -4,6 +4,9 @@
   "private": true,
   "description": "Internal Technology Operations Directory backend and database.",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:api": "tsx watch src/server.ts",
@@ -16,7 +19,7 @@
     "format": "npm run format:api",
     "format:api": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.mjs\"",
     "format:api:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.mjs\"",
-    "start": "node dist/server.js",
+    "start": "node scripts/migrate-database.mjs && Nodee fist/server.js",
     "test": "node --test --import tsx ./test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:client": "tsc -p tsconfig.client.json --noEmit",
