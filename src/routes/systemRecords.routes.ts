@@ -10,6 +10,7 @@ import {
   getSystemRecordDashboardTotals,
   listIncompleteSystemRecords,
   listSystemRecordDependencies,
+  listSystemRecordsForExport,
   listSystemRecordTags,
   removeSystemRecordTag,
   listSystemRecords,
@@ -44,6 +45,17 @@ systemRecordsRouter.get("/", (request, response) => {
   response.json({
     data: listSystemRecords(query)
   });
+});
+
+systemRecordsRouter.get("/export.csv", (request, response) => {
+  const query = listSystemRecordsQuerySchema.parse(request.query);
+  const records = listSystemRecordsForExport(query);
+
+  response
+    .status(200)
+    .setHeader("Content-Type", "text/csv; charset=utf-8")
+    .setHeader("Content-Disposition", 'attachment; filename="system-records.csv"')
+    .send(systemRecordsToCsv(records));
 });
 
 systemRecordsRouter.get("/:id/dependencies", (request, response) => {
@@ -320,4 +332,48 @@ function parseSystemRecordId(value: string | undefined) {
   const id = Number(value);
 
   return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
+function systemRecordsToCsv(records: ReturnType<typeof listSystemRecordsForExport>) {
+  const columns = [
+    ["system_name", "System"],
+    ["description", "Description"],
+    ["category_name", "Category"],
+    ["status", "Status"],
+    ["business_department", "Business department"],
+    ["department_owner", "Department owner"],
+    ["technical_owner", "Technical owner"],
+    ["vendor", "Vendor"],
+    ["support_contact", "Support contact"],
+    ["hosting_location", "Hosting location"],
+    ["documentation_url", "Documentation URL"],
+    ["renewal_date", "Renewal date"],
+    ["last_review_date", "Last review date"],
+    ["quality_warning_count", "Warning count"],
+    ["quality_warning_messages", "Warnings"]
+  ] as const;
+
+  const lines = [
+    columns.map(([, label]) => escapeCsvValue(label)).join(","),
+    ...records.map((record) => {
+      const row = {
+        ...record,
+        quality_warning_messages: record.quality_warnings.map((warning) => warning.message).join("; ")
+      };
+
+      return columns.map(([key]) => escapeCsvValue(row[key] ?? "")).join(",");
+    })
+  ];
+
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+function escapeCsvValue(value: unknown) {
+  const text = String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
 }

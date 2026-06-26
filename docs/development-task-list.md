@@ -92,7 +92,15 @@
 - [x] Build review workflow.
 - [x] Add tag management.
 
-## Phase Six: Security and Operations
+## Phase Six: Data Quality and Reporting
+
+- [x] Add data-quality checks for missing or outdated system record details.
+- [x] Add warning indicators to system list and system detail screens.
+- [x] Add reports page for active, replacement, retired, documentation, owner, renewal, vendor, category, review, and data-quality reports.
+- [x] Add CSV export for filtered system lists.
+- [x] Link dashboard alerts to matching report results.
+
+## Phase Seven: Security and Operations
 
 - [ ] Add authentication.
 - [ ] Add role-based access control.
@@ -102,7 +110,7 @@
 - [ ] Add monitoring and error logging.
 - [ ] Add documentation for administrators.
 
-## Phase Seven: Future Enhancements
+## Phase Eight: Future Enhancements
 
 - [ ] Add CSV import and export.
 - [ ] Add relationship map visualization.

@@ -25,6 +25,8 @@ type TestSystemRecord = {
   replacement_system?: string | null;
   retirement_notes?: string | null;
   archived_at?: string | null;
+  quality_warnings: Array<{ code: string; message: string}>;
+  quality_warning_count: number;
 };
 
 type TestWarning = {
@@ -40,6 +42,12 @@ type TestDashboardTotals = {
   withoutTechnicalOwner: number;
   upcomingRenewals: unknown[];
   recentlyUpdated: unknown[];
+};
+
+type TestReport = {
+  key: string;
+  count: number;
+  rows: Array<Record<string, unknown>>;
 };
 
 type TestVendor = {
@@ -481,6 +489,43 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(incompleteCreated.status, 201);
+    const incompleteCreatedData =getResponseData<TestSystemRecord>(incompleteCreated);
+    assert.ok(incompleteCreatedData.quality_warning_count>=1);
+    assert.ok(
+      incompleteCreatedData.quality_warnings.some(
+        (warning) => warning.code === "missing_technical_owner"
+      )
+    );
+     assert.ok(
+      incompleteCreatedData.quality_warnings.some(
+        (warning) => warning.code === "missing_last_review_date"
+      )
+    );
+
+    const outdatedCreated = await requestJson(baseUrl, "/api/system-records", {
+      method: "POST",
+      body: {
+        systemName: "Quality Warning System",
+        description: "Used to verify Phase 6 warning checks.",
+        categoryCode: "internal_tool",
+        status: "active",
+        businessDepartment: "Technology",
+        departmentOwner: "Technology Operations",
+        technicalOwner: "Application Development",
+        renewalDate: dateOffset(30),
+        lastReviewDate: dateOffset(-370)
+      }
+    });
+     assert.equal(outdatedCreated.status, 201);
+    const qualityWarningCodes = getResponseData<TestSystemRecord>(
+      outdatedCreated
+    ).quality_warnings.map((warning) => warning.code);
+    assert.ok(qualityWarningCodes.includes("missing_vendor"));
+    assert.ok(qualityWarningCodes.includes("missing_support_contact"));
+    assert.ok(qualityWarningCodes.includes("missing_documentation_link"));
+    assert.ok(qualityWarningCodes.includes("missing_hosting_information"));
+    assert.ok(qualityWarningCodes.includes("renewal_date_approaching"));
+    assert.ok(qualityWarningCodes.includes("last_review_overdue"));
 
     const incomplete = await requestJson(baseUrl, "/api/system-records/incomplete");
     assert.equal(incomplete.status, 200);
@@ -500,6 +545,37 @@ test("system records API supports main phase two flows", async () => {
     assert.ok(dashboardData.withoutTechnicalOwner >= 1);
     assert.ok(Array.isArray(dashboardData.upcomingRenewals));
     assert.ok(Array.isArray(dashboardData.recentlyUpdated));
+
+    const reportSummaries = await requestJson(baseUrl, "/api/reports");
+    assert.equal(reportSummaries.status, 200);
+    assert.ok(
+      getResponseData<Array<{ key: string }>>(reportSummaries).some(
+        (report) => report.key === "data-quality"
+      )
+    );
+
+    const dataQualityReport = await requestJson(baseUrl, "/api/reports/data-quality");
+    assert.equal(dataQualityReport.status, 200);
+    assert.ok(
+      getResponseData<TestReport>(dataQualityReport).rows.some(
+        (row) => row.system_name === "Incomplete Internal Tool"
+      )
+    );
+
+    const missingDocumentationReport = await requestJson(
+      baseUrl,
+      "/api/reports/missing-documentation"
+    );
+    assert.equal(missingDocumentationReport.status, 200);
+    assert.ok(getResponseData<TestReport>(missingDocumentationReport).count >= 1);
+
+    const csvExport = await requestText(
+      baseUrl,
+      "/api/system-records/export.csv?search=Payroll&sortBy=systemName&sortDirection=asc"
+    );
+    assert.equal(csvExport.status, 200);
+    assert.match(csvExport.body, /System,Description,Category/);
+    assert.match(csvExport.body, /Payroll API/);
 
     const archived = await requestJson(baseUrl, `/api/system-records/${duplicateId}/archive`, {
       method: "POST"
@@ -578,6 +654,15 @@ async function requestJson(
   };
 }
 
+async function requestText(baseUrl: string, pathname: string) {
+  const response = await fetch(`${baseUrl}${pathname}`);
+
+  return {
+    status: response.status,
+    body: await response.text()
+  };
+}
+
 function getResponseData<T>(response: JsonResponse) {
   assert.ok(response.body);
   assert.ok("data" in response.body);
@@ -589,6 +674,13 @@ function getResponseWarnings(response: JsonResponse) {
   assert.ok(response.body);
 
   return (response.body.warnings ?? []) as TestWarning[];
+}
+
+function dateOffset(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString().slice(0, 10);
 }
 
 async function closeServer(server: Server) {

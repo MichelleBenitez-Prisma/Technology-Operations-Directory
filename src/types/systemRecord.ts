@@ -40,6 +40,20 @@ export type SystemRecordWarning = {
   matchingSystemIds: number[];
 };
 
+export type SystemRecordQualityWarning = {
+  code:
+    | "missing_description"
+    | "missing_technical_owner"
+    | "missing_vendor"
+    | "missing_support_contact"
+    | "missing_documentation_link"
+    | "missing_hosting_information"
+    | "missing_last_review_date"
+    | "renewal_date_approaching"
+    | "last_review_overdue";
+  message: string;
+};
+
 export type SystemRecordMutationResult = {
   data: SystemRecord;
   warnings: SystemRecordWarning[];
@@ -73,6 +87,8 @@ export type SystemRecord = {
   archived_at: string | null;
   is_incomplete: 0 | 1;
   missing_fields: string;
+  quality_warnings: SystemRecordQualityWarning[];
+  quality_warning_count: number;
   created_at: string;
   updated_at: string;
 };

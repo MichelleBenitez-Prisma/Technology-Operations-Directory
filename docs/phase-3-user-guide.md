@@ -23,7 +23,7 @@ The production build is served by Express after `npm run build` and `npm start`.
 
 Use the dashboard to review the directory at a glance. It shows total systems, active systems, systems being replaced, retired systems, missing documentation, missing technical owners, upcoming renewals, recently updated records, and records needing attention.
 
-Use the search box to quickly search systems, owners, departments, vendors, and hosting information. Dashboard cards link to filtered system lists where practical.
+Use the search box to quickly search systems, owners, departments, vendors, and hosting information. Dashboard alert cards link to the matching report results when practical. 
 
 ## Systems List
 
@@ -36,8 +36,9 @@ The systems list supports:
 - Show incomplete records only.
 - Include archived records when needed.
 - Sort records by name, category, status, owner, vendor, last review date, or update date.
+- Export the current filtered list to CSV. 
 
-Select a system name to open its detail page.
+Select a system name to open its detail page. The warning count shows records with missing or outdated information. 
 
 ## System Detail Page
 
@@ -50,6 +51,14 @@ Each system detail page is organized into:
 - Lifecycle information
 
 Use **Edit** to update a record. Use **Archive** when a record should remain available for historical tracking. Use **Delete** only when a record should be permanently removed.
+
+System detail pages show data-quality warning when important information is missing or outdated. Warnings include missing description, technical owner, vendor, support contact, documentation link, hosting information, last review date, approaching renewal dates, and overdue revire dates.
+
+## Reports
+
+Open `#/reports` or use the **Reports** button.
+
+The reports page includes active systems, systems being replaced, retired systems, systems missing documentation, system missing owners, upcoming renewals, system grouped by vendors, systems grouped by category, recently reviewed systems, and all data-quality warnings. Select a report card or report dropdown value to review the matching records.
 
 ## Add or Edit a System
 

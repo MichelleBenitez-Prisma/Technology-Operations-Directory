@@ -5,6 +5,7 @@ import type {
   CreateSystemRecordInput,
   SortDirection,
   SystemRecord,
+  SystemRecordQualityWarning, 
   SystemRecordMutationResult,
   SystemRecordSortField,
   SystemRecordWarning,
@@ -26,6 +27,37 @@ export type ListSystemRecordsFilters = {
   sortDirection?: SortDirection;
   limit?: number;
   offset?: number;
+};
+
+export const SYSTEM_REPORT_KEYS = [
+  "active-systems",
+  "being-replaced",
+  "retired-systems",
+  "missing-documentation",
+  "upcoming-renewals",
+  "by-vendor",
+  "by-category",
+  "recently-reviewed",
+  "data-quality"
+] as const;
+
+export type SystemReportKey = (typeof SYSTEM_REPORT_KEYS)[number];
+
+export type SystemReportSummary = {
+  key: SystemReportKey;
+  title: string;
+  description: string;
+  count: number;
+};
+
+export type systemReport = SystemReportSummary & {
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<Record<string, unknown>>;
+};
+
+type SystemRecordRow = SystemRecord & {
+  review_interval_days?: number | null;
+
 };
 
 const SORT_COLUMNS: Record<SystemRecordSortField, string> = {
@@ -60,6 +92,57 @@ const SYSTEM_DETAIL_FIELDS = {
   notes: "notes"
 } as const;
 
+const SYSTEM_RECORD_SELECT =
+  "system_record_view.*, (SELECT review_interval_days FROM technology_assets WHERE technology_assets.id = system_record_view.id) AS review_interval_days";
+const SYSTEM_RECORD_FROM = "system_record_view";
+
+const SYSTEM_REPORT_DEFINITIONS: Record<
+  SystemReportKey,
+  { title: string; description: string }
+> = {
+  "active-systems": {
+    title: "Active Systems",
+    description: "Systems currently in active use."
+  },
+  "being-replaced": {
+    title: "Systems Being Replaced",
+    description: "Systems marked for replacement planning."
+  },
+  "retired-systems": {
+    title: "Retired Systems",
+    description: "Systems marked retired but still tracked in the directory."
+  },
+  "missing-documentation": {
+    title: "Systems Missing Documentation",
+    description: "Systems without a documentation link."
+  },
+  "missing-owners": {
+    title: "Systems Missing Owners",
+    description: "Systems without a technical owner."
+  },
+  "upcoming-renewals": {
+    title: "Upcoming Renewals",
+    description: "Renewal dates in the next 90 days."
+  },
+  "by-vendor": {
+    title: "Systems Grouped By Vendor",
+    description: "Active systems counted by vendor."
+  },
+  "by-category": {
+    title: "Systems Grouped By Category",
+    description: "Active systems counted by category."
+  },
+  "recently-reviewed": {
+    title: "Recently Reviewed Systems",
+    description: "Systems reviewed in the last 90 days."
+  },
+  "data-quality": {
+    title: "Data Quality Warnings",
+    description: "Systems with incomplete or outdated operational details."
+  }
+};
+
+
 export function listSystemRecords(filters: ListSystemRecordsFilters) {
   const { whereClause, params } = buildSystemRecordWhereClause(filters);
   const sortBy = filters.sortBy ?? "updatedAt";
@@ -69,15 +152,17 @@ export function listSystemRecords(filters: ListSystemRecordsFilters) {
   params.limit = filters.limit ?? 50;
   params.offset = filters.offset ?? 0;
 
-  return queryAll<SystemRecord>(
+  return enrichSystemRecords(
+    queryAll<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     ${whereClause}
     ORDER BY ${sortColumn} ${sortDirection}, system_name ASC
     LIMIT $limit OFFSET $offset
     `,
     params
+    )
   );
 }
 
@@ -88,18 +173,38 @@ export function listIncompleteSystemRecords(filters: ListSystemRecordsFilters) {
   });
 }
 
+export function listSystemRecordsForExport(filters: ListSystemRecordsFilters){
+  const { whereClause, params} = buildSystemRecordWhereClause(filters);
+  const sortBy = filters.sortBy ?? "updatedAt";
+  const sortDirection = filters.sortDirection === "asc" ? "ASC" : "DESC";
+  const sortColumn =  SORT_COLUMNS[sortBy];
+
+  return enrichSystemRecords(
+    queryAll<SystemRecordRow>(
+      `
+      SELECET ${SYSTEM_RECORD_SELECT}
+      FROM${SYSTEM_RECORD_FROM}
+      ${whereClause}
+      ORDER BY ${sortColumn} ${sortDirection}, system_name ASC
+      `,
+      params
+    )
+  );
+}
+
 export function findSystemRecordById(id: number, options: { includeArchived?: boolean } = {}) {
   const archivedClause = options.includeArchived ? "" : "AND archived_at IS NULL";
 
-  return queryOne<SystemRecord>(
+  const record = queryOne<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     WHERE id = $id
     ${archivedClause}
     `,
     { id }
   );
+  return record ? enrichSystemRecord(record) : underfined;
 }
 
 export function listSystemRecordDependencies(id: number) {
@@ -600,40 +705,47 @@ export function getSystemRecordDashboardTotals() {
     ORDER BY category_name
     `
   );
-  const upcomingRenewals = queryAll<SystemRecord>(
+  const upcomingRenewals = enrichSystemRecord(
+    queryAll<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     WHERE archived_at IS NULL
       AND renewal_date IS NOT NULL
       AND DATE(renewal_date) BETWEEN DATE('now') AND DATE('now', '+90 days')
     ORDER BY renewal_date ASC, system_name ASC
     LIMIT 8
     `
+    )
   );
-  const recentlyUpdated = queryAll<SystemRecord>(
+  const recentlyUpdated = enrichSystemRecords(
+    queryAll<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     WHERE archived_at IS NULL
     ORDER BY updated_at DESC, system_name ASC
     LIMIT 8
     `
+    )
   );
-  const missingDocumentationRecords = queryAll<SystemRecord>(
+  const missingDocumentationRecords = enrichSystemRecords(
+    queryAll<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(documentation_url, '')), '') IS NULL
     ORDER BY system_name ASC
     LIMIT 8
     `
+    )
   );
-  const withoutTechnicalOwnerRecords = queryAll<SystemRecord>(
+  const withoutTechnicalOwnerRecords = enrichSystemRecords(
+    queryAll<SystemRecordRow>(
     `
-    SELECT *
-    FROM system_record_view
+    SELECT  ${SYSTEM_RECORD_SELECT}
+    FROM ${SYSTEM_RECORD_FROM}
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(technical_owner, '')), '') IS NULL
     ORDER BY system_name ASC
@@ -653,6 +765,33 @@ export function getSystemRecordDashboardTotals() {
     recentlyUpdated,
     missingDocumentationRecords,
     withoutTechnicalOwnerRecords
+  };
+}
+
+export function listSystemReportSummaries(): SystemReportSummary[] {
+  return SYSTEM_REPORT_KEYS.map((key) => {
+    const report = getSystemReport(key);
+
+    return {
+      key,
+      title: report.title,
+      description: report.description,
+      count: report.count
+    };
+  });
+}
+
+export function getSystemReport(key: SystemReportKey): SystemReport {
+  const definition = SYSTEM_REPORT_DEFINITIONS[key];
+  const rows = getSystemReportRows(key);
+
+  return {
+    key,
+    title: definition.title,
+    description: definition.description,
+    count: rows.length,
+    columns: getSystemReportColumns(key),
+    rows
   };
 }
 
@@ -879,6 +1018,253 @@ function buildDuplicateSystemNameWarnings(
     }
   ];
 }
+
+function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown>> {
+  if (key === "by-vendor") {
+    return queryAll<Record<string, unknown>>(
+      `
+      SELECT
+        COALESCE(NULLIF(TRIM(vendor), ''), 'Not assigned') AS vendor,
+        COUNT(*) AS system_count
+      FROM system_record_view
+      WHERE archived_at IS NULL
+      GROUP BY COALESCE(NULLIF(TRIM(vendor), ''), 'Not assigned')
+      ORDER BY system_count DESC, vendor ASC
+      `
+    );
+  }
+
+  if (key === "by-category") {
+    return queryAll<Record<string, unknown>>(
+      `
+      SELECT
+        category_name,
+        COUNT(*) AS system_count
+      FROM system_record_view
+      WHERE archived_at IS NULL
+      GROUP BY category_name
+      ORDER BY system_count DESC, category_name ASC
+      `
+    );
+  }
+  const records = listSystemRecordsForExport({
+    includeArchived: false,
+    sortBy: key === "upcoming-renewals" ? "renewalDate" : "systemName",
+    sortDirection: "asc"
+  });
+
+  if (key === "active-systems") {
+    return records.filter((record) => record.status === "active").map(toSystemReportRow);
+  }
+
+  if (key === "being-replaced") {
+    return records.filter((record) => record.status === "being_replaced").map(toSystemReportRow);
+  }
+
+  if (key === "retired-systems") {
+    return records.filter((record) => record.status === "retired").map(toSystemReportRow);
+  }
+
+  if (key === "missing-documentation") {
+    return records
+      .filter((record) => hasQualityWarning(record, "missing_documentation_link"))
+      .map(toSystemReportRow);
+  }
+
+  if (key === "missing-owners") {
+    return records
+      .filter((record) => hasQualityWarning(record, "missing_technical_owner"))
+      .map(toSystemReportRow);
+  }
+  if (key === "upcoming-renewals") {
+    return records
+      .filter((record) => hasQualityWarning(record, "renewal_date_approaching"))
+      .map(toSystemReportRow);
+  }
+
+  if (key === "recently-reviewed") {
+    const oldestRecentReview = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
+    return records
+      .filter((record) => {
+        const reviewedAt = parseDateOnly(record.last_review_date);
+
+        return reviewedAt !== null && reviewedAt.getTime() >= oldestRecentReview;
+      })
+      .map(toSystemReportRow);
+  }
+
+  return records
+    .filter((record) => record.quality_warning_count > 0)
+    .sort((left, right) => {
+      return right.quality_warning_count - left.quality_warning_count || left.system_name.localeCompare(right.system_name);
+    })
+    .map(toSystemReportRow);
+}
+
+function getSystemReportColumns(key: SystemReportKey) {
+  if (key === "by-vendor") {
+    return [
+      { key: "vendor", label: "Vendor" },
+      { key: "system_count", label: "Systems" }
+    ];
+  }
+if (key === "by-category") {
+    return [
+      { key: "category_name", label: "Category" },
+      { key: "system_count", label: "Systems" }
+    ];
+  }
+
+  return [
+    { key: "system_name", label: "System" },
+    { key: "status", label: "Status" },
+    { key: "category_name", label: "Category" },
+    { key: "technical_owner", label: "Technical owner" },
+    { key: "vendor", label: "Vendor" },
+    { key: "renewal_date", label: "Renewal date" },
+    { key: "last_review_date", label: "Last review" },
+    { key: "quality_warning_messages", label: "Warnings" }
+  ];
+}
+
+function toSystemReportRow(record: SystemRecord): Record<string, unknown> {
+  return {
+    id: record.id,
+    system_name: record.system_name,
+    status: record.status,
+    category_name: record.category_name,
+    technical_owner: record.technical_owner,
+    vendor: record.vendor,
+    renewal_date: record.renewal_date,
+    last_review_date: record.last_review_date,
+    quality_warning_count: record.quality_warning_count,
+    quality_warning_messages: record.quality_warnings.map((warning) => warning.message).join("; ")
+  };
+}
+function hasQualityWarning(record: SystemRecord, code: SystemRecordQualityWarning["code"]) {
+  return record.quality_warnings.some((warning) => warning.code === code);
+}
+
+function enrichSystemRecords(records: SystemRecordRow[]): SystemRecord[] {
+  return records.map(enrichSystemRecord);
+}
+
+function enrichSystemRecord(row: SystemRecordRow): SystemRecord {
+  const { review_interval_days: reviewIntervalDays, ...record } = row;
+  const qualityWarnings = buildSystemRecordQualityWarnings(record, reviewIntervalDays ?? 180);
+
+  return {
+    ...record,
+    quality_warnings: qualityWarnings,
+    quality_warning_count: qualityWarnings.length
+  };
+}
+
+function buildSystemRecordQualityWarnings(
+  record: Omit<SystemRecord, "quality_warnings" | "quality_warning_count">,
+  reviewIntervalDays: number
+): SystemRecordQualityWarning[] {
+  const warnings: SystemRecordQualityWarning[] = [];
+
+  if (!hasText(record.description)) {
+    warnings.push({
+      code: "missing_description",
+      message: "Description is missing."
+    });
+  }
+
+  if (!hasText(record.technical_owner)) {
+    warnings.push({
+      code: "missing_technical_owner",
+      message: "Technical owner is missing."
+    });
+  }
+
+  if (!hasText(record.vendor)) {
+    warnings.push({
+      code: "missing_vendor",
+      message: "Vendor information is missing."
+    });
+  }
+
+  if (!hasText(record.support_contact)) {
+    warnings.push({
+      code: "missing_support_contact",
+      message: "Support contact is missing."
+    });
+  }
+
+  if (!hasText(record.documentation_url)) {
+    warnings.push({
+      code: "missing_documentation_link",
+      message: "Documentation link is missing."
+    });
+  }
+
+  if (!hasText(record.hosting_location)) {
+    warnings.push({
+      code: "missing_hosting_information",
+      message: "Hosting information is missing."
+    });
+  }
+
+  const lastReviewDate = parseDateOnly(record.last_review_date);
+
+  if (!lastReviewDate) {
+    warnings.push({
+      code: "missing_last_review_date",
+      message: "Last review date is missing."
+    });
+} else {
+    const reviewAgeDays = Math.floor((Date.now() - lastReviewDate.getTime()) / (24 * 60 * 60 * 1000));
+
+    if (reviewAgeDays > reviewIntervalDays) {
+      warnings.push({
+        code: "last_review_overdue",
+        message: `Last review is older than the allowed ${reviewIntervalDays}-day review period.`
+      });
+    }
+  }
+
+  const renewalDate = parseDateOnly(record.renewal_date);
+
+  if (renewalDate) {
+    const today = startOfToday();
+    const ninetyDaysFromNow = today.getTime() + 90 * 24 * 60 * 60 * 1000;
+    const renewalTime = renewalDate.getTime();
+
+    if (renewalTime >= today.getTime() && renewalTime <= ninetyDaysFromNow) {
+      warnings.push({
+        code: "renewal_date_approaching",
+        message: "Renewal date is approaching within 90 days."
+      });
+    }
+  }
+
+  return warnings;
+}
+
+function hasText(value: string | null | undefined) {
+  return Boolean(value?.trim());
+}
+
+function parseDateOnly(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfToday() {
+  const now = new Date();
+
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
 
 function slugify(value: string) {
   const slug = value

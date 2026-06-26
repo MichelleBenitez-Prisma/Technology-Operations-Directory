@@ -10,6 +10,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { assetTypesRouter } from "./routes/assetTypes.routes.js";
 import { createDirectoryRouter } from "./routes/directory.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { reportsRouter } from "./routes/Report.routes.js";
 import { searchRouter } from "./routes/search.routes.js";
 import { systemRecordsRouter } from "./routes/systemRecords.routes.js";
 
@@ -37,6 +38,7 @@ export function createApp() {
   app.use("/api/scheduled-processes", createDirectoryRouter("scheduledProcesses"));
   app.use("/api/reviews", createDirectoryRouter("reviews"));
   app.use("/api/tags", createDirectoryRouter("tags"));
+  app.use("/api/reports", reportsRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/system-records", systemRecordsRouter);
   app.use("/api/systems", systemRecordsRouter);

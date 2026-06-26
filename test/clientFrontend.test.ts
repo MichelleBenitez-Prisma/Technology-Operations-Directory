@@ -7,12 +7,15 @@ import {
     archiveDirectoryRecord,
     archiveSystem,
     archiveVendor,
+    buildSystemRecordsExportUrl,
     createDirectoryRecord,
     createVendor,
     createSystem,
     deleteSystem,
     fetchDashboardTotals,
     fetchDirectoryRecords,
+    fetchReport,
+    fetchReportSummaries,
     fetchSystems,
     fetchSystemCategoryDetails,
     fetchSystemDependencies,
@@ -22,11 +25,13 @@ import {
 
 import {
     buildSystemsQuery,
+    buildSystemsExportUrl,
     buildVendorsQuery,
     createEmptyForm,
     createEmptyVendorForm,
     mapApiIssues,
     mapRecordToForm,
+    parseReportKey,
     mapVendorToForm,
     parseRouteFromHash,
 } from "../client/src/DashboardApp.tsx";
@@ -66,6 +71,7 @@ test("system list route and query and helpers preserve filters and sorting", () 
         "#/systems?search=payroll&status=active&technicalOwner=App&includeArchived=true"
     );
     const route = parseRouteFromHash("#/directory/integrations?search=api")
+    const reportRoute = parseRouteFromHash("#/reports?report=missing-documentation"); 
     
     assert.equal(route.name, "systems");
     assert.equal(directoryRoute.name, "directoryList");
@@ -95,6 +101,10 @@ test("system list route and query and helpers preserve filters and sorting", () 
     assert.equal(query.get("vendor"), "Internal");
     assert.equal(query.get("incompleteOnly"), "true");
     assert.equal(query.get("includeArchived"), "true");
+    assert.equal(
+      buildSystemRecordsExportUrl(query),
+      "/api/system-records/export.csv?limit=100&sortBy=systemName&sortDirection=asc&search=payroll&categoryCode=software_application&status=active&technicalOwner=Apps&vender=Internal&incompleteOnly=true&includeArchived=true"
+    );
 });
 
 test("detail and form helpers map records and validation issues", async () => {
@@ -182,6 +192,8 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
 
   await fetchDashboardTotals();
   await fetchSystems("search=payroll");
+  await fetchReportSummaries();
+  await fetchReport("data-quality");
   await fetchSystemDependencies(42);
   await fetchSystemCategoryDetails(42);
   await fetchSystemTags(42);
@@ -195,6 +207,10 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
   await archiveDirectoryRecords("system-dependencies", 11);
   await addSystemTag(42, 1);
+  assert.equal(
+    buildSystemRecordsExportUrl("search=payroll"),
+    "/api/system-records/export.csv?search=payroll"
+  );
 
 
   assert.deepEqual(
@@ -202,6 +218,8 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
     [
       "GET /api/system-records/dashboard-totals",
       "GET /api/system-records?search=payroll",
+      "GET /api/reports",
+      "GET /api/reports/data-quality",
       "GET /api/system-records/42/dependencies",
       "GET /api/system-records/42/category-details",
       "GET /api/system-records/42/tags",
@@ -249,6 +267,8 @@ function createSystemRecord(): SystemRecord {
     archived_at: null,
     is_incomplete: 0,
     missing_fields: "",
+    quality_warning: [],
+    quality_warning_count: 0,
     created_at: "2026-06-18T00:00:00.000Z",
     updated_at: "2026-06-18T00:00:00.000Z"
   };
