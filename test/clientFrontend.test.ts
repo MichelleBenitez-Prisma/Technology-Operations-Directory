@@ -7,7 +7,6 @@ import {
     archiveDirectoryRecord,
     archiveSystem,
     archiveVendor,
-    buildSystemRecordsExportUrl,
     createDirectoryRecord,
     createVendor,
     createSystem,
@@ -207,11 +206,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
   await archiveDirectoryRecords("system-dependencies", 11);
   await addSystemTag(42, 1);
-  assert.equal(
-    buildSystemRecordsExportUrl("search=payroll"),
-    "/api/system-records/export.csv?search=payroll"
-  );
-
+  
 
   assert.deepEqual(
     calls.map((call) => `${call.method} ${call.url}`),

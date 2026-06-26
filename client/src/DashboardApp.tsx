@@ -28,7 +28,6 @@ import {
   archiveDirectoryRecord,
   archiveSystem,
   archiveVendor,
-  buildSystemRecordsExportUrl,
   createDirectoryRecord,
   createSystem,
   createVendor,
@@ -112,16 +111,10 @@ const reportKeys: SystemReportKey[] = [
   "by-category",
   "recently-reviewed"
 ];
-const reportTitles: Record<SystemReportKey, string> ={
-  "active-systems": "Active Systems",
-  "being-replaced": "System being Replaced",
-  "retired-systems": "Retired Systems",
-  "missing-documentation": "Systems Missing Documentation",
-  "upcoming-renewals": "Upcoming Renewals",
-  "by-vendor": "System Grouped By Vendor",
-  "recently-reviewed": "Recently Reviewed Systems",
-  "data-quality": "Data Quality Warnings"
-};
+const reportOptions = reportKeys.map((key) => ({
+  key,
+  label: reportLabel(key)
+}));
 
 type DirectoryField = {
   name: string;
@@ -581,9 +574,9 @@ function ReportsPage({ initialQuery }: { initialQuery: URLSearchParams }) {
             value={selectedReport}
             onChange={(event) => setSelectedReport(parseReportKey(event.target.value))}
           >
-            {reportKeys.map((key) => (
-              <option key={key} value={key}>
-                {reportTitles[key]}
+            {reportOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -725,7 +718,7 @@ function SystemsList({
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Phase 3</p>
+          <p className="eyebrow">Phase 6</p>
           <h2>Systems List</h2>
         </div>
         <a className="primary-link" href="#/systems/new">
@@ -2819,12 +2812,22 @@ export function buildSystemsQuery(filters: {
   return query;
 }
 
-export function buildSystemsExportUrl(query: URLSearchParams){
-  return buildSystemRecordsExportUrl(query.toString());
+export function buildSystemsExportUrl(query: URLSearchParams) {
+  const queryString = query.toString();
+
+  return `/api/system-records/export.csv${queryString ? `?${queryString}` : ""}`;
 }
+
 
 export function parseReportKey(value: string | null | undefined): SystemReportKey {
   return reportKeys.find((key) => key === value) ?? "data-quality";
+}
+
+function reportLabel(key: SystemReportKey) {
+  return key
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function formatReportCell(
