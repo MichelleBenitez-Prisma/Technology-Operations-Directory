@@ -4,6 +4,8 @@ import type {
   DashboardTotals,
   DirectoryRecord,
   DirectoryResource,
+  SystemReport,
+  SystemReportSummary,
   SystemRecord,
   SystemDependencySummary,
   SystemRecordFormInput,
@@ -16,7 +18,7 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "";
 
 export async function fetchDashboardTotals() {
   return getJson<DashboardTotals>("/api/system-records/dashboard-totals");
@@ -64,6 +66,14 @@ export async function fetchAssetTypes() {
   return getJson<AssetType[]>("/api/asset-types");
 }
 
+export async function fetchReportSummaries() {
+  return getJson<SystemReportSummary[]>("/api/reports");
+}
+
+export async function fetchReport(reportKey: string) {
+  return getJson<SystemReport>(`/api/reports/${reportKey}`);
+}
+
 export async function createSystem(input: SystemRecordFormInput) {
   return mutateJson<SystemRecordMutationResult>("/api/system-records", "POST", input);
 }
@@ -89,11 +99,11 @@ export async function fetchVendor(id: number) {
 }
 
 export async function createVendor(input: VendorFormInput) {
-  return mutateJson<Vendor>(`/api/vendors`, "POST", input);
+  return mutateJson<{ data: Vendor }>("/api/vendors", "POST", input);
 }
 
 export async function updateVendor(id: number, input: VendorFormInput) {
-  return mutateJson<Vendor>(`/api/vendors/${id}`, "PUT", input);
+  return mutateJson<{ data: Vendor }>(`/api/vendors/${id}`, "PUT", input);
 }
 
 export async function archiveVendor(id: number) {
@@ -162,6 +172,7 @@ async function mutateEmpty(path: string, method: "DELETE"): Promise<void> {
     throw await ApiError.fromResponse(response);
   }
 }
+
 export class ApiError extends Error {
   issues: Array<{ path?: Array<string | number>; message: string }>;
 

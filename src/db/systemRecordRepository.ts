@@ -5,7 +5,7 @@ import type {
   CreateSystemRecordInput,
   SortDirection,
   SystemRecord,
-  SystemRecordQualityWarning, 
+  SystemRecordQualityWarning,
   SystemRecordMutationResult,
   SystemRecordSortField,
   SystemRecordWarning,
@@ -34,6 +34,7 @@ export const SYSTEM_REPORT_KEYS = [
   "being-replaced",
   "retired-systems",
   "missing-documentation",
+  "missing-owners",
   "upcoming-renewals",
   "by-vendor",
   "by-category",
@@ -50,7 +51,7 @@ export type SystemReportSummary = {
   count: number;
 };
 
-export type systemReport = SystemReportSummary & {
+export type SystemReport = SystemReportSummary & {
   columns: Array<{ key: string; label: string }>;
   rows: Array<Record<string, unknown>>;
 };
@@ -89,12 +90,7 @@ const SYSTEM_DETAIL_FIELDS = {
   notes: "notes"
 } as const;
 
-const SYSTEM_RECORD_FROM = "system_record_view.*";
-
-const SYSTEM_REPORT_DEFINITIONS: Record<
-  SystemReportKey,
-  { title: string; description: string }
-> = {
+const SYSTEM_REPORT_DEFINITIONS: Record<SystemReportKey, { title: string; description: string }> = {
   "active-systems": {
     title: "Active Systems",
     description: "Systems currently in active use."
@@ -137,7 +133,6 @@ const SYSTEM_REPORT_DEFINITIONS: Record<
   }
 };
 
-
 export function listSystemRecords(filters: ListSystemRecordsFilters) {
   const { whereClause, params } = buildSystemRecordWhereClause(filters);
   const sortBy = filters.sortBy ?? "updatedAt";
@@ -149,14 +144,14 @@ export function listSystemRecords(filters: ListSystemRecordsFilters) {
 
   return enrichSystemRecords(
     queryAll<SystemRecordRow>(
-    `
-    SELECT ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+      `
+    SELECT *
+    FROM system_record_view
     ${whereClause}
     ORDER BY ${sortColumn} ${sortDirection}, system_name ASC
     LIMIT $limit OFFSET $offset
     `,
-    params
+      params
     )
   );
 }
@@ -168,17 +163,17 @@ export function listIncompleteSystemRecords(filters: ListSystemRecordsFilters) {
   });
 }
 
-export function listSystemRecordsForExport(filters: ListSystemRecordsFilters){
-  const { whereClause, params} = buildSystemRecordWhereClause(filters);
+export function listSystemRecordsForExport(filters: ListSystemRecordsFilters) {
+  const { whereClause, params } = buildSystemRecordWhereClause(filters);
   const sortBy = filters.sortBy ?? "updatedAt";
   const sortDirection = filters.sortDirection === "asc" ? "ASC" : "DESC";
-  const sortColumn =  SORT_COLUMNS[sortBy];
+  const sortColumn = SORT_COLUMNS[sortBy];
 
   return enrichSystemRecords(
     queryAll<SystemRecordRow>(
       `
-      SELECET ${SYSTEM_RECORD_SELECT}
-      FROM${SYSTEM_RECORD_FROM}
+      SELECT *
+      FROM system_record_view
       ${whereClause}
       ORDER BY ${sortColumn} ${sortDirection}, system_name ASC
       `,
@@ -192,14 +187,15 @@ export function findSystemRecordById(id: number, options: { includeArchived?: bo
 
   const record = queryOne<SystemRecordRow>(
     `
-    SELECT ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+    SELECT *
+    FROM system_record_view
     WHERE id = $id
     ${archivedClause}
     `,
     { id }
   );
-  return record ? enrichSystemRecord(record) : underfined;
+
+  return record ? enrichSystemRecord(record) : undefined;
 }
 
 export function listSystemRecordDependencies(id: number) {
@@ -323,11 +319,26 @@ const CATEGORY_DETAIL_CONFIGS: Record<string, { tableName: string; columns: read
   },
   database: {
     tableName: "database_details",
-    columns: ["engine", "engine_version", "database_name", "contains_pii", "backup_schedule", "retention_days", "notes"]
+    columns: [
+      "engine",
+      "engine_version",
+      "database_name",
+      "contains_pii",
+      "backup_schedule",
+      "retention_days",
+      "notes"
+    ]
   },
   vendor_hosted_service: {
     tableName: "vendor_service_details",
-    columns: ["service_url", "service_tier", "sla_description", "support_level", "data_residency", "notes"]
+    columns: [
+      "service_url",
+      "service_tier",
+      "sla_description",
+      "support_level",
+      "data_residency",
+      "notes"
+    ]
   },
   payment_service: {
     tableName: "payment_service_details",
@@ -407,7 +418,9 @@ export function updateSystemRecordCategoryDetails(id: number, input: Record<stri
   database.exec("BEGIN");
 
   try {
-    database.prepare(`INSERT OR IGNORE INTO ${config.tableName} (asset_id) VALUES ($id)`).run({ id });
+    database
+      .prepare(`INSERT OR IGNORE INTO ${config.tableName} (asset_id) VALUES ($id)`)
+      .run({ id });
     database
       .prepare(
         `
@@ -700,11 +713,11 @@ export function getSystemRecordDashboardTotals() {
     ORDER BY category_name
     `
   );
-  const upcomingRenewals = enrichSystemRecord(
+  const upcomingRenewals = enrichSystemRecords(
     queryAll<SystemRecordRow>(
-    `
-    SELECT ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+      `
+    SELECT *
+    FROM system_record_view
     WHERE archived_at IS NULL
       AND renewal_date IS NOT NULL
       AND DATE(renewal_date) BETWEEN DATE('now') AND DATE('now', '+90 days')
@@ -715,9 +728,9 @@ export function getSystemRecordDashboardTotals() {
   );
   const recentlyUpdated = enrichSystemRecords(
     queryAll<SystemRecordRow>(
-    `
-    SELECT ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+      `
+    SELECT *
+    FROM system_record_view
     WHERE archived_at IS NULL
     ORDER BY updated_at DESC, system_name ASC
     LIMIT 8
@@ -726,9 +739,9 @@ export function getSystemRecordDashboardTotals() {
   );
   const missingDocumentationRecords = enrichSystemRecords(
     queryAll<SystemRecordRow>(
-    `
-    SELECT ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+      `
+    SELECT *
+    FROM system_record_view
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(documentation_url, '')), '') IS NULL
     ORDER BY system_name ASC
@@ -738,16 +751,15 @@ export function getSystemRecordDashboardTotals() {
   );
   const withoutTechnicalOwnerRecords = enrichSystemRecords(
     queryAll<SystemRecordRow>(
-    `
-    SELECT  ${SYSTEM_RECORD_SELECT}
-    FROM ${SYSTEM_RECORD_FROM}
+      `
+    SELECT *
+    FROM system_record_view
     WHERE archived_at IS NULL
       AND NULLIF(TRIM(IFNULL(technical_owner, '')), '') IS NULL
     ORDER BY system_name ASC
     LIMIT 8
     `
     )
-  
   );
 
   return {
@@ -1044,6 +1056,7 @@ function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown
       `
     );
   }
+
   const records = listSystemRecordsForExport({
     includeArchived: false,
     sortBy: key === "upcoming-renewals" ? "renewalDate" : "systemName",
@@ -1073,6 +1086,7 @@ function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown
       .filter((record) => hasQualityWarning(record, "missing_technical_owner"))
       .map(toSystemReportRow);
   }
+
   if (key === "upcoming-renewals") {
     return records
       .filter((record) => hasQualityWarning(record, "renewal_date_approaching"))
@@ -1094,7 +1108,10 @@ function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown
   return records
     .filter((record) => record.quality_warning_count > 0)
     .sort((left, right) => {
-      return right.quality_warning_count - left.quality_warning_count || left.system_name.localeCompare(right.system_name);
+      return (
+        right.quality_warning_count - left.quality_warning_count ||
+        left.system_name.localeCompare(right.system_name)
+      );
     })
     .map(toSystemReportRow);
 }
@@ -1106,7 +1123,8 @@ function getSystemReportColumns(key: SystemReportKey) {
       { key: "system_count", label: "Systems" }
     ];
   }
-if (key === "by-category") {
+
+  if (key === "by-category") {
     return [
       { key: "category_name", label: "Category" },
       { key: "system_count", label: "Systems" }
@@ -1139,6 +1157,7 @@ function toSystemReportRow(record: SystemRecord): Record<string, unknown> {
     quality_warning_messages: record.quality_warnings.map((warning) => warning.message).join("; ")
   };
 }
+
 function hasQualityWarning(record: SystemRecord, code: SystemRecordQualityWarning["code"]) {
   return record.quality_warnings.some((warning) => warning.code === code);
 }
@@ -1147,7 +1166,7 @@ function enrichSystemRecords(records: SystemRecordRow[]): SystemRecord[] {
   return records.map(enrichSystemRecord);
 }
 
-function enrichSystemRecord(row: SystemRecordRow): SystemRecord {
+function enrichSystemRecord(record: SystemRecordRow): SystemRecord {
   const qualityWarnings = buildSystemRecordQualityWarnings(record, 180);
 
   return {
@@ -1212,8 +1231,10 @@ function buildSystemRecordQualityWarnings(
       code: "missing_last_review_date",
       message: "Last review date is missing."
     });
-} else {
-    const reviewAgeDays = Math.floor((Date.now() - lastReviewDate.getTime()) / (24 * 60 * 60 * 1000));
+  } else {
+    const reviewAgeDays = Math.floor(
+      (Date.now() - lastReviewDate.getTime()) / (24 * 60 * 60 * 1000)
+    );
 
     if (reviewAgeDays > reviewIntervalDays) {
       warnings.push({
@@ -1260,7 +1281,6 @@ function startOfToday() {
 
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
-
 
 function slugify(value: string) {
   const slug = value

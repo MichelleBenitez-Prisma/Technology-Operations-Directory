@@ -71,15 +71,15 @@ export type SystemRecordWarning = {
 
 export type SystemRecordQualityWarning = {
   code:
-    |"missing_description"
-    |"missing_technical_owner"
-    |"missing_vendor"
-    |"missing_support_contact"
-    |"missing_documentation_link"
-    |"missing_hosting_information"
-    |"missing_last_review_date"
-    |"renewal_date_approaching"
-    |"last_review_overdue";
+    | "missing_description"
+    | "missing_technical_owner"
+    | "missing_vendor"
+    | "missing_support_contact"
+    | "missing_documentation_link"
+    | "missing_hosting_information"
+    | "missing_last_review_date"
+    | "renewal_date_approaching"
+    | "last_review_overdue";
   message: string;
 };
 
@@ -170,6 +170,7 @@ export type CategoryDetails = {
   categoryName: string;
   fields: DirectoryRecord | null;
 };
+
 export type DashboardTotals = {
   total: number;
   archived: number;
@@ -191,6 +192,7 @@ export type DashboardTotals = {
   missingDocumentationRecords: SystemRecord[];
   withoutTechnicalOwnerRecords: SystemRecord[];
 };
+
 export type SystemReportKey =
   | "active-systems"
   | "being-replaced"
