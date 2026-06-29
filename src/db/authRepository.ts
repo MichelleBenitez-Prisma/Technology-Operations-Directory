@@ -19,8 +19,9 @@ type StoredUser = AuthUser & {
 
 const sessionCookieName = "tod_session";
 const sessionDays = 7;
+const allowedEmailDomain = "poweredbyprisma.com";
 
-export { sessionCookieName };
+export { allowedEmailDomain, sessionCookieName };
 
 export function ensureInitialAdmin() {
   const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
@@ -55,13 +56,19 @@ export function ensureInitialAdmin() {
 }
 
 export function authenticateUser(email: string, password: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!isAllowedEmail(normalizedEmail)) {
+    return undefined;
+  }
+
   const user = queryOne<StoredUser>(
     `
     SELECT id, email, display_name, password_hash, password_salt, role, active
     FROM users
     WHERE email = $email
     `,
-    { email: email.trim().toLowerCase() }
+    { email: normalizedEmail }
   );
 
   if (!user || user.active !== 1 || !verifyPassword(password, user.password_salt, user.password_hash)) {
@@ -69,6 +76,10 @@ export function authenticateUser(email: string, password: string) {
   }
 
   return toAuthUser(user);
+}
+
+export function isAllowedEmail(email: string) {
+  return email.trim().toLowerCase().endsWith(`@${allowedEmailDomain}`);
 }
 
 export function createSession(userId: number) {

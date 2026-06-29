@@ -86,8 +86,8 @@ test("system records API supports main phase two flows", async () => {
   process.env.PORT = "3001";
 
   createTestDatabase(databasePath);
-  createTestUser(databasePath, "viewer@example.com", "viewer-password", "viewer");
-  createTestUser(databasePath, "admin@example.com", "correct-password", "admin");
+  createTestUser(databasePath, "viewer@poweredbyprisma.com", "viewer-password", "viewer");
+  createTestUser(databasePath, "admin@poweredbyprisma.com", "correct-password", "admin");
 
   const { createApp } = await import("../src/app.js");
   const { closeDatabase } = await import("../src/db/database.js");
@@ -618,7 +618,7 @@ test("system records API supports main phase two flows", async () => {
 
     const viewerLogin = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",
-      body: { email: "viewer@example.com", password: "viewer-password" }
+      body: { email: "viewer@poweredbyprisma.com", password: "viewer-password" }
     });
     assert.equal(viewerLogin.status, 200);
     const viewerCookie = viewerLogin.headers.get("set-cookie")?.split(";")[0];
@@ -632,13 +632,13 @@ test("system records API supports main phase two flows", async () => {
 
     const badLogin = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",
-      body: { email: "admin@example.com", password: "wrong-password" }
+      body: { email: "admin@poweredbyprisma.com", password: "wrong-password" }
     });
     assert.equal(badLogin.status, 401);
 
     const loginResponse = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",
-      body: { email: "admin@example.com", password: "correct-password" }
+      body: { email: "admin@poweredbyprisma.com", password: "correct-password" }
     });
     assert.equal(loginResponse.status, 200);
 

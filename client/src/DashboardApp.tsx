@@ -336,6 +336,7 @@ export function DashboardApp() {
 function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -357,39 +358,55 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
   return (
     <main className="app-shell">
       <section className="login-panel">
-        <p className="eyebrow">Technology Department</p>
-        <h1>Technology Operations Directory</h1>
-        <form className="form-grid" onSubmit={(event) => void submitLogin(event)}>
+        <h1>Log in to support portal</h1>
+        <p className="login-subtitle">
+          Are you a new user? <a href="#">Sign up with us</a>
+        </p>
+        <form className="login-form" onSubmit={(event) => void submitLogin(event)}>
           {error ? (
             <section className="notice error" role="alert">
               {error}
             </section>
           ) : null}
           <label>
-            Email
+            Your e-mail address <span aria-hidden="true">*</span>
             <input
               autoComplete="username"
               name="email"
               onChange={(event) => setEmail(event.target.value)}
+              placeholder="Your e-mail address"
               required
               type="email"
               value={email}
             />
           </label>
           <label>
-            Password
+            Password <span aria-hidden="true">*</span>
             <input
               autoComplete="current-password"
               name="password"
               onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
               required
               type="password"
               value={password}
             />
           </label>
+          <label className="remember-row">
+            <input
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
+              type="checkbox"
+            />
+            Remember me on this computer
+          </label>
           <button className="primary-link" disabled={submitting} type="submit">
-            {submitting ? "Signing in..." : "Sign in"}
+            {submitting ? "Signing in..." : "Login"}
           </button>
+          <p className="login-divider">...or login using</p>
+          <a className="forgot-link" href="#">
+            Forgot your password?
+          </a>
         </form>
       </section>
     </main>

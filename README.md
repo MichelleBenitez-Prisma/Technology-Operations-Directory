@@ -160,7 +160,7 @@ Authentication is enabled by default outside tests. Set these environment variab
 
 ```bash
 AUTH_REQUIRED=true
-INITIAL_ADMIN_EMAIL=admin@example.com
+INITIAL_ADMIN_EMAIL=admin@poweredbyprisma.com
 INITIAL_ADMIN_PASSWORD=<strong temporary password>
 ```
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
   authenticateUser,
+  allowedEmailDomain,
   createSession,
   deleteSession,
   findUserBySessionToken,
@@ -41,6 +42,7 @@ authRouter.get("/me", (request, response) => {
 authRouter.post("/login", (request, response) => {
   const { email, password } = request.body as { email?: string; password?: string };
   const user = email && password ? authenticateUser(email, password) : undefined;
+  const domainIsAllowed = email?.trim().toLowerCase().endsWith(`@${allowedEmailDomain}`) ?? false;
 
   logAuditEvent({
     userId: user?.id,
@@ -55,7 +57,9 @@ authRouter.post("/login", (request, response) => {
   if (!user) {
     response.status(401).json({
       error: "Unauthorized",
-      message: "Email or password is incorrect."
+      message: domainIsAllowed
+        ? "Email or password is incorrect."
+        : `Use your @${allowedEmailDomain} email address to sign in.`
     });
     return;
   }

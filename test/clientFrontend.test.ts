@@ -212,7 +212,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
 
   await fetchDashboardTotals();
   await fetchCurrentUser();
-  await login("admin@example.com", "correct-password");
+  await login("admin@poweredbyprisma.com", "correct-password");
   await logout();
   await fetchSystems("search=payroll");
   await fetchReportSummaries();
