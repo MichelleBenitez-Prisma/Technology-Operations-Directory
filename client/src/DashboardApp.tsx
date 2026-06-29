@@ -46,6 +46,7 @@ import {
   fetchSystems,
   fetchVendor,
   fetchVendors,
+  importSystemsCsv,
   login,
   logout,
   updateDirectoryRecord,
@@ -113,6 +114,10 @@ const reportKeys: SystemReportKey[] = [
   "retired-systems",
   "by-vendor",
   "by-category",
+  "by-owner",
+  "by-criticality",
+  "by-lifecycle",
+  "review-due",
   "recently-reviewed"
 ];
 const reportOptions = reportKeys.map((key) => ({
@@ -196,6 +201,31 @@ const directoryConfigs: Record<
     singular: "System Dependency",
     summaryFields: ["source_asset_id", "destination_asset_id", "importance_level"],
     fields: dependencyFields()
+  },
+  "document-references": {
+    title: "Document References",
+    singular: "Document Reference",
+    summaryFields: ["title", "asset_id", "document_type"],
+    fields: [
+      { name: "asset_id", label: "Related system", systemSelect: true },
+      { name: "title", label: "Title", required: true },
+      { name: "url", label: "Document URL", required: true },
+      { name: "document_type", label: "Document type" },
+      { name: "notes", label: "Notes", type: "textarea" }
+    ]
+  },
+  "custom-fields": {
+    title: "Custom Fields",
+    singular: "Custom Field",
+    summaryFields: ["label", "field_key", "field_type"],
+    fields: [
+      { name: "asset_type_id", label: "Asset type", type: "number" },
+      { name: "field_key", label: "Field key", required: true },
+      { name: "label", label: "Label", required: true },
+      { name: "field_type", label: "Field type", type: "select", options: optionValues(["text", "textarea", "number", "date", "url"]), required: true },
+      { name: "required", label: "Required", type: "select", options: [{ value: "0", label: "No" }, { value: "1", label: "Yes" }] },
+      { name: "help_text", label: "Help text", type: "textarea" }
+    ]
   }
 };
 
@@ -753,6 +783,7 @@ function SystemsList({
 }) {
   const [records, setRecords] = useState<SystemRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [importMessage, setImportMessage] = useState("");
   const [filters, setFilters] = useState(() => ({
     search: initialQuery.get("search") ?? "",
     categoryCode: initialQuery.get("categoryCode") ?? "",
@@ -804,6 +835,24 @@ function SystemsList({
       sortBy: "systemName",
       sortDirection: "asc"
     });
+  }
+
+  async function importCsvFile(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const result = await importSystemsCsv(await file.text());
+      setImportMessage(
+        `Imported ${result.data.created.length} rows${
+          result.data.errors.length ? ` with ${result.data.errors.length} row errors` : ""
+        }.`
+      );
+      setFilters((current) => ({ ...current }));
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "Unable to import CSV.");
+    }
   }
 
   return (
@@ -923,7 +972,18 @@ function SystemsList({
           <Download size={16} aria-hidden="true" />
           Export CSV
         </a>
+        <label className="icon-button">
+          Import CSV
+          <input
+            accept=".csv,text/csv"
+            className="visually-hidden"
+            type="file"
+            onChange={(event) => void importCsvFile(event.target.files?.[0])}
+          />
+        </label>
       </section>
+
+      {importMessage ? <section className="notice success">{importMessage}</section> : null}
 
       {loadState === "error" ? (
         <section className="notice error" role="alert">

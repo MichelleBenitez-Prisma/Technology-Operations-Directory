@@ -9,8 +9,8 @@ import {
   getSystemRecordCategoryDetails,
   getSystemRecordDashboardTotals,
   listIncompleteSystemRecords,
-  listSystemRecordDependencies,
   listSystemRecordsForExport,
+  listSystemRecordDependencies,
   listSystemRecordTags,
   removeSystemRecordTag,
   listSystemRecords,
@@ -56,6 +56,23 @@ systemRecordsRouter.get("/export.csv", (request, response) => {
     .setHeader("Content-Type", "text/csv; charset=utf-8")
     .setHeader("Content-Disposition", 'attachment; filename="system-records.csv"')
     .send(systemRecordsToCsv(records));
+});
+
+systemRecordsRouter.post("/import.csv", (request, response) => {
+  if (typeof request.body !== "string") {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "CSV import requires a text/csv request body."
+    });
+    return;
+  }
+
+  const result = importSystemRecordsFromCsv(request.body);
+  const status = result.errors.length > 0 && result.created.length === 0 ? 400 : 201;
+
+  response.status(status).json({
+    data: result
+  });
 });
 
 systemRecordsRouter.get("/:id/dependencies", (request, response) => {
@@ -134,7 +151,9 @@ systemRecordsRouter.get("/:id/tags", (request, response) => {
 
 systemRecordsRouter.post("/:id/tags", (request, response) => {
   const id = parseSystemRecordId(request.params.id);
-  const tagId = parseSystemRecordId((request.body as { tagId?: string | number }).tagId?.toString());
+  const tagId = parseSystemRecordId(
+    (request.body as { tagId?: string | number }).tagId?.toString()
+  );
 
   if (!id || !tagId) {
     response.status(400).json({
@@ -358,7 +377,9 @@ function systemRecordsToCsv(records: ReturnType<typeof listSystemRecordsForExpor
     ...records.map((record) => {
       const row = {
         ...record,
-        quality_warning_messages: record.quality_warnings.map((warning) => warning.message).join("; ")
+        quality_warning_messages: record.quality_warnings
+          .map((warning) => warning.message)
+          .join("; ")
       };
 
       return columns.map(([key]) => escapeCsvValue(row[key] ?? "")).join(",");
@@ -376,4 +397,92 @@ function escapeCsvValue(value: unknown) {
   }
 
   return text;
+}
+
+function importSystemRecordsFromCsv(csvText: string) {
+  const rows = parseCsv(csvText);
+  const created: ReturnType<typeof createSystemRecord>[] = [];
+  const errors: Array<{ row: number; message: string }> = [];
+
+  rows.forEach((row, index) => {
+    try {
+      const input = createSystemRecordSchema.parse({
+        systemName: row.systemName ?? row.system_name ?? row.System,
+        description: row.description ?? row.Description,
+        categoryCode: row.categoryCode ?? row.category_code ?? row.CategoryCode,
+        status: row.status ?? row.Status,
+        businessDepartment: row.businessDepartment ?? row.business_department,
+        departmentOwner: row.departmentOwner ?? row.department_owner,
+        technicalOwner: row.technicalOwner ?? row.technical_owner,
+        vendor: row.vendor ?? row.Vendor,
+        supportContact: row.supportContact ?? row.support_contact,
+        hostingLocation: row.hostingLocation ?? row.hosting_location,
+        serverName: row.serverName ?? row.server_name,
+        databaseName: row.databaseName ?? row.database_name,
+        productionUrl: row.productionUrl ?? row.production_url,
+        testUrl: row.testUrl ?? row.test_url,
+        documentationLink: row.documentationLink ?? row.documentation_url,
+        passwordVaultReference: row.passwordVaultReference ?? row.password_vault_reference,
+        renewalDate: row.renewalDate ?? row.renewal_date,
+        lastReviewDate: row.lastReviewDate ?? row.last_review_date,
+        replacementSystem: row.replacementSystem ?? row.replacement_system,
+        retirementNotes: row.retirementNotes ?? row.retirement_notes,
+        notes: row.notes ?? row.Notes
+      });
+
+      created.push(createSystemRecord(input));
+    } catch (error) {
+      errors.push({
+        row: index + 2,
+        message: error instanceof Error ? error.message : "Unable to import row."
+      });
+    }
+  });
+
+  return { created, errors };
+}
+
+function parseCsv(csvText: string) {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const headers = splitCsvLine(lines[0] ?? "");
+
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line);
+
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+  });
+}
+
+function splitCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current.trim());
+  return values;
 }

@@ -38,7 +38,11 @@ export const SYSTEM_REPORT_KEYS = [
   "upcoming-renewals",
   "by-vendor",
   "by-category",
+  "by-owner",
+  "by-criticality",
+  "by-lifecycle",
   "recently-reviewed",
+  "review-due",
   "data-quality"
 ] as const;
 
@@ -123,9 +127,25 @@ const SYSTEM_REPORT_DEFINITIONS: Record<SystemReportKey, { title: string; descri
     title: "Systems Grouped By Category",
     description: "Active systems counted by category."
   },
+  "by-owner": {
+    title: "Systems Grouped By Owner",
+    description: "Active systems counted by technical owner."
+  },
+  "by-criticality": {
+    title: "Systems Grouped By Criticality",
+    description: "Active systems counted by criticality."
+  },
+  "by-lifecycle": {
+    title: "Systems Grouped By Lifecycle",
+    description: "Systems counted by lifecycle status."
+  },
   "recently-reviewed": {
     title: "Recently Reviewed Systems",
     description: "Systems reviewed in the last 90 days."
+  },
+  "review-due": {
+    title: "Review Due Notifications",
+    description: "Systems with missing, overdue, or soon-due reviews."
   },
   "data-quality": {
     title: "Data Quality Warnings",
@@ -1057,6 +1077,48 @@ function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown
     );
   }
 
+  if (key === "by-owner") {
+    return queryAll<Record<string, unknown>>(
+      `
+      SELECT
+        COALESCE(NULLIF(TRIM(technical_owner), ''), 'Not assigned') AS technical_owner,
+        COUNT(*) AS system_count
+      FROM system_record_view
+      WHERE archived_at IS NULL
+      GROUP BY COALESCE(NULLIF(TRIM(technical_owner), ''), 'Not assigned')
+      ORDER BY system_count DESC, technical_owner ASC
+      `
+    );
+  }
+
+  if (key === "by-criticality") {
+    return queryAll<Record<string, unknown>>(
+      `
+      SELECT
+        criticality,
+        COUNT(*) AS system_count
+      FROM technology_assets
+      WHERE archived_at IS NULL
+      GROUP BY criticality
+      ORDER BY system_count DESC, criticality ASC
+      `
+    );
+  }
+
+  if (key === "by-lifecycle") {
+    return queryAll<Record<string, unknown>>(
+      `
+      SELECT
+        status AS lifecycle_status,
+        COUNT(*) AS system_count
+      FROM system_record_view
+      WHERE archived_at IS NULL
+      GROUP BY status
+      ORDER BY system_count DESC, lifecycle_status ASC
+      `
+    );
+  }
+
   const records = listSystemRecordsForExport({
     includeArchived: false,
     sortBy: key === "upcoming-renewals" ? "renewalDate" : "systemName",
@@ -1105,6 +1167,17 @@ function getSystemReportRows(key: SystemReportKey): Array<Record<string, unknown
       .map(toSystemReportRow);
   }
 
+  if (key === "review-due") {
+    return records
+      .filter((record) => {
+        return (
+          hasQualityWarning(record, "missing_last_review_date") ||
+          hasQualityWarning(record, "last_review_overdue")
+        );
+      })
+      .map(toSystemReportRow);
+  }
+
   return records
     .filter((record) => record.quality_warning_count > 0)
     .sort((left, right) => {
@@ -1127,6 +1200,27 @@ function getSystemReportColumns(key: SystemReportKey) {
   if (key === "by-category") {
     return [
       { key: "category_name", label: "Category" },
+      { key: "system_count", label: "Systems" }
+    ];
+  }
+
+  if (key === "by-owner") {
+    return [
+      { key: "technical_owner", label: "Technical owner" },
+      { key: "system_count", label: "Systems" }
+    ];
+  }
+
+  if (key === "by-criticality") {
+    return [
+      { key: "criticality", label: "Criticality" },
+      { key: "system_count", label: "Systems" }
+    ];
+  }
+
+  if (key === "by-lifecycle") {
+    return [
+      { key: "lifecycle_status", label: "Lifecycle" },
       { key: "system_count", label: "Systems" }
     ];
   }

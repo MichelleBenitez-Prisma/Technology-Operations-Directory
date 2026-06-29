@@ -24,6 +24,7 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors());
+  app.use(express.text({ type: ["text/csv", "application/csv"], limit: "1mb" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(requestContext);
 
@@ -43,6 +44,8 @@ export function createApp() {
   app.use("/api/asset-environments", createDirectoryRouter("assetEnvironments"));
   app.use("/api/integrations", createDirectoryRouter("integrations"));
   app.use("/api/system-dependencies", createDirectoryRouter("systemDependencies"));
+  app.use("/api/document-references", createDirectoryRouter("documentReferences"));
+  app.use("/api/custom-fields", createDirectoryRouter("customFields"));
   app.use("/api/scheduled-processes", createDirectoryRouter("scheduledProcesses"));
   app.use("/api/reviews", createDirectoryRouter("reviews"));
   app.use("/api/tags", createDirectoryRouter("tags"));

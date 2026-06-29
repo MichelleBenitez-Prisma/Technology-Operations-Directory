@@ -111,9 +111,16 @@
 
 ## Phase Eight: Future Enhancements
 
-- [ ] Add CSV import.
-- [ ] Add relationship map visualization.
-- [ ] Add review due-date notifications.
-- [ ] Add attachment links or document references.
-- [ ] Add richer reporting by owner, criticality, and lifecycle.
-- [ ] Add custom field administration for future asset categories.
+## Final Phase: Documentation and Cleanup
+
+- [x] Add user documentation for opening the app, systems, vendors, dependencies, reports, and exports.
+- [x] Add developer documentation for install, software requirements, database setup, frontend/backend startup, project organization, API usage, database field changes, reports, backup, restore, and troubleshooting.
+- [x] Consolidate repetitive phase documentation into a current project guide.
+- [x] Document code standards for names, file organization, comments, duplication, and error handling.
+
+- [x] Add CSV import.
+- [x] Add relationship map visualization.
+- [x] Add review due-date notifications.
+- [x] Add attachment links or document references.
+- [x] Add richer reporting by owner, criticality, and lifecycle.
+- [x] Add custom field administration for future asset categories.

@@ -25,6 +25,7 @@ import {
   fetchSystemDependencies,
   fetchSystemTags,
   fetchVendors,
+  importSystemsCsv,
   login,
   logout
 } from "../client/src/api.ts";
@@ -221,6 +222,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await fetchSystemCategoryDetails(42);
   await fetchSystemTags(42);
   await createSystem(createEmptyForm());
+  await importSystemsCsv("systemName,description,categoryCode,status\nImported,Imported,software_application,active");
   await archiveSystem(7);
   await deleteSystem(7);
   await fetchVendors("search=print&includeArchived=true");
@@ -244,6 +246,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "GET /api/system-records/42/category-details",
       "GET /api/system-records/42/tags",
       "POST /api/system-records",
+      "POST /api/system-records/import.csv",
       "POST /api/system-records/7/archive",
       "DELETE /api/system-records/7",
       "GET /api/vendors?search=print&includeArchived=true",

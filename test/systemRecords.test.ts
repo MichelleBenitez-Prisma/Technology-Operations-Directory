@@ -565,6 +565,11 @@ test("system records API supports main phase two flows", async () => {
         (report) => report.key === "data-quality"
       )
     );
+    for (const key of ["by-owner", "by-criticality", "by-lifecycle", "review-due"]) {
+      assert.ok(
+        getResponseData<Array<{ key: string }>>(reportSummaries).some((report) => report.key === key)
+      );
+    }
 
     const dataQualityReport = await requestJson(baseUrl, "/api/reports/data-quality");
     assert.equal(dataQualityReport.status, 200);
@@ -581,6 +586,10 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(missingDocumentationReport.status, 200);
     assert.ok(getResponseData<TestReport>(missingDocumentationReport).count >= 1);
 
+    const ownerReport = await requestJson(baseUrl, "/api/reports/by-owner");
+    assert.equal(ownerReport.status, 200);
+    assert.ok(getResponseData<TestReport>(ownerReport).rows.length >= 1);
+
     const csvExport = await requestText(
       baseUrl,
       "/api/system-records/export.csv?search=Payroll&sortBy=systemName&sortDirection=asc"
@@ -588,6 +597,39 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(csvExport.status, 200);
     assert.match(csvExport.body, /System,Description,Category/);
     assert.match(csvExport.body, /Payroll API/);
+
+    const csvImport = await requestCsv(
+      baseUrl,
+      "/api/system-records/import.csv",
+      [
+        "systemName,description,categoryCode,status,technicalOwner",
+        "Imported CSV System,Imported from CSV,software_application,active,Data Services"
+      ].join("\n")
+    );
+    assert.equal(csvImport.status, 201);
+    assert.equal((getResponseData<{ created: unknown[]; errors: unknown[] }>(csvImport).created).length, 1);
+
+    const documentReference = await requestJson(baseUrl, "/api/document-references", {
+      method: "POST",
+      body: {
+        asset_id: systemId,
+        title: "Support Runbook",
+        url: "https://docs.example.com/support-runbook",
+        document_type: "runbook"
+      }
+    });
+    assert.equal(documentReference.status, 201);
+
+    const customField = await requestJson(baseUrl, "/api/custom-fields", {
+      method: "POST",
+      body: {
+        field_key: "print_site_code",
+        label: "Print site code",
+        field_type: "text",
+        required: 0
+      }
+    });
+    assert.equal(customField.status, 201);
 
     const archived = await requestJson(baseUrl, `/api/system-records/${duplicateId}/archive`, {
       method: "POST"
@@ -805,6 +847,21 @@ async function requestText(baseUrl: string, pathname: string) {
   return {
     status: response.status,
     body: await response.text()
+  };
+}
+
+async function requestCsv(baseUrl: string, pathname: string, body: string): Promise<JsonResponse> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "POST",
+    headers: { "Content-Type": "text/csv" },
+    body
+  });
+  const text = await response.text();
+
+  return {
+    status: response.status,
+    body: text ? JSON.parse(text) : undefined,
+    headers: response.headers
   };
 }
 

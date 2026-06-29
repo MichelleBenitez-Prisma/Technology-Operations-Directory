@@ -175,6 +175,27 @@ const RESOURCE_CONFIGS = {
       "notes"
     ],
     supportsArchive: true
+  },
+  documentReferences: {
+    tableName: "document_references",
+    listOrderBy: "title ASC",
+    allowedColumns: ["asset_id", "title", "url", "document_type", "notes"],
+    searchableColumns: ["title", "url", "document_type", "notes"],
+    supportsArchive: true
+  },
+  customFields: {
+    tableName: "custom_fields",
+    listOrderBy: "label ASC",
+    allowedColumns: [
+      "asset_type_id",
+      "field_key",
+      "label",
+      "field_type",
+      "required",
+      "help_text"
+    ],
+    searchableColumns: ["field_key", "label", "field_type", "help_text"],
+    supportsArchive: true
   }
 } as const satisfies Record<string, DirectoryResourceConfig>;
 

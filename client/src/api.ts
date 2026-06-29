@@ -103,6 +103,23 @@ export async function deleteSystem(id: number) {
   await mutateEmpty(`/api/system-records/${id}`, "DELETE");
 }
 
+export async function importSystemsCsv(csvText: string) {
+  const response = await fetch(`${API_BASE_URL}/api/system-records/import.csv`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "text/csv" },
+    body: csvText
+  });
+
+  if (!response.ok) {
+    throw await ApiError.fromResponse(response);
+  }
+
+  return (await response.json()) as {
+    data: { created: SystemRecordMutationResult[]; errors: Array<{ row: number; message: string }> };
+  };
+}
+
 export async function fetchVendors(query = "limit=100") {
   return getJson<Vendor[]>(`/api/vendors?${query}`);
 }

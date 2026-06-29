@@ -50,9 +50,7 @@ system detail pages, add/edit forms, and archive handling.
 |   +-- api.md
 |   +-- database-diagram.md
 |   +-- development-task-list.md
-|   +-- phase-2-audit.md
-|   +-- phase-2-deliverables.md
-|   +-- phase-3-ui.md
+|   +-- project-guide.md
 |   +-- requirements-summary.md
 |   +-- wireframes.md
 +-- scripts/
@@ -101,6 +99,15 @@ git remote add origin https://github.com/<owner-or-org>/technology-operations-di
 git push -u origin main
 ```
 
+## Documentation
+
+Use these current documents first:
+
+- `docs/project-guide.md`: user guide, developer guide, operations notes, troubleshooting, and code documentation standards.
+- `docs/api.md`: API routes, request fields, validation rules, and response shapes.
+- `docs/development-task-list.md`: phase checklist and remaining work.
+- `docs/database-design.md`, `docs/database-diagram.md`, and `docs/category-definitions.md`: database and category references.
+
 ## Initial Database Design
 
 The database is centered on `technology_assets`, a shared record for anything the Technology department needs to track. Specialized tables add detail for applications, websites, servers, and databases without forcing every asset type into the same set of columns.
@@ -116,17 +123,6 @@ Core concepts:
 - `review_records`: periodic validation history
 - `tags` and `asset_tags`: flexible grouping and filtering
 - `asset_search`: SQLite full-text search index for directory search
-
-Planning deliverables:
-
-- `docs/requirements-summary.md`
-- `docs/category-definitions.md`
-- `docs/wireframes.md`
-- `docs/database-diagram.md`
-- `docs/development-task-list.md`
-- `docs/phase-2-audit.md`
-- `docs/phase-2-deliverables.md`
-- `docs/phase-3-ui.md`
 
 See `docs/database-design.md` for the table-by-table design notes.
 
@@ -336,13 +332,6 @@ Create and update responses use this shape:
   ]
 }
 ```
-
-## Suggested Next Phases
-
-1. Complete polish and testing for the Phase 3 system list, detail, add, edit, and archive workflows.
-2. Build API routes for vendors, integrations, scheduled processes, tags, and reviews.
-3. Add review workflows.
-4. Add authentication and role-based access before storing sensitive internal data.
 
 ## Security Notes
 

@@ -215,6 +215,23 @@ const systemDependencySchema = z.object({
   notes: optionalText
 });
 
+const documentReferenceSchema = z.object({
+  asset_id: optionalId,
+  title: z.string().trim().min(1, "This field is required.").optional(),
+  url: optionalUrl,
+  document_type: optionalText,
+  notes: optionalText
+});
+
+const customFieldSchema = z.object({
+  asset_type_id: optionalId,
+  field_key: z.string().trim().min(1, "This field is required.").optional(),
+  label: z.string().trim().min(1, "This field is required.").optional(),
+  field_type: z.enum(["text", "textarea", "number", "date", "url"]).optional(),
+  required: optionalActive,
+  help_text: optionalText
+});
+
 export const directorySchemas = {
   assetTypes: assetTypeSchema,
   teams: teamSchema,
@@ -225,7 +242,9 @@ export const directorySchemas = {
   scheduledProcesses: scheduledProcessSchema,
   reviews: reviewSchema,
   tags: tagSchema,
-  systemDependencies: systemDependencySchema
+  systemDependencies: systemDependencySchema,
+  documentReferences: documentReferenceSchema,
+  customFields: customFieldSchema
 };
 
 export const directoryListQuerySchema = listQuerySchema;
@@ -240,7 +259,9 @@ const requiredCreateFields: Record<keyof typeof directorySchemas, string[]> = {
   scheduledProcesses: ["name"],
   reviews: ["asset_id"],
   tags: ["name"],
-  systemDependencies: ["source_asset_id", "destination_asset_id", "relationship_description"]
+  systemDependencies: ["source_asset_id", "destination_asset_id", "relationship_description"],
+  documentReferences: ["title", "url"],
+  customFields: ["field_key", "label", "field_type"]
 };
 
 export const searchQuerySchema = z.object({

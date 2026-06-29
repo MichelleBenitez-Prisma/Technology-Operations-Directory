@@ -146,7 +146,9 @@ export type DirectoryResource =
   | "scheduled-processes"
   | "reviews"
   | "tags"
-  | "system-dependencies";
+  | "system-dependencies"
+  | "document-references"
+  | "custom-fields";
 
 export type DirectoryRecord = Record<string, string | number | null>;
 
@@ -209,7 +211,11 @@ export type SystemReportKey =
   | "upcoming-renewals"
   | "by-vendor"
   | "by-category"
+  | "by-owner"
+  | "by-criticality"
+  | "by-lifecycle"
   | "recently-reviewed"
+  | "review-due"
   | "data-quality";
 
 export type SystemReportSummary = {
