@@ -310,6 +310,7 @@ export function logAuditEvent(input: {
   path: string;
   statusCode: number;
   requestId?: string;
+  changeSummary?: string;
 }) {
   execute(
     `
@@ -321,7 +322,8 @@ export function logAuditEvent(input: {
       method,
       path,
       status_code,
-      request_id
+      request_id,
+      change_summary
     )
     VALUES (
       $userId,
@@ -331,7 +333,8 @@ export function logAuditEvent(input: {
       $method,
       $path,
       $statusCode,
-      $requestId
+      $requestId,
+      $changeSummary
     )
     `,
     {
@@ -342,9 +345,39 @@ export function logAuditEvent(input: {
       method: input.method,
       path: input.path,
       statusCode: input.statusCode,
-      requestId: input.requestId ?? null
+      requestId: input.requestId ?? null,
+      changeSummary: input.changeSummary ?? null
     }
   );
+}
+
+export function listAuditLogEvents(limit = 100) {
+  return queryOne<{ data: string }>(
+    `
+    SELECT json_group_array(json_object(
+      'id', id,
+      'action', action,
+      'entity_type', entity_type,
+      'entity_id', entity_id,
+      'method', method,
+      'path', path,
+      'status_code', status_code,
+      'request_id', request_id,
+      'change_summary', change_summary,
+      'created_at', created_at,
+      'user_display_name', user_display_name,
+      'user_email', user_email
+    )) AS data
+    FROM (
+      SELECT audit_logs.*, users.display_name AS user_display_name, users.email AS user_email
+      FROM audit_logs
+      LEFT JOIN users ON users.id = audit_logs.user_id
+      ORDER BY audit_logs.created_at DESC, audit_logs.id DESC
+      LIMIT $limit
+    )
+    `,
+    { limit }
+  )?.data;
 }
 
 function hashPassword(password: string) {

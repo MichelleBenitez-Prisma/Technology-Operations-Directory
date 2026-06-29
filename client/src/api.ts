@@ -1,5 +1,6 @@
 import type {
   AssetType,
+  AuditLogEvent,
   AuthUser,
   CategoryDetails,
   DashboardTotals,
@@ -27,6 +28,10 @@ export async function fetchDashboardTotals() {
 
 export async function fetchCurrentUser() {
   return getJson<AuthUser>("/api/auth/me");
+}
+
+export async function fetchActivity() {
+  return getJson<AuditLogEvent[]>("/api/auth/activity");
 }
 
 export async function login(email: string, password: string) {

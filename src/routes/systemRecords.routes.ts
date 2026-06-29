@@ -1,5 +1,6 @@
-import { Router, type Response } from "express";
+import { Router, type Request, type Response } from "express";
 
+import { logAuditEvent, type AuthUser } from "../db/authRepository.js";
 import {
   addSystemRecordTag,
   archiveSystemRecord,
@@ -261,15 +262,17 @@ systemRecordsRouter.post("/", (request, response) => {
   const input = createSystemRecordSchema.parse(request.body);
   const result = createSystemRecord(input);
 
+  response.locals.skipAudit = true;
+  logSystemAudit(request, response, "create", result.data.id, `Created system record "${result.data.system_name}".`);
   response.status(201).json(result);
 });
 
 systemRecordsRouter.put("/:id", (request, response) => {
-  updateSystemRecordHandler(request.params.id, request.body, response);
+  updateSystemRecordHandler(request, response);
 });
 
 systemRecordsRouter.patch("/:id", (request, response) => {
-  updateSystemRecordHandler(request.params.id, request.body, response);
+  updateSystemRecordHandler(request, response);
 });
 
 systemRecordsRouter.post("/:id/archive", (request, response) => {
@@ -283,6 +286,7 @@ systemRecordsRouter.post("/:id/archive", (request, response) => {
     return;
   }
 
+  const before = findSystemRecordById(id, { includeArchived: true });
   const record = archiveSystemRecord(id);
 
   if (!record) {
@@ -293,6 +297,8 @@ systemRecordsRouter.post("/:id/archive", (request, response) => {
     return;
   }
 
+  response.locals.skipAudit = true;
+  logSystemAudit(request, response, "archive", id, `Archived system record "${before?.system_name ?? record.system_name}".`);
   response.json({
     data: record
   });
@@ -309,6 +315,7 @@ systemRecordsRouter.delete("/:id", (request, response) => {
     return;
   }
 
+  const before = findSystemRecordById(id, { includeArchived: true });
   const deleted = deleteSystemRecord(id);
 
   if (!deleted) {
@@ -319,11 +326,13 @@ systemRecordsRouter.delete("/:id", (request, response) => {
     return;
   }
 
+  response.locals.skipAudit = true;
+  logSystemAudit(request, response, "delete", id, `Deleted system record "${before?.system_name ?? id}".`);
   response.status(204).send();
 });
 
-function updateSystemRecordHandler(rawId: string | undefined, body: unknown, response: Response) {
-  const id = parseSystemRecordId(rawId);
+function updateSystemRecordHandler(request: Request, response: Response) {
+  const id = parseSystemRecordId(String(request.params.id ?? ""));
 
   if (!id) {
     response.status(400).json({
@@ -333,7 +342,8 @@ function updateSystemRecordHandler(rawId: string | undefined, body: unknown, res
     return;
   }
 
-  const input = updateSystemRecordSchema.parse(body);
+  const before = findSystemRecordById(id, { includeArchived: true });
+  const input = updateSystemRecordSchema.parse(request.body);
   const result = updateSystemRecord(id, input);
 
   if (!result) {
@@ -344,7 +354,81 @@ function updateSystemRecordHandler(rawId: string | undefined, body: unknown, res
     return;
   }
 
+  response.locals.skipAudit = true;
+  logSystemAudit(request, response, "update", id, summarizeSystemRecordChanges(before, result.data));
   response.json(result);
+}
+
+const systemAuditFields = [
+  ["system_name", "Name"],
+  ["description", "Description"],
+  ["category_code", "Category"],
+  ["status", "Status"],
+  ["business_department", "Business department"],
+  ["department_owner", "Department owner"],
+  ["technical_owner", "Technical owner"],
+  ["vendor", "Vendor"],
+  ["support_contact", "Support contact"],
+  ["hosting_location", "Hosting location"],
+  ["server_name", "Server name"],
+  ["database_name", "Database name"],
+  ["production_url", "Production URL"],
+  ["test_url", "Test URL"],
+  ["documentation_url", "Documentation link"],
+  ["renewal_date", "Renewal date"],
+  ["last_review_date", "Last review date"],
+  ["replacement_system", "Replacement system"],
+  ["retirement_notes", "Retirement notes"],
+  ["notes", "Notes"]
+] as const;
+
+function summarizeSystemRecordChanges(
+  before: ReturnType<typeof findSystemRecordById>,
+  after: NonNullable<ReturnType<typeof findSystemRecordById>>
+) {
+  if (!before) {
+    return `Updated system record "${after.system_name}".`;
+  }
+
+  const changes = systemAuditFields
+    .filter(([key]) => formatAuditValue(before[key]) !== formatAuditValue(after[key]))
+    .map(([key, label]) => `${label} from "${formatAuditValue(before[key])}" to "${formatAuditValue(after[key])}"`);
+
+  if (changes.length === 0) {
+    return `Updated system record "${after.system_name}".`;
+  }
+
+  const visibleChanges = changes.slice(0, 6).join("; ");
+  const extraCount = changes.length - 6;
+
+  return `Changed ${visibleChanges}${extraCount > 0 ? `; and ${extraCount} more field${extraCount === 1 ? "" : "s"}` : ""}.`;
+}
+
+function formatAuditValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text ? text : "blank";
+}
+
+function logSystemAudit(
+  request: Request,
+  response: Response,
+  action: string,
+  entityId: number,
+  changeSummary: string
+) {
+  const user = response.locals.authUser as AuthUser | undefined;
+
+  logAuditEvent({
+    userId: user?.id,
+    action,
+    entityType: "system-records",
+    entityId: String(entityId),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: response.statusCode,
+    requestId: response.locals.requestId as string | undefined,
+    changeSummary
+  });
 }
 
 function parseSystemRecordId(value: string | undefined) {

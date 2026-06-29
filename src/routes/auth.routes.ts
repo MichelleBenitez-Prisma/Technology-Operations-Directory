@@ -8,6 +8,7 @@ import {
   deleteSession,
   ensureLocalDevelopmentUser,
   findUserBySessionToken,
+  listAuditLogEvents,
   logAuditEvent,
   sessionCookieName,
   resetUserPassword,
@@ -38,6 +39,20 @@ authRouter.get("/me", (request, response) => {
   }
 
   response.json({ data: user });
+});
+
+authRouter.get("/activity", (request, response) => {
+  if (authIsRequired() && !findUserBySessionToken(readCookie(request.headers.cookie, sessionCookieName))) {
+    response.status(401).json({
+      error: "Unauthorized",
+      message: "Please sign in to continue."
+    });
+    return;
+  }
+
+  response.json({
+    data: JSON.parse(listAuditLogEvents() ?? "[]")
+  });
 });
 
 authRouter.put("/me/profile", (request, response) => {

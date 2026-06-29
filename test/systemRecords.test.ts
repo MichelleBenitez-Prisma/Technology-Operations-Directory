@@ -766,7 +766,7 @@ test("system records API supports main phase two flows", async () => {
     const database = new DatabaseSync(databasePath);
     const auditCount = database
       .prepare(
-        "SELECT COUNT(*) AS count FROM audit_logs WHERE action IN ('login_success', 'create_or_archive')"
+        "SELECT COUNT(*) AS count FROM audit_logs WHERE action = 'login_success' OR change_summary IS NOT NULL"
       )
       .get() as { count: number };
     database.close();

@@ -35,6 +35,7 @@ import {
   createSystem,
   createVendor,
   deleteSystem,
+  fetchActivity,
   fetchAssetTypes,
   fetchCurrentUser,
   fetchDashboardTotals,
@@ -64,6 +65,7 @@ import {
 import { getRecordHref, getStatusCount, statusLabels } from "./dashboardData";
 import type {
   AssetType,
+  AuditLogEvent,
   AuthUser,
   CategoryDetails,
   DashboardTotals,
@@ -862,11 +864,11 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
 }
 
 function UpdatesPage() {
-  const [records, setRecords] = useState<SystemRecord[]>([]);
+  const [records, setRecords] = useState<AuditLogEvent[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
 
   useEffect(() => {
-    void fetchSystems("limit=100&sortBy=updatedAt&sortDirection=desc")
+    void fetchActivity()
       .then((nextRecords) => {
         setRecords(nextRecords);
         setLoadState("ready");
@@ -891,14 +893,20 @@ function UpdatesPage() {
           <span>Unable to load recent updates.</span>
         </section>
       ) : null}
-      <Panel title="Recently Updated Systems" subtitle="Latest record changes" icon={<Clock3 size={18} />} wide>
+      <Panel title="Record Activity" subtitle="Latest record changes" icon={<Clock3 size={18} />} wide>
         <RecordList
           records={records}
-          emptyText={loadState === "loading" ? "Loading updates..." : "No system records have been updated yet."}
+          emptyText={loadState === "loading" ? "Loading updates..." : "No record activity has been logged yet."}
+          getHref={(record) =>
+            record.entity_type === "system-records" && record.entity_id
+              ? `#/systems/${record.entity_id}`
+              : undefined
+          }
+          getTitle={(record) => record.change_summary ?? `${record.action} ${record.entity_type}`}
           detail={(record) => (
             <>
-              <span>{statusLabels[record.status]}</span>
-              <span>{formatDateTime(record.updated_at)}</span>
+              <span>{record.user_display_name ?? record.user_email ?? "System"}</span>
+              <span>{formatDateTime(record.created_at)}</span>
             </>
           )}
         />
@@ -2776,14 +2784,18 @@ function Panel({
   );
 }
 
-function RecordList({
+function RecordList<TRecord extends { id: number }>({
   records,
   emptyText,
-  detail
+  detail,
+  getHref,
+  getTitle
 }: {
-  records: SystemRecord[];
+  records: TRecord[];
   emptyText: string;
-  detail: (record: SystemRecord) => ReactNode;
+  detail: (record: TRecord) => ReactNode;
+  getHref?: (record: TRecord) => string | undefined;
+  getTitle?: (record: TRecord) => string;
 }) {
   if (records.length === 0) {
     return <p className="empty-state">{emptyText}</p>;
@@ -2793,7 +2805,9 @@ function RecordList({
     <ul className="record-list">
       {records.map((record) => (
         <li key={record.id}>
-          <a href={getRecordHref(record)}>{record.system_name}</a>
+          <a href={getHref?.(record) ?? getRecordHref(record as unknown as SystemRecord)}>
+            {getTitle?.(record) ?? (record as unknown as SystemRecord).system_name}
+          </a>
           <div className="record-meta">{detail(record)}</div>
         </li>
       ))}

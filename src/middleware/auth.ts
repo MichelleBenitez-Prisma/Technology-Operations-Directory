@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { RequestHandler } from "express";
 
 import {
+  ensureLocalDevelopmentUser,
   findUserBySessionToken,
   logAuditEvent,
   sessionCookieName,
@@ -27,6 +28,7 @@ export const requestContext: RequestHandler = (request, response, next) => {
 
 export const requireAuth: RequestHandler = (request, response, next) => {
   if (!authIsRequired()) {
+    response.locals.authUser = ensureLocalDevelopmentUser();
     next();
     return;
   }
@@ -67,11 +69,11 @@ export const requireApiRole: RequestHandler = (request, response, next) => {
 
 export const auditMutations: RequestHandler = (request, response, next) => {
   response.on("finish", () => {
-    if (!authIsRequired() || !["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
       return;
     }
 
-    if (request.path.startsWith("/auth")) {
+    if (response.locals.skipAudit || request.path.startsWith("/auth")) {
       return;
     }
 
@@ -89,7 +91,8 @@ export const auditMutations: RequestHandler = (request, response, next) => {
       method: request.method,
       path: request.originalUrl,
       statusCode: response.statusCode,
-      requestId: response.locals.requestId as string | undefined
+      requestId: response.locals.requestId as string | undefined,
+      changeSummary: `${actionForMethod(request.method)} ${entityTypeFromPath(request.path)} record.`
     });
   });
 

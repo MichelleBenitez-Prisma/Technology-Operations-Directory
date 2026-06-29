@@ -144,6 +144,21 @@ export type AuthUser = {
   role: "viewer" | "editor" | "admin";
 };
 
+export type AuditLogEvent = {
+  id: number;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  method: string;
+  path: string;
+  status_code: number;
+  request_id: string | null;
+  change_summary: string | null;
+  created_at: string;
+  user_display_name: string | null;
+  user_email: string | null;
+};
+
 export type DirectoryResource =
   | "integrations"
   | "scheduled-processes"
