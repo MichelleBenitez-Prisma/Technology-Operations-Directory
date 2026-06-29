@@ -50,8 +50,10 @@ import {
   fetchVendor,
   fetchVendors,
   importSystemsCsv,
-  login,
+  loginWithRemember,
   logout,
+  requestPasswordReset,
+  signUp,
   updateDirectoryRecord,
   updateProfile,
   updateSystem,
@@ -398,19 +400,43 @@ function SidebarLink({
 }
 
 function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) => void }) {
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function submitLogin(event: ReactFormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
     setSubmitting(true);
 
     try {
-      const response = await login(email, password);
+      if (mode === "signup") {
+        await signUp({ displayName, email, password, phone, jobTitle });
+        setInfo("Account created. You can log in now.");
+        setMode("login");
+        return;
+      }
+
+      if (mode === "forgot") {
+        const response = await requestPasswordReset(email);
+        setInfo(
+          response.data.temporaryPassword
+            ? `Temporary password: ${response.data.temporaryPassword}`
+            : response.data.message
+        );
+        setMode("login");
+        return;
+      }
+
+      const response = await loginWithRemember(email, password, remember);
       onAuthenticated(response.data);
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "Unable to sign in.");
@@ -422,15 +448,39 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
   return (
     <main className="app-shell">
       <section className="login-panel">
-        <h1>Log in to support portal</h1>
+        <h1>{mode === "signup" ? "Sign up with us" : mode === "forgot" ? "Reset your password" : "Log in to support portal"}</h1>
         <p className="login-subtitle">
-          Are you a new user? <a href="#">Sign up with us</a>
+          {mode === "login" ? (
+            <>
+              Are you a new user?{" "}
+              <button type="button" onClick={() => setMode("signup")}>
+                Sign up with us
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setMode("login")}>
+              Back to login
+            </button>
+          )}
         </p>
         <form className="login-form" onSubmit={(event) => void submitLogin(event)}>
           {error ? (
             <section className="notice error" role="alert">
               {error}
             </section>
+          ) : null}
+          {info ? <section className="notice success">{info}</section> : null}
+          {mode === "signup" ? (
+            <label>
+              Full name <span aria-hidden="true">*</span>
+              <input
+                autoComplete="name"
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder="Full name"
+                required
+                value={displayName}
+              />
+            </label>
           ) : null}
           <label>
             Your e-mail address <span aria-hidden="true">*</span>
@@ -444,32 +494,50 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
               value={email}
             />
           </label>
-          <label>
-            Password <span aria-hidden="true">*</span>
-            <input
-              autoComplete="current-password"
-              name="password"
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              required
-              type="password"
-              value={password}
-            />
-          </label>
-          <label className="remember-row">
-            <input
-              checked={remember}
-              onChange={(event) => setRemember(event.target.checked)}
-              type="checkbox"
-            />
-            Remember me on this computer
-          </label>
+          {mode !== "forgot" ? (
+            <label>
+              Password <span aria-hidden="true">*</span>
+              <input
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                name="password"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                required
+                type="password"
+                value={password}
+              />
+            </label>
+          ) : null}
+          {mode === "signup" ? (
+            <>
+              <label>
+                Phone number
+                <input onChange={(event) => setPhone(event.target.value)} placeholder="Phone number" value={phone} />
+              </label>
+              <label>
+                Job title
+                <input onChange={(event) => setJobTitle(event.target.value)} placeholder="Job title" value={jobTitle} />
+              </label>
+            </>
+          ) : null}
+          {mode === "login" ? (
+            <label className="remember-row">
+              <input
+                checked={remember}
+                onChange={(event) => setRemember(event.target.checked)}
+                type="checkbox"
+              />
+              Remember me on this computer
+            </label>
+          ) : null}
           <button className="primary-link" disabled={submitting} type="submit">
-            {submitting ? "Signing in..." : "Login"}
+            {submitting ? "Working..." : mode === "signup" ? "Create account" : mode === "forgot" ? "Reset password" : "Login"}
           </button>
-          <a className="forgot-link" href="#">
-            Forgot your password?
-          </a>
+          {mode === "login" ? (
+            <button className="forgot-link" type="button" onClick={() => setMode("forgot")}>
+              Forgot your password?
+            </button>
+          ) : null}
         </form>
       </section>
     </main>

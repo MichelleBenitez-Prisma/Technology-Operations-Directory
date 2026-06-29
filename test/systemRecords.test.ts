@@ -678,9 +678,38 @@ test("system records API supports main phase two flows", async () => {
     });
     assert.equal(badLogin.status, 401);
 
+    const signup = await requestJson(baseUrl, "/api/auth/signup", {
+      method: "POST",
+      body: {
+        displayName: "New Prisma User",
+        email: "new.user@poweredbyprisma.com",
+        password: "new-password",
+        phone: "555-0123",
+        jobTitle: "Support"
+      }
+    });
+    assert.equal(signup.status, 201);
+
+    const resetPassword = await requestJson(baseUrl, "/api/auth/forgot-password", {
+      method: "POST",
+      body: { email: "new.user@poweredbyprisma.com" }
+    });
+    assert.equal(resetPassword.status, 200);
+    const temporaryPassword = String(
+      (getResponseData<Record<string, unknown>>(resetPassword)).temporaryPassword
+    );
+    assert.match(temporaryPassword, /^Temp-/);
+
+    const resetLogin = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: "new.user@poweredbyprisma.com", password: temporaryPassword, remember: false }
+    });
+    assert.equal(resetLogin.status, 200);
+    assert.ok(resetLogin.headers.get("set-cookie")?.includes("Expires="));
+
     const loginResponse = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",
-      body: { email: "admin@poweredbyprisma.com", password: "correct-password" }
+      body: { email: "admin@poweredbyprisma.com", password: "correct-password", remember: true }
     });
     assert.equal(loginResponse.status, 200);
 

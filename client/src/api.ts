@@ -33,8 +33,30 @@ export async function login(email: string, password: string) {
   return mutateJson<{ data: AuthUser }>("/api/auth/login", "POST", { email, password });
 }
 
+export async function loginWithRemember(email: string, password: string, remember: boolean) {
+  return mutateJson<{ data: AuthUser }>("/api/auth/login", "POST", { email, password, remember });
+}
+
 export async function logout() {
   await mutateEmpty("/api/auth/logout", "POST");
+}
+
+export async function signUp(input: {
+  displayName: string;
+  email: string;
+  password: string;
+  phone: string;
+  jobTitle: string;
+}) {
+  return mutateJson<{ data: AuthUser }>("/api/auth/signup", "POST", input);
+}
+
+export async function requestPasswordReset(email: string) {
+  return mutateJson<{ data: { message: string; temporaryPassword: string | null } }>(
+    "/api/auth/forgot-password",
+    "POST",
+    { email }
+  );
 }
 
 export async function updateProfile(input: {
@@ -195,6 +217,15 @@ async function mutateJson<T>(
     | VendorFormInput
     | DirectoryRecord
     | { email: string; password: string }
+    | { email: string; password: string; remember: boolean }
+    | {
+        displayName: string;
+        email: string;
+        password: string;
+        phone: string;
+        jobTitle: string;
+      }
+    | { email: string }
     | {
         displayName: string;
         email: string;

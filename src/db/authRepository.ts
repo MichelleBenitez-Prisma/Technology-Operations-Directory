@@ -21,7 +21,8 @@ type StoredUser = AuthUser & {
 };
 
 const sessionCookieName = "tod_session";
-const sessionDays = 7;
+const rememberedSessionDays = 30;
+const sessionOnlyDays = 1;
 const allowedEmailDomain = "poweredbyprisma.com";
 const localDevelopmentEmail = "local@poweredbyprisma.com";
 
@@ -129,14 +130,91 @@ export function authenticateUser(email: string, password: string) {
   return toAuthUser(user);
 }
 
+export function createUser(input: {
+  displayName: string;
+  email: string;
+  password: string;
+  phone?: string | null;
+  jobTitle?: string | null;
+}) {
+  const email = input.email.trim().toLowerCase();
+
+  if (findUserByEmail(email)) {
+    return undefined;
+  }
+
+  const passwordRecord = hashPassword(input.password);
+
+  execute(
+    `
+    INSERT INTO users (
+      email,
+      display_name,
+      password_hash,
+      password_salt,
+      phone,
+      job_title,
+      role
+    )
+    VALUES (
+      $email,
+      $displayName,
+      $passwordHash,
+      $passwordSalt,
+      $phone,
+      $jobTitle,
+      'viewer'
+    )
+    `,
+    {
+      email,
+      displayName: input.displayName,
+      passwordHash: passwordRecord.hash,
+      passwordSalt: passwordRecord.salt,
+      phone: input.phone ?? null,
+      jobTitle: input.jobTitle ?? null
+    }
+  );
+
+  return findUserByEmail(email);
+}
+
+export function resetUserPassword(email: string, password: string) {
+  const user = findUserByEmail(email);
+
+  if (!user) {
+    return undefined;
+  }
+
+  const passwordRecord = hashPassword(password);
+
+  execute(
+    `
+    UPDATE users
+    SET password_hash = $passwordHash,
+        password_salt = $passwordSalt,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $userId
+    `,
+    {
+      userId: user.id,
+      passwordHash: passwordRecord.hash,
+      passwordSalt: passwordRecord.salt
+    }
+  );
+
+  return findUserByEmail(email);
+}
+
 export function isAllowedEmail(email: string) {
   return email.trim().toLowerCase().endsWith(`@${allowedEmailDomain}`);
 }
 
-export function createSession(userId: number) {
+export function createSession(userId: number, remember = true) {
   const token = randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000).toISOString();
+  const days = remember ? rememberedSessionDays : sessionOnlyDays;
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 
   execute(
     `

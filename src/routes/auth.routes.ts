@@ -4,11 +4,13 @@ import {
   authenticateUser,
   allowedEmailDomain,
   createSession,
+  createUser,
   deleteSession,
   ensureLocalDevelopmentUser,
   findUserBySessionToken,
   logAuditEvent,
   sessionCookieName,
+  resetUserPassword,
   updateUserProfile
 } from "../db/authRepository.js";
 import { authIsRequired, readCookie } from "../middleware/auth.js";
@@ -69,7 +71,11 @@ authRouter.put("/me/profile", (request, response) => {
 });
 
 authRouter.post("/login", (request, response) => {
-  const { email, password } = request.body as { email?: string; password?: string };
+  const { email, password, remember } = request.body as {
+    email?: string;
+    password?: string;
+    remember?: boolean;
+  };
   const user = email && password ? authenticateUser(email, password) : undefined;
   const domainIsAllowed = email?.trim().toLowerCase().endsWith(`@${allowedEmailDomain}`) ?? false;
 
@@ -93,7 +99,7 @@ authRouter.post("/login", (request, response) => {
     return;
   }
 
-  const session = createSession(user.id);
+  const session = createSession(user.id, remember !== false);
 
   response.cookie(sessionCookieName, session.token, {
     httpOnly: true,
@@ -103,6 +109,61 @@ authRouter.post("/login", (request, response) => {
   });
 
   response.json({ data: user });
+});
+
+authRouter.post("/signup", (request, response) => {
+  const input = parseSignupInput(request.body as Record<string, unknown>);
+  const user = createUser(input);
+
+  if (!user) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "A user with this email already exists."
+    });
+    return;
+  }
+
+  logAuditEvent({
+    userId: user.id,
+    action: "signup",
+    entityType: "users",
+    entityId: String(user.id),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: 201,
+    requestId: response.locals.requestId as string | undefined
+  });
+
+  response.status(201).json({ data: user });
+});
+
+authRouter.post("/forgot-password", (request, response) => {
+  const email = String((request.body as { email?: unknown }).email ?? "").trim().toLowerCase();
+
+  if (!email || !email.endsWith(`@${allowedEmailDomain}`)) {
+    throwValidationError(`Use your @${allowedEmailDomain} email address.`);
+  }
+
+  const temporaryPassword = `Temp-${randomCode()}`;
+  const user = resetUserPassword(email, temporaryPassword);
+
+  logAuditEvent({
+    userId: user?.id,
+    action: "password_reset",
+    entityType: "users",
+    entityId: user ? String(user.id) : undefined,
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: 200,
+    requestId: response.locals.requestId as string | undefined
+  });
+
+  response.json({
+    data: {
+      message: "If this account exists, a temporary password was generated.",
+      temporaryPassword: user ? temporaryPassword : null
+    }
+  });
 });
 
 authRouter.post("/logout", (request, response) => {
@@ -141,6 +202,32 @@ function parseProfileInput(body: Record<string, unknown>) {
     jobTitle,
     profileImageData
   };
+}
+
+function parseSignupInput(body: Record<string, unknown>) {
+  const displayName = String(body.displayName ?? "").trim();
+  const email = String(body.email ?? "").trim().toLowerCase();
+  const password = String(body.password ?? "");
+  const phone = nullableText(body.phone);
+  const jobTitle = nullableText(body.jobTitle);
+
+  if (!displayName) {
+    throwValidationError("Full name is required.");
+  }
+
+  if (!email || !email.endsWith(`@${allowedEmailDomain}`)) {
+    throwValidationError(`Use your @${allowedEmailDomain} email address.`);
+  }
+
+  if (password.length < 8) {
+    throwValidationError("Password must be at least 8 characters.");
+  }
+
+  return { displayName, email, password, phone, jobTitle };
+}
+
+function randomCode() {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 function nullableText(value: unknown) {

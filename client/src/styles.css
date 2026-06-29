@@ -285,6 +285,14 @@ h1 {
   text-decoration: none;
 }
 
+.login-subtitle button,
+.forgot-link {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
 .login-form {
   display: grid;
   gap: 18px;

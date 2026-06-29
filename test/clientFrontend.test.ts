@@ -27,7 +27,10 @@ import {
   fetchVendors,
   importSystemsCsv,
   login,
+  loginWithRemember,
   logout,
+  requestPasswordReset,
+  signUp,
   updateProfile
 } from "../client/src/api.ts";
 import {
@@ -217,6 +220,15 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await fetchDashboardTotals();
   await fetchCurrentUser();
   await login("admin@poweredbyprisma.com", "correct-password");
+  await loginWithRemember("admin@poweredbyprisma.com", "correct-password", true);
+  await signUp({
+    displayName: "New Prisma User",
+    email: "new.user@poweredbyprisma.com",
+    password: "new-password",
+    phone: "555-0123",
+    jobTitle: "Support"
+  });
+  await requestPasswordReset("new.user@poweredbyprisma.com");
   await updateProfile({
     displayName: "Michelle Benitez",
     email: "michelle.benitez@poweredbyprisma.com",
@@ -248,6 +260,9 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "GET /api/system-records/dashboard-totals",
       "GET /api/auth/me",
       "POST /api/auth/login",
+      "POST /api/auth/login",
+      "POST /api/auth/signup",
+      "POST /api/auth/forgot-password",
       "PUT /api/auth/me/profile",
       "POST /api/auth/logout",
       "GET /api/system-records?search=payroll",
