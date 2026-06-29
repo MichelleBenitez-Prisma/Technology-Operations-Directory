@@ -11,6 +11,9 @@ import {
   ListFilter,
   Plus,
   BarChart3,
+  BookOpen,
+  LayoutDashboard,
+  Monitor,
   RefreshCcw,
   Save,
   Search,
@@ -79,6 +82,7 @@ import type {
 type LoadState = "loading" | "ready" | "error";
 export type Route =
   | { name: "dashboard" }
+  | { name: "updates" }
   | { name: "reports"; query: URLSearchParams }
   | { name: "systems"; query: URLSearchParams }
   | { name: "systemDetail"; id: number }
@@ -290,43 +294,42 @@ export function DashboardApp() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Technology Department</p>
-          <h1>Technology Operations Directory</h1>
+    <main className="app-layout">
+      <aside className="sidebar">
+        <a className="brand-mark" href="#">
+          <Monitor size={34} aria-hidden="true" />
+          <strong>Technology Department</strong>
+        </a>
+        <nav className="side-nav" aria-label="Primary">
+          <SidebarLink href="#" label="Dashboard" active={route.name === "dashboard"} icon={<LayoutDashboard size={20} />} />
+          <SidebarLink href="#/updates" label="Updates" active={route.name === "updates"} icon={<Clock3 size={20} />} />
+          <SidebarLink href="#/systems" label="Systems" active={route.name.startsWith("system") || route.name === "systems"} icon={<Monitor size={20} />} />
+          <SidebarLink href="#/vendors" label="Vendors" active={route.name.startsWith("vendor") || route.name === "vendors"} icon={<UserRoundX size={20} />} />
+          <SidebarLink href="#/directory" label="Directory" active={route.name.startsWith("directory")} icon={<BookOpen size={20} />} />
+          <SidebarLink href="#/reports" label="Reports" active={route.name === "reports"} icon={<BarChart3 size={20} />} />
+        </nav>
+        <div className="sidebar-user">
+          <span className="avatar">M</span>
+          <span>
+            <strong>Michelle Benitez</strong>
+            <button type="button" onClick={() => void signOut()}>
+              Sign out
+            </button>
+          </span>
         </div>
-        <nav className="top-actions" aria-label="Primary">
-          <a className="secondary-link" href="#">
-            Dashboard
-          </a>
-          <a className="secondary-link" href="#/systems">
-            <ListFilter size={16} aria-hidden="true" />
-            Systems
-          </a>
-          <a className="secondary-link" href="#/vendors">
-            <ListFilter size={16} aria-hidden="true" />
-            Vendors
-          </a>
-          <a className="secondary-link" href="#/directory">
-            <ListFilter size={16} aria-hidden="true" />
-            Directory
-          </a>
-          <a className="secondary-link" href="#/reports">
-            <BarChart3 size={16} aria-hidden="true" />
-            Reports
-          </a>
+      </aside>
+
+      <section className="app-shell">
+        <header className="dashboard-header">
+          <h1>Technology Operations Directory</h1>
           <a className="primary-link" href="#/systems/new">
             <Plus size={16} aria-hidden="true" />
             Add System
           </a>
-          <button className="secondary-link" type="button" onClick={() => void signOut()}>
-            Sign out
-          </button>
-        </nav>
-      </header>
+        </header>
 
       {route.name === "dashboard" ? <DashboardHome navigate={navigate} /> : null}
+      {route.name === "updates" ? <UpdatesPage /> : null}
       {route.name === "reports" ? <ReportsPage initialQuery={route.query} /> : null}
       {route.name === "systems" ? (
         <SystemsList assetTypes={assetTypes} initialQuery={route.query} navigate={navigate} />
@@ -359,7 +362,27 @@ export function DashboardApp() {
       {route.name === "directoryEdit" ? (
         <DirectoryForm resource={route.resource} mode="edit" id={route.id} navigate={navigate} />
       ) : null}
+      </section>
     </main>
+  );
+}
+
+function SidebarLink({
+  href,
+  label,
+  icon,
+  active
+}: {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  active: boolean;
+}) {
+  return (
+    <a className={`side-nav-link ${active ? "active" : ""}`} href={href}>
+      {icon}
+      {label}
+    </a>
   );
 }
 
@@ -483,7 +506,6 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
   const missingDocumentation = totals?.missingDocumentationRecords ?? [];
   const withoutTechnicalOwner = totals?.withoutTechnicalOwnerRecords ?? [];
   const upcomingRenewals = totals?.upcomingRenewals ?? [];
-  const recentlyUpdated = totals?.recentlyUpdated ?? [];
   const filteredSystems = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
 
@@ -608,24 +630,10 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
           </a>
         </Panel>
 
-        <Panel title="Recently Updated" subtitle="Latest record changes" icon={<Clock3 size={18} />}>
-          <RecordList
-            records={recentlyUpdated}
-            emptyText="No system records have been updated yet."
-            detail={(record) => (
-              <>
-                <span>{statusLabels[record.status]}</span>
-                <span>{formatDateTime(record.updated_at)}</span>
-              </>
-            )}
-          />
-        </Panel>
-
         <Panel
           title="Needs Attention"
           subtitle="Documentation and ownership gaps"
           icon={<AlertTriangle size={18} />}
-          wide
         >
           <div className="attention-grid">
             <AttentionColumn
@@ -645,6 +653,52 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
           <SystemTable records={filteredSystems} />
         </Panel>
       </section>
+    </>
+  );
+}
+
+function UpdatesPage() {
+  const [records, setRecords] = useState<SystemRecord[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+
+  useEffect(() => {
+    void fetchSystems("limit=100&sortBy=updatedAt&sortDirection=desc")
+      .then((nextRecords) => {
+        setRecords(nextRecords);
+        setLoadState("ready");
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoadState("error");
+      });
+  }, []);
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Record activity</p>
+          <h2>Updates</h2>
+        </div>
+      </section>
+      {loadState === "error" ? (
+        <section className="notice error" role="alert">
+          <ShieldAlert size={20} aria-hidden="true" />
+          <span>Unable to load recent updates.</span>
+        </section>
+      ) : null}
+      <Panel title="Recently Updated Systems" subtitle="Latest record changes" icon={<Clock3 size={18} />} wide>
+        <RecordList
+          records={records}
+          emptyText={loadState === "loading" ? "Loading updates..." : "No system records have been updated yet."}
+          detail={(record) => (
+            <>
+              <span>{statusLabels[record.status]}</span>
+              <span>{formatDateTime(record.updated_at)}</span>
+            </>
+          )}
+        />
+      </Panel>
     </>
   );
 }
@@ -2882,6 +2936,10 @@ export function parseRouteFromHash(rawHash: string): Route {
 
   if (segments[0] === "reports") {
     return { name: "reports", query };
+  }
+
+  if (segments[0] === "updates") {
+    return { name: "updates" };
   }
 
   if (segments[0] === "directory") {
