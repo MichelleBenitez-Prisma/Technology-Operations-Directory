@@ -189,14 +189,6 @@ h1 {
   background: #123b58;
 }
 
-.login-divider {
-  margin: -2px 0 16px;
-  border-top: 1px solid #eef2f6;
-  padding-top: 10px;
-  text-align: center;
-  color: #123b58;
-}
-
 .forgot-link {
   justify-self: center;
   font-weight: 500;

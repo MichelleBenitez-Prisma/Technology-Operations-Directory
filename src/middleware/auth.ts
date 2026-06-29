@@ -16,7 +16,7 @@ const roleRank = {
 } as const;
 
 export function authIsRequired() {
-  return process.env.AUTH_REQUIRED !== "false" && process.env.NODE_ENV !== "test";
+  return process.env.AUTH_REQUIRED === "true" && process.env.NODE_ENV !== "test";
 }
 
 export const requestContext: RequestHandler = (request, response, next) => {

@@ -403,7 +403,6 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
           <button className="primary-link" disabled={submitting} type="submit">
             {submitting ? "Signing in..." : "Login"}
           </button>
-          <p className="login-divider">...or login using</p>
           <a className="forgot-link" href="#">
             Forgot your password?
           </a>
