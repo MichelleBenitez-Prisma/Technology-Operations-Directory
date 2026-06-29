@@ -59,6 +59,24 @@ input {
   color: #003b9f;
 }
 
+.brand-monitor {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 38px;
+  flex: 0 0 42px;
+  color: #003b9f;
+}
+
+.brand-monitor img {
+  position: absolute;
+  top: 8px;
+  width: 14px;
+  height: 17px;
+  object-fit: contain;
+}
+
 .side-nav {
   display: grid;
   align-content: start;

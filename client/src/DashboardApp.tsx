@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent as ReactFormEvent, ReactNode } from "react";
+import prismaLogo from "./prisma-p-logo.svg";
 
 import {
   ApiError,
@@ -303,7 +304,10 @@ export function DashboardApp() {
     <main className="app-layout">
       <aside className="sidebar">
         <a className="brand-mark" href="#">
-          <Monitor size={34} aria-hidden="true" />
+          <span className="brand-monitor" aria-hidden="true">
+            <Monitor size={38} />
+            <img src={prismaLogo} alt="" />
+          </span>
           <strong>Technology Department</strong>
         </a>
         <nav className="side-nav" aria-label="Primary">
