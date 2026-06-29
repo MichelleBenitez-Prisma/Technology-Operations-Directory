@@ -692,6 +692,42 @@ test("system records API supports main phase two flows", async () => {
     });
     assert.equal(systemsWithAuth.status, 200);
 
+    const updatedProfile = await requestJson(baseUrl, "/api/auth/me/profile", {
+      method: "PUT",
+      headers: { cookie: adminCookie },
+      body: {
+        displayName: "Michelle Benitez",
+        email: "michelle.benitez@poweredbyprisma.com",
+        phone: "555-0199",
+        jobTitle: "Technology Operations",
+        profileImageData: "data:image/png;base64,AA=="
+      }
+    });
+    assert.equal(updatedProfile.status, 200);
+    assert.equal((getResponseData<Record<string, unknown>>(updatedProfile)).job_title, "Technology Operations");
+
+    const invalidProfileEmail = await requestJson(baseUrl, "/api/auth/me/profile", {
+      method: "PUT",
+      headers: { cookie: adminCookie },
+      body: {
+        displayName: "Michelle Benitez",
+        email: "michelle@example.com",
+        profileImageData: ""
+      }
+    });
+    assert.equal(invalidProfileEmail.status, 400);
+
+    const invalidProfileImage = await requestJson(baseUrl, "/api/auth/me/profile", {
+      method: "PUT",
+      headers: { cookie: adminCookie },
+      body: {
+        displayName: "Michelle Benitez",
+        email: "michelle.benitez@poweredbyprisma.com",
+        profileImageData: "not-an-image"
+      }
+    });
+    assert.equal(invalidProfileImage.status, 400);
+
     const archivedWithAuth = await requestJson(baseUrl, `/api/system-records/${systemId}/archive`, {
       method: "POST",
       headers: { cookie: adminCookie }

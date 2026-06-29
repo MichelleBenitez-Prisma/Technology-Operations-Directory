@@ -5,9 +5,11 @@ import {
   allowedEmailDomain,
   createSession,
   deleteSession,
+  ensureLocalDevelopmentUser,
   findUserBySessionToken,
   logAuditEvent,
-  sessionCookieName
+  sessionCookieName,
+  updateUserProfile
 } from "../db/authRepository.js";
 import { authIsRequired, readCookie } from "../middleware/auth.js";
 
@@ -15,13 +17,10 @@ export const authRouter = Router();
 
 authRouter.get("/me", (request, response) => {
   if (!authIsRequired()) {
+    const user = ensureLocalDevelopmentUser();
+
     response.json({
-      data: {
-        id: 0,
-        email: "local@example.com",
-        display_name: "Local development",
-        role: "admin"
-      }
+      data: user
     });
     return;
   }
@@ -37,6 +36,36 @@ authRouter.get("/me", (request, response) => {
   }
 
   response.json({ data: user });
+});
+
+authRouter.put("/me/profile", (request, response) => {
+  const user = authIsRequired()
+    ? findUserBySessionToken(readCookie(request.headers.cookie, sessionCookieName))
+    : ensureLocalDevelopmentUser();
+
+  if (!user) {
+    response.status(401).json({
+      error: "Unauthorized",
+      message: "Please sign in to continue."
+    });
+    return;
+  }
+
+  const input = parseProfileInput(request.body as Record<string, unknown>);
+  const updatedUser = updateUserProfile(user.id, input);
+
+  logAuditEvent({
+    userId: user.id,
+    action: "update_profile",
+    entityType: "users",
+    entityId: String(user.id),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: 200,
+    requestId: response.locals.requestId as string | undefined
+  });
+
+  response.json({ data: updatedUser });
 });
 
 authRouter.post("/login", (request, response) => {
@@ -81,3 +110,47 @@ authRouter.post("/logout", (request, response) => {
   response.clearCookie(sessionCookieName);
   response.status(204).send();
 });
+
+function parseProfileInput(body: Record<string, unknown>) {
+  const displayName = String(body.displayName ?? "").trim();
+  const email = String(body.email ?? "").trim().toLowerCase();
+  const phone = nullableText(body.phone);
+  const jobTitle = nullableText(body.jobTitle);
+  const profileImageData = nullableText(body.profileImageData);
+
+  if (!displayName) {
+    throwValidationError("Full name is required.");
+  }
+
+  if (!email || !email.endsWith(`@${allowedEmailDomain}`)) {
+    throwValidationError(`Use your @${allowedEmailDomain} email address.`);
+  }
+
+  if (profileImageData && !profileImageData.startsWith("data:image/")) {
+    throwValidationError("Profile picture must be an image file.");
+  }
+
+  if (profileImageData && profileImageData.length > 250_000) {
+    throwValidationError("Profile picture must be smaller than 250 KB.");
+  }
+
+  return {
+    displayName,
+    email,
+    phone,
+    jobTitle,
+    profileImageData
+  };
+}
+
+function nullableText(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  return text ? text : null;
+}
+
+function throwValidationError(message: string): never {
+  const error = new Error(message);
+  error.name = "ValidationError";
+  throw error;
+}

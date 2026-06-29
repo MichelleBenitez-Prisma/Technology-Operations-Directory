@@ -53,6 +53,7 @@ import {
   login,
   logout,
   updateDirectoryRecord,
+  updateProfile,
   updateSystem,
   updateSystemCategoryDetails,
   updateVendor,
@@ -83,6 +84,7 @@ type LoadState = "loading" | "ready" | "error";
 export type Route =
   | { name: "dashboard" }
   | { name: "updates" }
+  | { name: "profile" }
   | { name: "reports"; query: URLSearchParams }
   | { name: "systems"; query: URLSearchParams }
   | { name: "systemDetail"; id: number }
@@ -309,9 +311,15 @@ export function DashboardApp() {
           <SidebarLink href="#/reports" label="Reports" active={route.name === "reports"} icon={<BarChart3 size={20} />} />
         </nav>
         <div className="sidebar-user">
-          <span className="avatar">M</span>
+          <a className="profile-link" href="#/profile">
+            {user.profile_image_data ? (
+              <img className="avatar-image" alt="" src={user.profile_image_data} />
+            ) : (
+              <span className="avatar">{user.display_name.slice(0, 1).toUpperCase()}</span>
+            )}
+          </a>
           <span>
-            <strong>Michelle Benitez</strong>
+            <a className="profile-name" href="#/profile">{user.display_name}</a>
             <button type="button" onClick={() => void signOut()}>
               Sign out
             </button>
@@ -332,6 +340,7 @@ export function DashboardApp() {
 
       {route.name === "dashboard" ? <DashboardHome navigate={navigate} /> : null}
       {route.name === "updates" ? <UpdatesPage /> : null}
+      {route.name === "profile" ? <ProfileSettingsPage user={user} onUserUpdated={setUser} /> : null}
       {route.name === "reports" ? <ReportsPage initialQuery={route.query} /> : null}
       {route.name === "systems" ? (
         <SystemsList assetTypes={assetTypes} initialQuery={route.query} navigate={navigate} />
@@ -464,6 +473,131 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
         </form>
       </section>
     </main>
+  );
+}
+
+function ProfileSettingsPage({
+  user,
+  onUserUpdated
+}: {
+  user: AuthUser;
+  onUserUpdated: (user: AuthUser) => void;
+}) {
+  const [form, setForm] = useState({
+    displayName: user.display_name,
+    email: user.email,
+    phone: user.phone ?? "",
+    jobTitle: user.job_title ?? "",
+    profileImageData: user.profile_image_data ?? ""
+  });
+  const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function saveProfile(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+    setIsSaving(true);
+
+    try {
+      const result = await updateProfile(form);
+      onUserUpdated(result.data);
+      setMessage("Profile settings saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save profile settings.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function selectProfileImage(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Choose an image file for the profile picture.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({ ...current, profileImageData: String(reader.result ?? "") }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Account</p>
+          <h2>Profile Settings</h2>
+        </div>
+      </section>
+
+      <section className="panel wide">
+        <form className="record-form" onSubmit={(event) => void saveProfile(event)}>
+          {message ? <section className="notice success">{message}</section> : null}
+          <div className="profile-picture-row">
+            {form.profileImageData ? (
+              <img className="profile-preview" src={form.profileImageData} alt="Profile preview" />
+            ) : (
+              <span className="profile-preview placeholder">{form.displayName.slice(0, 1).toUpperCase()}</span>
+            )}
+            <label className="icon-button">
+              Change profile picture
+              <input
+                accept="image/*"
+                className="visually-hidden"
+                type="file"
+                onChange={(event) => void selectProfileImage(event.target.files?.[0])}
+              />
+            </label>
+          </div>
+
+          <div className="form-grid">
+            <label className="field">
+              <span>Full name *</span>
+              <input
+                required
+                value={form.displayName}
+                onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+              />
+            </label>
+            <label className="field">
+              <span>Email *</span>
+              <input
+                required
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              />
+            </label>
+            <label className="field">
+              <span>Phone number</span>
+              <input
+                value={form.phone}
+                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+              />
+            </label>
+            <label className="field">
+              <span>Job title</span>
+              <input
+                value={form.jobTitle}
+                onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
+              />
+            </label>
+          </div>
+
+          <div className="form-actions">
+            <button className="primary-link" type="submit" disabled={isSaving}>
+              <Save size={16} aria-hidden="true" />
+              {isSaving ? "Saving..." : "Save Profile"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </>
   );
 }
 
@@ -2942,6 +3076,10 @@ export function parseRouteFromHash(rawHash: string): Route {
 
   if (segments[0] === "updates") {
     return { name: "updates" };
+  }
+
+  if (segments[0] === "profile") {
+    return { name: "profile" };
   }
 
   if (segments[0] === "directory") {

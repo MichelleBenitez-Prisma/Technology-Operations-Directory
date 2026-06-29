@@ -37,6 +37,16 @@ export async function logout() {
   await mutateEmpty("/api/auth/logout", "POST");
 }
 
+export async function updateProfile(input: {
+  displayName: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  profileImageData: string;
+}) {
+  return mutateJson<{ data: AuthUser }>("/api/auth/me/profile", "PUT", input);
+}
+
 export async function fetchSystems(query = "limit=100&sortBy=updatedAt&sortDirection=desc") {
   return getJson<SystemRecord[]>(`/api/system-records?${query}`);
 }
@@ -180,7 +190,18 @@ async function getJson<T>(path: string): Promise<T> {
 async function mutateJson<T>(
   path: string,
   method: "POST" | "PUT",
-  body?: SystemRecordFormInput | VendorFormInput | DirectoryRecord | { email: string; password: string }
+  body?:
+    | SystemRecordFormInput
+    | VendorFormInput
+    | DirectoryRecord
+    | { email: string; password: string }
+    | {
+        displayName: string;
+        email: string;
+        phone: string;
+        jobTitle: string;
+        profileImageData: string;
+      }
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,

@@ -138,6 +138,9 @@ export type AuthUser = {
   id: number;
   email: string;
   display_name: string;
+  phone: string | null;
+  job_title: string | null;
+  profile_image_data: string | null;
   role: "viewer" | "editor" | "admin";
 };
 

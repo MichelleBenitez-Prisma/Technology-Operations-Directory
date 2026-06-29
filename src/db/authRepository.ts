@@ -8,6 +8,9 @@ export type AuthUser = {
   id: number;
   email: string;
   display_name: string;
+  phone: string | null;
+  job_title: string | null;
+  profile_image_data: string | null;
   role: UserRole;
 };
 
@@ -20,6 +23,7 @@ type StoredUser = AuthUser & {
 const sessionCookieName = "tod_session";
 const sessionDays = 7;
 const allowedEmailDomain = "poweredbyprisma.com";
+const localDevelopmentEmail = "local@poweredbyprisma.com";
 
 export { allowedEmailDomain, sessionCookieName };
 
@@ -55,6 +59,53 @@ export function ensureInitialAdmin() {
   );
 }
 
+export function ensureLocalDevelopmentUser() {
+  const existing = queryOne<AuthUser>(
+    `
+    SELECT id, email, display_name, phone, job_title, profile_image_data, role
+    FROM users
+    WHERE email = $email
+    `,
+    { email: localDevelopmentEmail }
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  const passwordRecord = hashPassword(randomBytes(16).toString("hex"));
+
+  execute(
+    `
+    INSERT INTO users (
+      email,
+      display_name,
+      password_hash,
+      password_salt,
+      phone,
+      job_title,
+      role
+    )
+    VALUES (
+      $email,
+      'Local development',
+      $passwordHash,
+      $passwordSalt,
+      NULL,
+      'Technology Operations',
+      'admin'
+    )
+    `,
+    {
+      email: localDevelopmentEmail,
+      passwordHash: passwordRecord.hash,
+      passwordSalt: passwordRecord.salt
+    }
+  );
+
+  return findUserByEmail(localDevelopmentEmail);
+}
+
 export function authenticateUser(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -64,7 +115,7 @@ export function authenticateUser(email: string, password: string) {
 
   const user = queryOne<StoredUser>(
     `
-    SELECT id, email, display_name, password_hash, password_salt, role, active
+    SELECT id, email, display_name, phone, job_title, profile_image_data, password_hash, password_salt, role, active
     FROM users
     WHERE email = $email
     `,
@@ -105,7 +156,7 @@ export function findUserBySessionToken(token: string | undefined) {
 
   return queryOne<AuthUser>(
     `
-    SELECT users.id, users.email, users.display_name, users.role
+    SELECT users.id, users.email, users.display_name, users.phone, users.job_title, users.profile_image_data, users.role
     FROM user_sessions
     JOIN users ON users.id = user_sessions.user_id
     WHERE user_sessions.token_hash = $tokenHash
@@ -114,6 +165,52 @@ export function findUserBySessionToken(token: string | undefined) {
     `,
     { tokenHash: hashToken(token) }
   );
+}
+
+export function findUserByEmail(email: string) {
+  return queryOne<AuthUser>(
+    `
+    SELECT id, email, display_name, phone, job_title, profile_image_data, role
+    FROM users
+    WHERE email = $email
+      AND active = 1
+    `,
+    { email: email.trim().toLowerCase() }
+  );
+}
+
+export function updateUserProfile(
+  userId: number,
+  input: {
+    displayName: string;
+    email: string;
+    phone?: string | null;
+    jobTitle?: string | null;
+    profileImageData?: string | null;
+  }
+) {
+  execute(
+    `
+    UPDATE users
+    SET display_name = $displayName,
+        email = $email,
+        phone = $phone,
+        job_title = $jobTitle,
+        profile_image_data = $profileImageData,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $userId
+    `,
+    {
+      userId,
+      displayName: input.displayName,
+      email: input.email.trim().toLowerCase(),
+      phone: input.phone ?? null,
+      jobTitle: input.jobTitle ?? null,
+      profileImageData: input.profileImageData ?? null
+    }
+  );
+
+  return findUserByEmail(input.email);
 }
 
 export function deleteSession(token: string | undefined) {
@@ -197,6 +294,9 @@ function toAuthUser(user: StoredUser): AuthUser {
     id: user.id,
     email: user.email,
     display_name: user.display_name,
+    phone: user.phone,
+    job_title: user.job_title,
+    profile_image_data: user.profile_image_data,
     role: user.role
   };
 }

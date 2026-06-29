@@ -27,7 +27,8 @@ import {
   fetchVendors,
   importSystemsCsv,
   login,
-  logout
+  logout,
+  updateProfile
 } from "../client/src/api.ts";
 import {
   buildSystemsQuery,
@@ -90,10 +91,12 @@ test("systems list route and query helpers preserve filters and sorting", () => 
   );
   const directoryRoute = parseRouteFromHash("#/directory/integrations?search=api");
   const reportRoute = parseRouteFromHash("#/reports?report=missing-documentation");
+  const profileRoute = parseRouteFromHash("#/profile");
 
   assert.equal(route.name, "systems");
   assert.equal(directoryRoute.name, "directoryList");
   assert.equal(reportRoute.name, "reports");
+  assert.equal(profileRoute.name, "profile");
   assert.equal(parseReportKey("missing-documentation"), "missing-documentation");
   assert.equal(parseReportKey("unknown"), "data-quality");
 
@@ -214,6 +217,13 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await fetchDashboardTotals();
   await fetchCurrentUser();
   await login("admin@poweredbyprisma.com", "correct-password");
+  await updateProfile({
+    displayName: "Michelle Benitez",
+    email: "michelle.benitez@poweredbyprisma.com",
+    phone: "555-0199",
+    jobTitle: "Technology Operations",
+    profileImageData: "data:image/png;base64,AA=="
+  });
   await logout();
   await fetchSystems("search=payroll");
   await fetchReportSummaries();
@@ -238,6 +248,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "GET /api/system-records/dashboard-totals",
       "GET /api/auth/me",
       "POST /api/auth/login",
+      "PUT /api/auth/me/profile",
       "POST /api/auth/logout",
       "GET /api/system-records?search=payroll",
       "GET /api/reports",
