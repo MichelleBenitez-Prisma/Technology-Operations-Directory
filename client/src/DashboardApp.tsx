@@ -322,10 +322,12 @@ export function DashboardApp() {
       <section className="app-shell">
         <header className="dashboard-header">
           <h1>Technology Operations Directory</h1>
-          <a className="primary-link" href="#/systems/new">
-            <Plus size={16} aria-hidden="true" />
-            Add System
-          </a>
+          {route.name === "dashboard" ? (
+            <a className="primary-link" href="#/systems/new">
+              <Plus size={16} aria-hidden="true" />
+              Add System
+            </a>
+          ) : null}
         </header>
 
       {route.name === "dashboard" ? <DashboardHome navigate={navigate} /> : null}
