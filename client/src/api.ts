@@ -57,7 +57,7 @@ export async function signUp(input: {
 }
 
 export async function requestPasswordReset(email: string) {
-  return mutateJson<{ data: { message: string; temporaryPassword: string | null } }>(
+  return mutateJson<{ data: { message: string } }>(
     "/api/auth/forgot-password",
     "POST",
     { email }

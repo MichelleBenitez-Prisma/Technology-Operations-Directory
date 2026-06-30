@@ -179,33 +179,6 @@ export function createUser(input: {
   return findUserByEmail(email);
 }
 
-export function resetUserPassword(email: string, password: string) {
-  const user = findUserByEmail(email);
-
-  if (!user) {
-    return undefined;
-  }
-
-  const passwordRecord = hashPassword(password);
-
-  execute(
-    `
-    UPDATE users
-    SET password_hash = $passwordHash,
-        password_salt = $passwordSalt,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = $userId
-    `,
-    {
-      userId: user.id,
-      passwordHash: passwordRecord.hash,
-      passwordSalt: passwordRecord.salt
-    }
-  );
-
-  return findUserByEmail(email);
-}
-
 export function isAllowedEmail(email: string) {
   return email.trim().toLowerCase().endsWith(`@${allowedEmailDomain}`);
 }

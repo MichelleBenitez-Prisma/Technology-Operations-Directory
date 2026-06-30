@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent as ReactFormEvent, ReactNode } from "react";
-import prismaLogo from "./prisma-p-logo.svg";
 
 import {
   ApiError,
@@ -308,7 +307,7 @@ export function DashboardApp() {
         <a className="brand-mark" href="#">
           <span className="brand-monitor" aria-hidden="true">
             <Monitor size={38} />
-            <img src={prismaLogo} alt="" />
+            <PrismaPLogo />
           </span>
           <strong>Technology Department</strong>
         </a>
@@ -413,6 +412,23 @@ function SidebarLink({
   );
 }
 
+function PrismaPLogo() {
+  return (
+    <svg className="prisma-p-logo" viewBox="0 0 28 34" aria-hidden="true">
+      <path fill="#00a9e0" d="M0 8h8v9H0z" />
+      <path fill="#40c4f4" d="M0 17h8v9H0z" />
+      <path fill="#00a9e0" d="M0 26h8v8H0z" />
+      <path fill="#95c93d" d="M8 0h10v8H8z" />
+      <path fill="#00a9e0" d="M8 8h10v9H8z" />
+      <path fill="#48c7ee" d="M8 17h10v9H8z" />
+      <path fill="#f7941d" d="M18 0h10v8H18z" />
+      <path fill="#ffcb05" d="M18 8h10v9H18z" />
+      <path fill="#f15a24" d="M18 17h10v9H18z" />
+      <path fill="#003da5" d="M8 26h10v8H8z" />
+    </svg>
+  );
+}
+
 function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) => void }) {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [displayName, setDisplayName] = useState("");
@@ -441,11 +457,7 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
 
       if (mode === "forgot") {
         const response = await requestPasswordReset(email);
-        setInfo(
-          response.data.temporaryPassword
-            ? `Temporary password: ${response.data.temporaryPassword}`
-            : response.data.message
-        );
+        setInfo(response.data.message);
         setMode("login");
         return;
       }

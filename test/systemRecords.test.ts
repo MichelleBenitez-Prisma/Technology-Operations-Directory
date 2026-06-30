@@ -211,8 +211,8 @@ test("system records API supports main phase two flows", async () => {
     const createdPerson = await requestJson(baseUrl, "/api/people", {
       method: "POST",
       body: {
-        display_name: "Michelle Benitez",
-        email: "michelle.benitez@example.com",
+        display_name: "Sample Person",
+        email: "sample.person@example.com",
         title: "Technology Operations",
         team_id: teamId,
         active: 1
@@ -695,17 +695,10 @@ test("system records API supports main phase two flows", async () => {
       body: { email: "new.user@poweredbyprisma.com" }
     });
     assert.equal(resetPassword.status, 200);
-    const temporaryPassword = String(
-      (getResponseData<Record<string, unknown>>(resetPassword)).temporaryPassword
+    assert.equal(
+      (getResponseData<Record<string, unknown>>(resetPassword)).temporaryPassword,
+      undefined
     );
-    assert.match(temporaryPassword, /^Temp-/);
-
-    const resetLogin = await requestJson(baseUrl, "/api/auth/login", {
-      method: "POST",
-      body: { email: "new.user@poweredbyprisma.com", password: temporaryPassword, remember: false }
-    });
-    assert.equal(resetLogin.status, 200);
-    assert.ok(resetLogin.headers.get("set-cookie")?.includes("Expires="));
 
     const loginResponse = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",
@@ -725,8 +718,8 @@ test("system records API supports main phase two flows", async () => {
       method: "PUT",
       headers: { cookie: adminCookie },
       body: {
-        displayName: "Michelle Benitez",
-        email: "michelle.benitez@poweredbyprisma.com",
+        displayName: "Sample Admin",
+        email: "sample.admin@poweredbyprisma.com",
         phone: "555-0199",
         jobTitle: "Technology Operations",
         profileImageData: "data:image/png;base64,AA=="
@@ -739,8 +732,8 @@ test("system records API supports main phase two flows", async () => {
       method: "PUT",
       headers: { cookie: adminCookie },
       body: {
-        displayName: "Michelle Benitez",
-        email: "michelle@example.com",
+        displayName: "Sample Admin",
+        email: "sample.admin@example.com",
         profileImageData: ""
       }
     });
@@ -750,8 +743,8 @@ test("system records API supports main phase two flows", async () => {
       method: "PUT",
       headers: { cookie: adminCookie },
       body: {
-        displayName: "Michelle Benitez",
-        email: "michelle.benitez@poweredbyprisma.com",
+        displayName: "Sample Admin",
+        email: "sample.admin@poweredbyprisma.com",
         profileImageData: "not-an-image"
       }
     });

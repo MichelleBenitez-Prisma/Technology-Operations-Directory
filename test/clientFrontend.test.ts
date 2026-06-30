@@ -230,8 +230,8 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   });
   await requestPasswordReset("new.user@poweredbyprisma.com");
   await updateProfile({
-    displayName: "Michelle Benitez",
-    email: "michelle.benitez@poweredbyprisma.com",
+    displayName: "Sample Admin",
+    email: "sample.admin@poweredbyprisma.com",
     phone: "555-0199",
     jobTitle: "Technology Operations",
     profileImageData: "data:image/png;base64,AA=="

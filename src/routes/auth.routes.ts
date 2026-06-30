@@ -7,11 +7,11 @@ import {
   createUser,
   deleteSession,
   ensureLocalDevelopmentUser,
+  findUserByEmail,
   findUserBySessionToken,
   listAuditLogEvents,
   logAuditEvent,
   sessionCookieName,
-  resetUserPassword,
   updateUserProfile
 } from "../db/authRepository.js";
 import { authIsRequired, readCookie } from "../middleware/auth.js";
@@ -159,8 +159,7 @@ authRouter.post("/forgot-password", (request, response) => {
     throwValidationError(`Use your @${allowedEmailDomain} email address.`);
   }
 
-  const temporaryPassword = `Temp-${randomCode()}`;
-  const user = resetUserPassword(email, temporaryPassword);
+  const user = findUserByEmail(email);
 
   logAuditEvent({
     userId: user?.id,
@@ -175,8 +174,7 @@ authRouter.post("/forgot-password", (request, response) => {
 
   response.json({
     data: {
-      message: "If this account exists, a temporary password was generated.",
-      temporaryPassword: user ? temporaryPassword : null
+      message: "If this account exists, a password reset was recorded. Contact an administrator for the next step."
     }
   });
 });
@@ -239,10 +237,6 @@ function parseSignupInput(body: Record<string, unknown>) {
   }
 
   return { displayName, email, password, phone, jobTitle };
-}
-
-function randomCode() {
-  return Math.random().toString(36).slice(2, 10);
 }
 
 function nullableText(value: unknown) {
