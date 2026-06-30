@@ -184,6 +184,12 @@ input {
   color: #07142d;
 }
 
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -236,6 +242,11 @@ h1 {
   cursor: pointer;
 }
 
+.icon-button.square {
+  width: 40px;
+  padding: 0;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -277,6 +288,31 @@ h1 {
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
+}
+
+.guide-panel p {
+  color: #33475b;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.guide-card {
+  border: 1px solid #d9e3ec;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.guide-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.guide-card li + li {
+  margin-top: 8px;
 }
 
 .login-panel {

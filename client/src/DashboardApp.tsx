@@ -3,6 +3,7 @@ import {
   Archive,
   CalendarClock,
   CheckCircle2,
+  CircleHelp,
   CircleDot,
   Clock3,
   Download,
@@ -88,6 +89,7 @@ import type {
 type LoadState = "loading" | "ready" | "error";
 export type Route =
   | { name: "dashboard" }
+  | { name: "help" }
   | { name: "updates" }
   | { name: "profile" }
   | { name: "reports"; query: URLSearchParams }
@@ -339,14 +341,20 @@ export function DashboardApp() {
         <header className="dashboard-header">
           <h1>Technology Operations Directory</h1>
           {route.name === "dashboard" ? (
-            <a className="primary-link" href="#/systems/new">
-              <Plus size={16} aria-hidden="true" />
-              Add System
-            </a>
+            <div className="header-actions">
+              <a className="primary-link" href="#/systems/new">
+                <Plus size={16} aria-hidden="true" />
+                Add System
+              </a>
+              <a className="icon-button square" href="#/help" aria-label="Open user guide" title="User guide">
+                <CircleHelp size={20} aria-hidden="true" />
+              </a>
+            </div>
           ) : null}
         </header>
 
       {route.name === "dashboard" ? <DashboardHome navigate={navigate} /> : null}
+      {route.name === "help" ? <HelpPage /> : null}
       {route.name === "updates" ? <UpdatesPage /> : null}
       {route.name === "profile" ? <ProfileSettingsPage user={user} onUserUpdated={setUser} /> : null}
       {route.name === "reports" ? <ReportsPage initialQuery={route.query} /> : null}
@@ -670,6 +678,73 @@ function ProfileSettingsPage({
             </button>
           </div>
         </form>
+      </section>
+    </>
+  );
+}
+
+function HelpPage() {
+  const guideSections = [
+    {
+      title: "Systems",
+      items: [
+        "Use Add System to create a record. System name, category, status, and description are required.",
+        "Open Systems to search, filter, sort, edit, archive, import, or export system records.",
+        "Open a system name to view ownership, vendor, hosting, documentation, lifecycle, dependencies, and category details."
+      ]
+    },
+    {
+      title: "Vendors And Dependencies",
+      items: [
+        "Use Vendors to add, edit, view, search, and archive technology vendors.",
+        "Use a system detail page to create dependencies and see what other systems may be affected if one system stops working."
+      ]
+    },
+    {
+      title: "Reports And Data Quality",
+      items: [
+        "Open Reports to review active systems, replacements, retired systems, missing owners, missing documentation, renewals, and data-quality warnings.",
+        "Dashboard alert cards link to the related report results."
+      ]
+    },
+    {
+      title: "Data Export",
+      items: [
+        "Use Export CSV on the Systems page to download the current system list.",
+        "Search, filter, and sort settings are included in the export where practical."
+      ]
+    }
+  ];
+
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow">Phase 8</p>
+          <h2>User Guide</h2>
+        </div>
+        <a className="secondary-link" href="#">
+          Dashboard
+        </a>
+      </section>
+
+      <section className="panel wide guide-panel">
+        <p>
+          Quick help for using the Technology Operations Directory. This summary follows the
+          consolidated project guide in <code>docs/project-guide.md</code>.
+        </p>
+        <div className="guide-grid">
+          {guideSections.map((section) => (
+            <article className="guide-card" key={section.title}>
+              <h3>{section.title}</h3>
+              <ul>
+                {section.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
       </section>
     </>
   );
@@ -3158,6 +3233,10 @@ export function parseRouteFromHash(rawHash: string): Route {
 
   if (segments[0] === "reports") {
     return { name: "reports", query };
+  }
+
+  if (segments[0] === "help") {
+    return { name: "help" };
   }
 
   if (segments[0] === "updates") {
