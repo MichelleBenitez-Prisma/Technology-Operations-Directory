@@ -1,223 +1,52 @@
 # Technology Operations Directory
 
-The Technology Operations Directory is an internal web application for the Technology department to record, search, and review operational information about systems across the organization.
+Internal React, Express, TypeScript, and SQLite application for the Technology Department to track systems, vendors, dependencies, reviews, reporting, and operational record quality.
 
-The directory is intended to cover software applications, websites, servers, databases, vendor-hosted services, integrations, scheduled processes, internal tools, payment services, production systems, and retired systems in one searchable place.
+The directory is designed for operational metadata only. It must not store passwords, API keys, authentication tokens, private certificates, payment card data, database credentials, or unnecessary employee personal information. Password-manager references such as `Vault/Technology/DokShop` are allowed; actual credentials are not.
 
-## Recommended Stack
+## Current Capabilities
 
-- Frontend: React with TypeScript
-- Backend: Node.js with Express
-- Database: SQLite
-- Source control: Git and GitHub
-- Development environment: Visual Studio Code
-- Styling: Standard CSS, Bootstrap, or Tailwind CSS
+- Dashboard with system totals, renewal alerts, data-quality alerts, quick search, update activity, and a built-in user guide.
+- Searchable systems list with filters, sorting, archive visibility, CSV export, and CSV import.
+- Add, view, edit, archive, and delete system records.
+- System detail pages with general information, ownership/support, technical information, documentation, lifecycle fields, category-specific details, dependencies, and record actions.
+- Vendor directory with vendor list, search, add/edit forms, detail pages, archive behavior, and connected systems by vendor name.
+- Directory workflows for integrations, scheduled processes, reviews, system dependencies, document references, tags, and custom fields.
+- Data-quality warnings and reports for missing documentation, missing owners, renewals, lifecycle, vendor/category/owner/criticality groupings, review due dates, and recent reviews.
+- Authentication, roles, session cookies, audit logging, request IDs, backup/restore guidance, and production deployment notes.
+- Profile settings for full name, email, phone, job title, and profile picture.
 
-## Phase One Scope
-
-Phase one establishes the foundation for the application:
-
-- Initial SQLite database design
-- Reference data for supported technology asset types
-- Requirements summary, basic wireframes, database diagram, and development task list
-- Starter Git repository
-- Initial project README
-
-Phase two begins the application code with a Node.js, Express, and TypeScript backend scaffold.
-Phase three adds the core React interface for dashboard review, system list search,
-system detail pages, add/edit forms, and archive handling.
-
-## Repository Structure
+## Project Structure
 
 ```text
-.
-+-- client/
-|   +-- index.html
-|   +-- src/
-|       +-- DashboardApp.tsx
-|       +-- api.ts
-|       +-- dashboardData.ts
-|       +-- main.tsx
-|       +-- styles.css
-|       +-- types.ts
-+-- database/
-|   +-- migrations/
-|   +-- schema.sql
-|   +-- seed.sql
-+-- docs/
-|   +-- database-design.md
-|   +-- category-definitions.md
-|   +-- api.md
-|   +-- database-diagram.md
-|   +-- development-task-list.md
-|   +-- project-guide.md
-|   +-- requirements-summary.md
-|   +-- wireframes.md
-+-- scripts/
-|   +-- init-database.mjs
-|   +-- migrate-database.mjs
-+-- src/
-|   +-- app.ts
-|   +-- server.ts
-|   +-- config/
-|   +-- db/
-|   +-- middleware/
-|   +-- routes/
-|   +-- types/
-|   +-- validation/
-+-- .env.example
-+-- .gitattributes
-+-- .gitignore
-+-- .prettierignore
-+-- .prettierrc.json
-+-- eslint.config.js
-+-- package.json
-+-- README.md
-+-- tsconfig.client.json
-+-- tsconfig.json
-+-- vite.config.ts
+client/src/              React dashboard, API helpers, types, and CSS
+src/                     Express API, routes, middleware, validation, repositories
+database/                Base schema, seed data, and numbered migrations
+scripts/                 Database initialization and migration scripts
+test/                    Node test suite for API and frontend helper behavior
+docs/                    Project guide, API reference, diagrams, task list, requirements
+data/                    Local SQLite database files; ignored by Git
+dist/                    Production build output; ignored by Git
 ```
 
-## GitHub Repository Setup
+Use `docs/project-guide.md` first for user, developer, administrator, backup, restore, and troubleshooting documentation. Use `docs/api.md` for endpoint details.
 
-Recommended repository name:
+## Required Software
 
-```text
-technology-operations-directory
-```
+- Node.js 24 or newer
+- npm
+- Git
+- SQLite support through Node’s built-in `node:sqlite`
 
-Recommended visibility:
-
-```text
-Private
-```
-
-After creating the empty GitHub repository, connect this local repository and push the first commit:
-
-```bash
-git remote add origin https://github.com/<owner-or-org>/technology-operations-directory.git
-git push -u origin main
-```
-
-## Documentation
-
-Use these current documents first:
-
-- `docs/project-guide.md`: user guide, developer guide, operations notes, troubleshooting, and code documentation standards.
-- `docs/api.md`: API routes, request fields, validation rules, and response shapes.
-- `docs/development-task-list.md`: phase checklist and remaining work.
-- `docs/database-design.md`, `docs/database-diagram.md`, and `docs/category-definitions.md`: database and category references.
-
-## Initial Database Design
-
-The database is centered on `technology_assets`, a shared record for anything the Technology department needs to track. Specialized tables add detail for applications, websites, servers, and databases without forcing every asset type into the same set of columns.
-
-Core concepts:
-
-- `technology_assets`: central catalog entries
-- `asset_types`: supported categories such as application, website, server, database, vendor-hosted service, integration, scheduled process, internal tool, payment service, production system, retired system, and other future categories
-- `teams` and `people`: ownership and accountability
-- `vendors`: third-party providers and contract context
-- `integrations`: connections between internal or external systems
-- `scheduled_processes`: recurring jobs, automations, and operational tasks
-- `review_records`: periodic validation history
-- `tags` and `asset_tags`: flexible grouping and filtering
-- `asset_search`: SQLite full-text search index for directory search
-
-See `docs/database-design.md` for the table-by-table design notes.
-
-## Create the SQLite Database
-
-From the repository root:
-
-```bash
-mkdir -p data
-sqlite3 data/technology_operations_directory.sqlite ".read database/schema.sql"
-sqlite3 data/technology_operations_directory.sqlite ".read database/seed.sql"
-```
-
-The `data/` directory is ignored by Git so local SQLite databases are not committed.
-
-You can also build the local SQLite database with the Node.js script:
-
-```bash
-npm run db:init
-```
-
-Use this to rebuild the database from scratch:
-
-```bash
-npm run db:reset
-```
-
-## Administrator Setup
-
-Authentication is enabled by default outside tests. Set these environment variables before first production startup so the app can create the first administrator:
-
-```bash
-AUTH_REQUIRED=true
-INITIAL_ADMIN_EMAIL=admin@poweredbyprisma.com
-INITIAL_ADMIN_PASSWORD=<strong temporary password>
-```
-
-After the first admin exists, remove or rotate the temporary password value. Users have one of three roles: `viewer` for read-only use, `editor` for add/edit/archive work, and `admin` for delete and administrator actions.
-
-Important record changes are written to `audit_logs`. Server errors include an `X-Request-Id` response header and a `requestId` value in 500 responses so logs can be matched to user reports.
-
-## SQLite Backup And Restore
-
-Before upgrades or production maintenance, stop writes to the app and copy the SQLite file configured by `DATABASE_PATH`.
-
-```bash
-cp data/technology_operations_directory.sqlite backups/technology_operations_directory-YYYY-MM-DD.sqlite
-```
-
-To restore, stop the app, replace the configured database file with the selected backup, then restart the app and run:
-
-```bash
-npm run db:migrate:status
-```
-
-## Production Deployment Notes
-
-For Render or another Node host, use Node 24 or newer. The production start command is:
-
-```bash
-npm start
-```
-
-`npm start` applies pending database migrations before starting the Express server. Configure persistent disk storage for the SQLite database path, keep `.env` values out of Git, and leave `/health` available for platform health checks.
-
-Schema changes after the baseline should be added as numbered `.sql` files in
-`database/migrations/` and applied with:
-
-```bash
-npm run db:migrate
-```
-
-Check the database migration state with:
-
-```bash
-npm run db:migrate:status
-```
-
-## Backend API
-
-The phase-two backend scaffold uses Node.js, Express, and TypeScript.
-
-Initial scripts:
+## Local Setup
 
 ```bash
 npm install
 npm run db:init
-npm run db:migrate:status
-npm run lint:api
-npm run format:api:check
-npm test
-npm run dev
+npm run db:migrate
 ```
 
-Frontend dashboard development:
+Start the API and client in separate terminals:
 
 ```bash
 npm run dev:api
@@ -230,109 +59,105 @@ Open:
 http://127.0.0.1:5173
 ```
 
-Production build:
+Development login is bypassed unless `AUTH_REQUIRED=true` is set. When auth is bypassed, the app uses a local development admin user.
+
+## Build, Test, And Database Commands
 
 ```bash
+npm run typecheck          # Type-check backend code
+npm run typecheck:client   # Type-check React client
+npm run typecheck:test     # Type-check tests
+npm test                   # Run Node test suite
+npm run build              # Build API and production client
+npm start                  # Apply migrations and run built server
+npm run db:migrate:status  # Show migration state
+npm run db:reset           # Rebuild local database from scratch
+```
+
+## Authentication And Roles
+
+For production, set:
+
+```bash
+AUTH_REQUIRED=true
+INITIAL_ADMIN_EMAIL=<admin email>
+INITIAL_ADMIN_PASSWORD=<one-time setup password>
+```
+
+After the first administrator exists, remove or rotate the setup password value. Roles are:
+
+- `viewer`: read-only
+- `editor`: add, edit, and archive records
+- `admin`: delete records and perform administrator-level actions
+
+Sessions use an HttpOnly `tod_session` cookie. The application stores password hashes and session token hashes, not plaintext passwords or plaintext session tokens.
+
+## Security Rules
+
+- Do not commit `.env`, SQLite database files, logs, screenshots with sensitive content, or generated `dist/` output unless intentionally required.
+- Do not store passwords, API keys, authentication tokens, private certificates, payment information, database credentials, or unnecessary employee personal information.
+- Store only the name/location of approved password-manager entries in `passwordVaultReference`.
+- Sample data must use fake systems, fake vendors, fake URLs, and safe placeholder contact data.
+- Forgot-password currently records the request and tells the user to contact an administrator; it does not return a temporary password.
+
+## Main API Areas
+
+- `/health`
+- `/api/auth`
+- `/api/asset-types`
+- `/api/system-records` and `/api/systems`
+- `/api/vendors`
+- `/api/reports`
+- `/api/search`
+- `/api/teams`, `/api/people`, `/api/asset-environments`
+- `/api/integrations`, `/api/system-dependencies`, `/api/scheduled-processes`, `/api/reviews`, `/api/tags`
+- `/api/document-references`, `/api/custom-fields`
+
+See `docs/api.md` for request/response details.
+
+## SQLite Backup And Restore
+
+Before maintenance, stop writes to the app and copy the SQLite file configured by `DATABASE_PATH`.
+
+```bash
+cp data/technology_operations_directory.sqlite backups/technology_operations_directory-YYYY-MM-DD.sqlite
+```
+
+To restore, stop the app, replace the configured database file with the selected backup, restart the app, and run:
+
+```bash
+npm run db:migrate:status
+```
+
+## Production Deployment
+
+For Render or another Node host:
+
+- Use Node 24 or newer.
+- Use `npm start` as the start command.
+- Configure persistent disk storage for the SQLite database.
+- Keep secrets in environment variables, not Git.
+- Keep `/health` public for platform checks.
+- Run `npm run build` before deployment when validating locally.
+
+`npm start` applies pending migrations before starting the server.
+
+## Current Known Gaps
+
+- Stakeholder review is still unchecked in `docs/development-task-list.md`.
+- Forgot-password is intentionally conservative: it does not email reset links or display temporary passwords. A production-ready password reset process would need secure email or administrator tooling.
+- Authentication is bypassed by default for development. Production must set `AUTH_REQUIRED=true`.
+- Browser-level/mobile visual testing is limited; current tests focus on API behavior and frontend helper logic.
+- Tags still exist as a directory workflow for future filtering/grouping, even if they are not central to the current dashboard success criteria.
+
+## Verification Status
+
+Recent local verification completed successfully:
+
+```bash
+npm run typecheck
+npm run typecheck:client
+npm run typecheck:test
+npm test
 npm run build
-npm start
 ```
-
-Initial endpoints:
-
-- `GET /health`
-- `GET /api/asset-types`
-- `GET /api/system-records`
-- `GET /api/system-records/:id`
-- `POST /api/system-records`
-- `PUT /api/system-records/:id`
-- `PATCH /api/system-records/:id`
-- `POST /api/system-records/:id/archive`
-- `DELETE /api/system-records/:id`
-- `GET /api/system-records/incomplete`
-- `GET /api/system-records/dashboard-totals`
-- `GET /api/systems`
-- `GET /api/systems/:id`
-- `POST /api/systems`
-- `PUT /api/systems/:id`
-- `PATCH /api/systems/:id`
-- `POST /api/systems/:id/archive`
-- `DELETE /api/systems/:id`
-- `GET /api/systems/incomplete`
-- `GET /api/systems/dashboard-totals`
-
-See `docs/api.md` for request and response details.
-
-System status values:
-
-- `active`
-- `development`
-- `being_replaced`
-- `maintenance_only`
-- `retired`
-
-Archive is tracked separately with `archived_at`; it is not a system status.
-
-List endpoints support:
-
-- Search: `search`
-- Filters: `categoryCode`, `status`, `businessDepartment`, `vendor`, `technicalOwner`, `hostingLocation`, `incompleteOnly`, `includeArchived`, `archivedOnly`
-- Sorting: `sortBy` and `sortDirection`
-- Pagination: `limit` and `offset`
-
-Initial system record fields:
-
-- `systemName`
-- `description`
-- `categoryCode`
-- `status`
-- `businessDepartment`
-- `departmentOwner`
-- `technicalOwner`
-- `vendor`
-- `supportContact`
-- `hostingLocation`
-- `serverName`
-- `databaseName`
-- `productionUrl`
-- `testUrl`
-- `documentationLink`
-- `passwordVaultReference`
-- `renewalDate`
-- `lastReviewDate`
-- `notes`
-- `replacementSystem`
-- `retirementNotes`
-
-`systemName`, `description`, `categoryCode`, and `status` are required by the initial API validation.
-`replacementSystem` and `retirementNotes` support tracking old inventory and replacement activity during system retirement.
-
-Validation before save:
-
-- Required fields cannot be empty.
-- URLs must use `http://` or `https://` and valid URL formatting.
-- Dates must use a real `YYYY-MM-DD` calendar date.
-- Status must be one of the defined system status values.
-- Category must exist in `asset_types`.
-- Duplicate active system names are allowed, but create and update responses include a warning.
-
-Create and update responses use this shape:
-
-```json
-{
-  "data": {
-    "id": 1,
-    "system_name": "Example System"
-  },
-  "warnings": [
-    {
-      "code": "duplicate_system_name",
-      "message": "Another active system record already uses this system name. Review the matching records before saving another copy.",
-      "matchingSystemIds": [2]
-    }
-  ]
-}
-```
-
-## Security Notes
-
-Do not store passwords, API keys, private certificates, or other secrets in this directory. Store only operational metadata and links to approved secret-management locations.
