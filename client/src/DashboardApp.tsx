@@ -1054,180 +1054,108 @@ function DashboardWidgetLayout({
   upcomingRenewals: SystemRecord[];
   withoutTechnicalOwner: SystemRecord[];
 }) {
-  const enabledWidgets = preferences.widgets.length > 0 ? preferences.widgets : defaultDashboardPreferences.widgets;
+  const enabledWidgets = new Set(preferences.widgets);
 
   return (
     <>
-      {enabledWidgets.map((widget) => {
-        if (widget === "metrics") {
-          return (
-            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
-              <section className="metric-grid" aria-label="Directory overview">
-                <MetricCard
-                  label="Total Systems"
-                  value={totals?.total ?? 0}
-                  href="#/systems"
-                  icon={<CircleDot size={22} aria-hidden="true" />}
-                  loading={loadState === "loading"}
-                />
-                <MetricCard
-                  label="Active Systems"
-                  value={getStatusCount(totals, "active")}
-                  href="#/reports?report=active-systems"
-                  icon={<CheckCircle2 size={22} aria-hidden="true" />}
-                  tone="good"
-                  loading={loadState === "loading"}
-                />
-                <MetricCard
-                  label="Being Replaced"
-                  value={getStatusCount(totals, "being_replaced")}
-                  href="#/reports?report=being-replaced"
-                  icon={<RefreshCcw size={22} aria-hidden="true" />}
-                  tone="watch"
-                  loading={loadState === "loading"}
-                />
-                <MetricCard
-                  label="Retired Systems"
-                  value={getStatusCount(totals, "retired")}
-                  href="#/reports?report=retired-systems"
-                  icon={<Archive size={22} aria-hidden="true" />}
-                  loading={loadState === "loading"}
-                />
-                <MetricCard
-                  label="Missing Documentation"
-                  value={totals?.missingDocumentation ?? 0}
-                  href="#/reports?report=missing-documentation"
-                  icon={<FileQuestion size={22} aria-hidden="true" />}
-                  tone="risk"
-                  loading={loadState === "loading"}
-                />
-                <MetricCard
-                  label="Without Technical Owner"
-                  value={totals?.withoutTechnicalOwner ?? 0}
-                  href="#/reports?report=missing-owners"
-                  icon={<UserRoundX size={22} aria-hidden="true" />}
-                  tone="risk"
-                  loading={loadState === "loading"}
-                />
-              </section>
-            </DashboardWidgetFrame>
-          );
-        }
+      {enabledWidgets.has("metrics") ? (
+        <section className="metric-grid" aria-label="Directory overview">
+          <MetricCard
+            label="Total Systems"
+            value={totals?.total ?? 0}
+            href="#/systems"
+            icon={<CircleDot size={22} aria-hidden="true" />}
+            loading={loadState === "loading"}
+          />
+          <MetricCard
+            label="Active Systems"
+            value={getStatusCount(totals, "active")}
+            href="#/reports?report=active-systems"
+            icon={<CheckCircle2 size={22} aria-hidden="true" />}
+            tone="good"
+            loading={loadState === "loading"}
+          />
+          <MetricCard
+            label="Being Replaced"
+            value={getStatusCount(totals, "being_replaced")}
+            href="#/reports?report=being-replaced"
+            icon={<RefreshCcw size={22} aria-hidden="true" />}
+            tone="watch"
+            loading={loadState === "loading"}
+          />
+          <MetricCard
+            label="Retired Systems"
+            value={getStatusCount(totals, "retired")}
+            href="#/reports?report=retired-systems"
+            icon={<Archive size={22} aria-hidden="true" />}
+            loading={loadState === "loading"}
+          />
+          <MetricCard
+            label="Missing Documentation"
+            value={totals?.missingDocumentation ?? 0}
+            href="#/reports?report=missing-documentation"
+            icon={<FileQuestion size={22} aria-hidden="true" />}
+            tone="risk"
+            loading={loadState === "loading"}
+          />
+          <MetricCard
+            label="Without Technical Owner"
+            value={totals?.withoutTechnicalOwner ?? 0}
+            href="#/reports?report=missing-owners"
+            icon={<UserRoundX size={22} aria-hidden="true" />}
+            tone="risk"
+            loading={loadState === "loading"}
+          />
+        </section>
+      ) : null}
 
-        if (widget === "renewals") {
-          return (
-            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
-            <section className="content-grid single-widget">
-              <Panel title="Upcoming Renewals" subtitle="Next 90 days" icon={<CalendarClock size={18} />} wide>
-                <RecordList
-                  records={upcomingRenewals.slice(0, 6)}
-                  emptyText="No renewals are due in the next 90 days."
-                  detail={(record) => (
-                    <>
-                      <span>{record.vendor ?? "No vendor"}</span>
-                      <span>{formatDate(record.renewal_date)}</span>
-                    </>
-                  )}
-                />
-                <a className="inline-link" href="#/reports?report=upcoming-renewals">
-                  View renewal report
-                </a>
-              </Panel>
-            </section>
-            </DashboardWidgetFrame>
-          );
-        }
+      <section className="content-grid">
+        {enabledWidgets.has("renewals") ? (
+          <Panel title="Upcoming Renewals" subtitle="Next 90 days" icon={<CalendarClock size={18} />}>
+            <RecordList
+              records={upcomingRenewals.slice(0, 6)}
+              emptyText="No renewals are due in the next 90 days."
+              detail={(record) => (
+                <>
+                  <span>{record.vendor ?? "No vendor"}</span>
+                  <span>{formatDate(record.renewal_date)}</span>
+                </>
+              )}
+            />
+            <a className="inline-link" href="#/reports?report=upcoming-renewals">
+              View renewal report
+            </a>
+          </Panel>
+        ) : null}
 
-        if (widget === "attention") {
-          return (
-            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
-            <section className="content-grid single-widget">
-              <Panel
-                title="Needs Attention"
-                subtitle="Documentation and ownership gaps"
-                icon={<AlertTriangle size={18} />}
-                wide
-              >
-                <div className="attention-grid">
-                  <AttentionColumn
-                    title="Missing Documentation"
-                    records={missingDocumentation.slice(0, 5)}
-                    emptyText="Every visible system has documentation."
-                  />
-                  <AttentionColumn
-                    title="No Technical Owner"
-                    records={withoutTechnicalOwner.slice(0, 5)}
-                    emptyText="Every visible system has a technical owner."
-                  />
-                </div>
-              </Panel>
-            </section>
-            </DashboardWidgetFrame>
-          );
-        }
+        {enabledWidgets.has("attention") ? (
+          <Panel
+            title="Needs Attention"
+            subtitle="Documentation and ownership gaps"
+            icon={<AlertTriangle size={18} />}
+          >
+            <div className="attention-grid">
+              <AttentionColumn
+                title="Missing Documentation"
+                records={missingDocumentation.slice(0, 5)}
+                emptyText="Every visible system has documentation."
+              />
+              <AttentionColumn
+                title="No Technical Owner"
+                records={withoutTechnicalOwner.slice(0, 5)}
+                emptyText="Every visible system has a technical owner."
+              />
+            </div>
+          </Panel>
+        ) : null}
 
-        return (
-          <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
-          <section className="content-grid single-widget">
-            <Panel title="Directory Search" subtitle="Quick scan" wide>
-              <SystemTable records={filteredSystems} />
-            </Panel>
-          </section>
-          </DashboardWidgetFrame>
-        );
-      })}
+        {enabledWidgets.has("directory") ? (
+          <Panel title="Directory Search" subtitle="Quick scan" wide>
+            <SystemTable records={filteredSystems} />
+          </Panel>
+        ) : null}
+      </section>
     </>
-  );
-}
-
-function DashboardWidgetFrame({
-  children,
-  preferences,
-  widget
-}: {
-  children: ReactNode;
-  preferences: DashboardPreferences;
-  widget: DashboardWidgetId;
-}) {
-  const position = preferences.widgets.indexOf(widget);
-
-  function moveWidget(direction: -1 | 1) {
-    const widgets = [...preferences.widgets];
-    const nextIndex = position + direction;
-
-    if (position < 0 || nextIndex < 0 || nextIndex >= widgets.length) {
-      return;
-    }
-
-    [widgets[position], widgets[nextIndex]] = [widgets[nextIndex], widgets[position]];
-    saveDashboardPreferences({ ...preferences, widgets });
-  }
-
-  return (
-    <section className="dashboard-widget-frame">
-      <header className="dashboard-widget-toolbar">
-        <span>{widgetLabels[widget]}</span>
-        <span className="widget-order-actions">
-          <button
-            className="icon-button compact"
-            disabled={position <= 0}
-            onClick={() => moveWidget(-1)}
-            type="button"
-          >
-            Move up
-          </button>
-          <button
-            className="icon-button compact"
-            disabled={position === preferences.widgets.length - 1}
-            onClick={() => moveWidget(1)}
-            type="button"
-          >
-            Move down
-          </button>
-        </span>
-      </header>
-      {children}
-    </section>
   );
 }
 
