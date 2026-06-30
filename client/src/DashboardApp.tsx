@@ -745,19 +745,6 @@ function ProfileSettingsPage({
     });
   }
 
-  function moveWidget(widget: DashboardWidgetId, direction: -1 | 1) {
-    const widgets = [...preferences.widgets];
-    const index = widgets.indexOf(widget);
-    const nextIndex = index + direction;
-
-    if (index < 0 || nextIndex < 0 || nextIndex >= widgets.length) {
-      return;
-    }
-
-    [widgets[index], widgets[nextIndex]] = [widgets[nextIndex], widgets[index]];
-    updatePreferences({ ...preferences, widgets });
-  }
-
   return (
     <>
       <section className="page-heading">
@@ -848,7 +835,6 @@ function ProfileSettingsPage({
             <div className="widget-settings-list">
               {(Object.keys(widgetLabels) as DashboardWidgetId[]).map((widget) => {
                 const enabled = preferences.widgets.includes(widget);
-                const position = preferences.widgets.indexOf(widget);
 
                 return (
                   <div className="widget-settings-row" key={widget}>
@@ -860,26 +846,6 @@ function ProfileSettingsPage({
                       />
                       {widgetLabels[widget]}
                     </label>
-                    <div className="widget-order-actions">
-                      <button
-                        className="icon-button square"
-                        disabled={!enabled || position <= 0}
-                        onClick={() => moveWidget(widget, -1)}
-                        title="Move widget up"
-                        type="button"
-                      >
-                        Up
-                      </button>
-                      <button
-                        className="icon-button square"
-                        disabled={!enabled || position === preferences.widgets.length - 1}
-                        onClick={() => moveWidget(widget, 1)}
-                        title="Move widget down"
-                        type="button"
-                      >
-                        Down
-                      </button>
-                    </div>
                   </div>
                 );
               })}
@@ -1095,60 +1061,63 @@ function DashboardWidgetLayout({
       {enabledWidgets.map((widget) => {
         if (widget === "metrics") {
           return (
-            <section className="metric-grid" aria-label="Directory overview" key={widget}>
-              <MetricCard
-                label="Total Systems"
-                value={totals?.total ?? 0}
-                href="#/systems"
-                icon={<CircleDot size={22} aria-hidden="true" />}
-                loading={loadState === "loading"}
-              />
-              <MetricCard
-                label="Active Systems"
-                value={getStatusCount(totals, "active")}
-                href="#/reports?report=active-systems"
-                icon={<CheckCircle2 size={22} aria-hidden="true" />}
-                tone="good"
-                loading={loadState === "loading"}
-              />
-              <MetricCard
-                label="Being Replaced"
-                value={getStatusCount(totals, "being_replaced")}
-                href="#/reports?report=being-replaced"
-                icon={<RefreshCcw size={22} aria-hidden="true" />}
-                tone="watch"
-                loading={loadState === "loading"}
-              />
-              <MetricCard
-                label="Retired Systems"
-                value={getStatusCount(totals, "retired")}
-                href="#/reports?report=retired-systems"
-                icon={<Archive size={22} aria-hidden="true" />}
-                loading={loadState === "loading"}
-              />
-              <MetricCard
-                label="Missing Documentation"
-                value={totals?.missingDocumentation ?? 0}
-                href="#/reports?report=missing-documentation"
-                icon={<FileQuestion size={22} aria-hidden="true" />}
-                tone="risk"
-                loading={loadState === "loading"}
-              />
-              <MetricCard
-                label="Without Technical Owner"
-                value={totals?.withoutTechnicalOwner ?? 0}
-                href="#/reports?report=missing-owners"
-                icon={<UserRoundX size={22} aria-hidden="true" />}
-                tone="risk"
-                loading={loadState === "loading"}
-              />
-            </section>
+            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
+              <section className="metric-grid" aria-label="Directory overview">
+                <MetricCard
+                  label="Total Systems"
+                  value={totals?.total ?? 0}
+                  href="#/systems"
+                  icon={<CircleDot size={22} aria-hidden="true" />}
+                  loading={loadState === "loading"}
+                />
+                <MetricCard
+                  label="Active Systems"
+                  value={getStatusCount(totals, "active")}
+                  href="#/reports?report=active-systems"
+                  icon={<CheckCircle2 size={22} aria-hidden="true" />}
+                  tone="good"
+                  loading={loadState === "loading"}
+                />
+                <MetricCard
+                  label="Being Replaced"
+                  value={getStatusCount(totals, "being_replaced")}
+                  href="#/reports?report=being-replaced"
+                  icon={<RefreshCcw size={22} aria-hidden="true" />}
+                  tone="watch"
+                  loading={loadState === "loading"}
+                />
+                <MetricCard
+                  label="Retired Systems"
+                  value={getStatusCount(totals, "retired")}
+                  href="#/reports?report=retired-systems"
+                  icon={<Archive size={22} aria-hidden="true" />}
+                  loading={loadState === "loading"}
+                />
+                <MetricCard
+                  label="Missing Documentation"
+                  value={totals?.missingDocumentation ?? 0}
+                  href="#/reports?report=missing-documentation"
+                  icon={<FileQuestion size={22} aria-hidden="true" />}
+                  tone="risk"
+                  loading={loadState === "loading"}
+                />
+                <MetricCard
+                  label="Without Technical Owner"
+                  value={totals?.withoutTechnicalOwner ?? 0}
+                  href="#/reports?report=missing-owners"
+                  icon={<UserRoundX size={22} aria-hidden="true" />}
+                  tone="risk"
+                  loading={loadState === "loading"}
+                />
+              </section>
+            </DashboardWidgetFrame>
           );
         }
 
         if (widget === "renewals") {
           return (
-            <section className="content-grid single-widget" key={widget}>
+            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
+            <section className="content-grid single-widget">
               <Panel title="Upcoming Renewals" subtitle="Next 90 days" icon={<CalendarClock size={18} />} wide>
                 <RecordList
                   records={upcomingRenewals.slice(0, 6)}
@@ -1165,12 +1134,14 @@ function DashboardWidgetLayout({
                 </a>
               </Panel>
             </section>
+            </DashboardWidgetFrame>
           );
         }
 
         if (widget === "attention") {
           return (
-            <section className="content-grid single-widget" key={widget}>
+            <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
+            <section className="content-grid single-widget">
               <Panel
                 title="Needs Attention"
                 subtitle="Documentation and ownership gaps"
@@ -1191,18 +1162,72 @@ function DashboardWidgetLayout({
                 </div>
               </Panel>
             </section>
+            </DashboardWidgetFrame>
           );
         }
 
         return (
-          <section className="content-grid single-widget" key={widget}>
+          <DashboardWidgetFrame key={widget} preferences={preferences} widget={widget}>
+          <section className="content-grid single-widget">
             <Panel title="Directory Search" subtitle="Quick scan" wide>
               <SystemTable records={filteredSystems} />
             </Panel>
           </section>
+          </DashboardWidgetFrame>
         );
       })}
     </>
+  );
+}
+
+function DashboardWidgetFrame({
+  children,
+  preferences,
+  widget
+}: {
+  children: ReactNode;
+  preferences: DashboardPreferences;
+  widget: DashboardWidgetId;
+}) {
+  const position = preferences.widgets.indexOf(widget);
+
+  function moveWidget(direction: -1 | 1) {
+    const widgets = [...preferences.widgets];
+    const nextIndex = position + direction;
+
+    if (position < 0 || nextIndex < 0 || nextIndex >= widgets.length) {
+      return;
+    }
+
+    [widgets[position], widgets[nextIndex]] = [widgets[nextIndex], widgets[position]];
+    saveDashboardPreferences({ ...preferences, widgets });
+  }
+
+  return (
+    <section className="dashboard-widget-frame">
+      <header className="dashboard-widget-toolbar">
+        <span>{widgetLabels[widget]}</span>
+        <span className="widget-order-actions">
+          <button
+            className="icon-button compact"
+            disabled={position <= 0}
+            onClick={() => moveWidget(-1)}
+            type="button"
+          >
+            Move up
+          </button>
+          <button
+            className="icon-button compact"
+            disabled={position === preferences.widgets.length - 1}
+            onClick={() => moveWidget(1)}
+            type="button"
+          >
+            Move down
+          </button>
+        </span>
+      </header>
+      {children}
+    </section>
   );
 }
 
