@@ -68,6 +68,7 @@ npm run typecheck          # Type-check backend code
 npm run typecheck:client   # Type-check React client
 npm run typecheck:test     # Type-check tests
 npm test                   # Run Node test suite
+npm run test:e2e           # Run Playwright browser smoke tests
 npm run build              # Build API and production client
 npm start                  # Apply migrations and run built server
 npm run db:migrate:status  # Show migration state
@@ -160,4 +161,5 @@ npm run typecheck:client
 npm run typecheck:test
 npm test
 npm run build
+npm run test:e2e
 ```
