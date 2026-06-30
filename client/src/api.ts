@@ -64,6 +64,14 @@ export async function requestPasswordReset(email: string) {
   );
 }
 
+export async function resetPassword(token: string, password: string) {
+  return mutateJson<{ data: { message: string } }>(
+    "/api/auth/reset-password",
+    "POST",
+    { token, password }
+  );
+}
+
 export async function updateProfile(input: {
   displayName: string;
   email: string;
@@ -223,6 +231,7 @@ async function mutateJson<T>(
     | DirectoryRecord
     | { email: string; password: string }
     | { email: string; password: string; remember: boolean }
+    | { token: string; password: string }
     | {
         displayName: string;
         email: string;

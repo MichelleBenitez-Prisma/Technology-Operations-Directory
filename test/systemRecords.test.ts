@@ -91,6 +91,7 @@ test("system records API supports main phase two flows", async () => {
 
   const { createApp } = await import("../src/app.js");
   const { closeDatabase } = await import("../src/db/database.js");
+  const { createPasswordResetToken } = await import("../src/db/authRepository.js");
 
   const server = createApp().listen(0);
   await once(server, "listening");
@@ -689,6 +690,7 @@ test("system records API supports main phase two flows", async () => {
       }
     });
     assert.equal(signup.status, 201);
+    const signupUserId = Number(getResponseData<{ id: number }>(signup).id);
 
     const resetPassword = await requestJson(baseUrl, "/api/auth/forgot-password", {
       method: "POST",
@@ -699,6 +701,19 @@ test("system records API supports main phase two flows", async () => {
       (getResponseData<Record<string, unknown>>(resetPassword)).temporaryPassword,
       undefined
     );
+
+    const resetToken = createPasswordResetToken(signupUserId);
+    const completedReset = await requestJson(baseUrl, "/api/auth/reset-password", {
+      method: "POST",
+      body: { token: resetToken.token, password: "new-secure-password" }
+    });
+    assert.equal(completedReset.status, 200);
+
+    const resetLogin = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: "new.user@poweredbyprisma.com", password: "new-secure-password", remember: false }
+    });
+    assert.equal(resetLogin.status, 200);
 
     const loginResponse = await requestJson(baseUrl, "/api/auth/login", {
       method: "POST",

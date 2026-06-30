@@ -55,6 +55,7 @@ import {
   loginWithRemember,
   logout,
   requestPasswordReset,
+  resetPassword,
   signUp,
   updateDirectoryRecord,
   updateProfile,
@@ -89,6 +90,7 @@ type LoadState = "loading" | "ready" | "error";
 export type Route =
   | { name: "dashboard" }
   | { name: "help" }
+  | { name: "resetPassword"; query: URLSearchParams }
   | { name: "updates" }
   | { name: "profile" }
   | { name: "reports"; query: URLSearchParams }
@@ -295,6 +297,10 @@ export function DashboardApp() {
         <section className="notice">Loading Technology Operations Directory...</section>
       </main>
     );
+  }
+
+  if (!user && route.name === "resetPassword") {
+    return <ResetPasswordPage query={route.query} />;
   }
 
   if (!user) {
@@ -564,6 +570,79 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
               Forgot your password?
             </button>
           ) : null}
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function ResetPasswordPage({ query }: { query: URLSearchParams }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const token = query.get("token") ?? "";
+
+  async function savePassword(event: ReactFormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await resetPassword(token, password);
+      setMessage(response.data.message);
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to reset password.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="login-panel">
+        <h1>Set a new password</h1>
+        {!token ? (
+          <section className="notice error">Password reset link is missing or invalid.</section>
+        ) : null}
+        {message ? <section className="notice success">{message}</section> : null}
+        <form className="login-form" onSubmit={(event) => void savePassword(event)}>
+          <label>
+            New password <span aria-hidden="true">*</span>
+            <input
+              autoComplete="new-password"
+              minLength={8}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+          <label>
+            Confirm password <span aria-hidden="true">*</span>
+            <input
+              autoComplete="new-password"
+              minLength={8}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+              type="password"
+              value={confirmPassword}
+            />
+          </label>
+          <button className="primary-link" disabled={!token || isSaving} type="submit">
+            {isSaving ? "Saving..." : "Reset password"}
+          </button>
+          <a className="forgot-link" href="#">
+            Back to login
+          </a>
         </form>
       </section>
     </main>
@@ -3249,6 +3328,10 @@ export function parseRouteFromHash(rawHash: string): Route {
 
   if (segments[0] === "help") {
     return { name: "help" };
+  }
+
+  if (segments[0] === "reset-password") {
+    return { name: "resetPassword", query };
   }
 
   if (segments[0] === "updates") {

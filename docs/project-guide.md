@@ -61,6 +61,10 @@ Open **Directory > Document References** to add links to runbooks, support docum
 
 Open **Directory > Custom Fields** to define future category-specific fields. Use clear field keys, labels, field types, and help text so future developers can map those fields into category-specific screens.
 
+### Reset a Forgotten Password
+
+On the login screen, choose **Forgot your password?** and enter the account email address. If the account exists, the app emails a one-time reset link. The link expires after 30 minutes and can be used once to set a new password.
+
 ## Developer Documentation
 
 ### Required Software
@@ -163,6 +167,7 @@ If migrations are pending, run `npm run db:migrate`.
 - Database missing: run `npm run db:init` and confirm `DATABASE_PATH`.
 - Render migration failure: check the exact SQL error and run `npm run db:migrate` against a fresh local database.
 - Dashboard blocked by login: keep `AUTH_REQUIRED=false` during development; set `AUTH_REQUIRED=true` only when preparing for launch.
+- Password reset email not received: confirm `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and `APP_BASE_URL`.
 - Vite client not opening: confirm `npm run dev:client` is running and use `http://127.0.0.1:5173`.
 - API not responding: confirm `npm run dev:api`, `PORT`, and `/health`.
 - Validation errors: check required fields, URL format, date format, status values, and category code.

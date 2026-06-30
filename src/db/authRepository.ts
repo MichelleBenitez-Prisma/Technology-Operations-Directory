@@ -264,6 +264,72 @@ export function updateUserProfile(
   return findUserByEmail(input.email);
 }
 
+export function createPasswordResetToken(userId: number) {
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+  execute(
+    `
+    INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+    VALUES ($userId, $tokenHash, $expiresAt)
+    `,
+    { userId, tokenHash, expiresAt }
+  );
+
+  return { token, expiresAt };
+}
+
+export function resetPasswordWithToken(token: string, password: string) {
+  const tokenHash = hashToken(token);
+  const resetRecord = queryOne<{ id: number; user_id: number }>(
+    `
+    SELECT id, user_id
+    FROM password_reset_tokens
+    WHERE token_hash = $tokenHash
+      AND used_at IS NULL
+      AND expires_at > CURRENT_TIMESTAMP
+    `,
+    { tokenHash }
+  );
+
+  if (!resetRecord) {
+    return undefined;
+  }
+
+  const passwordRecord = hashPassword(password);
+
+  execute(
+    `
+    UPDATE users
+    SET password_hash = $passwordHash,
+        password_salt = $passwordSalt,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $userId
+    `,
+    {
+      userId: resetRecord.user_id,
+      passwordHash: passwordRecord.hash,
+      passwordSalt: passwordRecord.salt
+    }
+  );
+
+  execute(
+    `
+    UPDATE password_reset_tokens
+    SET used_at = CURRENT_TIMESTAMP
+    WHERE id = $id
+    `,
+    { id: resetRecord.id }
+  );
+
+  return findUserByEmail(
+    queryOne<{ email: string }>("SELECT email FROM users WHERE id = $userId", {
+      userId: resetRecord.user_id
+    })?.email ?? ""
+  );
+}
+
 export function deleteSession(token: string | undefined) {
   if (!token) {
     return;

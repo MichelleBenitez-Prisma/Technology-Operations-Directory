@@ -83,11 +83,15 @@ Archived records are tracked separately with `archived_at`.
 
 Authentication uses an HttpOnly `tod_session` cookie.
 
-| Method | Path             | Purpose                    |
-| ------ | ---------------- | -------------------------- |
-| `POST` | `/api/auth/login`  | Sign in with email/password |
-| `POST` | `/api/auth/logout` | Clear the current session   |
-| `GET`  | `/api/auth/me`     | Return the signed-in user   |
+| Method | Path                        | Purpose                               |
+| ------ | --------------------------- | ------------------------------------- |
+| `POST` | `/api/auth/login`           | Sign in with email/password           |
+| `POST` | `/api/auth/logout`          | Clear the current session             |
+| `GET`  | `/api/auth/me`              | Return the signed-in user             |
+| `POST` | `/api/auth/forgot-password` | Email a one-time password reset link  |
+| `POST` | `/api/auth/reset-password`  | Set a new password with a reset token |
+
+Password reset links require SMTP configuration. Reset tokens are stored only as hashes, expire after 30 minutes, and are single-use.
 
 Roles:
 

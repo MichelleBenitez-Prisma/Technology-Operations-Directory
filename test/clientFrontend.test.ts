@@ -30,6 +30,7 @@ import {
   loginWithRemember,
   logout,
   requestPasswordReset,
+  resetPassword,
   signUp,
   updateProfile
 } from "../client/src/api.ts";
@@ -229,6 +230,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
     jobTitle: "Support"
   });
   await requestPasswordReset("new.user@poweredbyprisma.com");
+  await resetPassword("reset-token", "new-secure-password");
   await updateProfile({
     displayName: "Sample Admin",
     email: "sample.admin@poweredbyprisma.com",
@@ -263,6 +265,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "POST /api/auth/login",
       "POST /api/auth/signup",
       "POST /api/auth/forgot-password",
+      "POST /api/auth/reset-password",
       "PUT /api/auth/me/profile",
       "POST /api/auth/logout",
       "GET /api/system-records?search=payroll",

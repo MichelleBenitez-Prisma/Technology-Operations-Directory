@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   authenticateUser,
   allowedEmailDomain,
+  createPasswordResetToken,
   createSession,
   createUser,
   deleteSession,
@@ -11,10 +12,12 @@ import {
   findUserBySessionToken,
   listAuditLogEvents,
   logAuditEvent,
+  resetPasswordWithToken,
   sessionCookieName,
   updateUserProfile
 } from "../db/authRepository.js";
 import { authIsRequired, readCookie } from "../middleware/auth.js";
+import { sendPasswordResetEmail } from "../services/emailService.js";
 
 export const authRouter = Router();
 
@@ -152,7 +155,8 @@ authRouter.post("/signup", (request, response) => {
   response.status(201).json({ data: user });
 });
 
-authRouter.post("/forgot-password", (request, response) => {
+authRouter.post("/forgot-password", async (request, response, next) => {
+  try {
   const email = String((request.body as { email?: unknown }).email ?? "").trim().toLowerCase();
 
   if (!email || !email.endsWith(`@${allowedEmailDomain}`)) {
@@ -160,10 +164,21 @@ authRouter.post("/forgot-password", (request, response) => {
   }
 
   const user = findUserByEmail(email);
+  let emailSent = false;
+
+  if (user) {
+    const resetToken = createPasswordResetToken(user.id);
+    const resetUrl = buildResetUrl(resetToken.token);
+    emailSent = await sendPasswordResetEmail({
+      to: user.email,
+      resetUrl,
+      expiresAt: resetToken.expiresAt
+    });
+  }
 
   logAuditEvent({
     userId: user?.id,
-    action: "password_reset",
+    action: emailSent ? "password_reset_email_sent" : "password_reset_requested",
     entityType: "users",
     entityId: user ? String(user.id) : undefined,
     method: request.method,
@@ -174,7 +189,40 @@ authRouter.post("/forgot-password", (request, response) => {
 
   response.json({
     data: {
-      message: "If this account exists, a password reset was recorded. Contact an administrator for the next step."
+      message: "If this account exists, a password reset email has been sent."
+    }
+  });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/reset-password", (request, response) => {
+  const input = parseResetPasswordInput(request.body as Record<string, unknown>);
+  const user = resetPasswordWithToken(input.token, input.password);
+
+  if (!user) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "Password reset link is invalid or expired."
+    });
+    return;
+  }
+
+  logAuditEvent({
+    userId: user.id,
+    action: "password_reset_completed",
+    entityType: "users",
+    entityId: String(user.id),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: 200,
+    requestId: response.locals.requestId as string | undefined
+  });
+
+  response.json({
+    data: {
+      message: "Password updated. You can log in with your new password."
     }
   });
 });
@@ -237,6 +285,26 @@ function parseSignupInput(body: Record<string, unknown>) {
   }
 
   return { displayName, email, password, phone, jobTitle };
+}
+
+function parseResetPasswordInput(body: Record<string, unknown>) {
+  const token = String(body.token ?? "").trim();
+  const password = String(body.password ?? "");
+
+  if (!token || token.length < 32) {
+    throwValidationError("Password reset link is invalid or expired.");
+  }
+
+  if (password.length < 8) {
+    throwValidationError("Password must be at least 8 characters.");
+  }
+
+  return { token, password };
+}
+
+function buildResetUrl(token: string) {
+  const baseUrl = process.env.APP_BASE_URL?.trim() || "http://127.0.0.1:3001";
+  return `${baseUrl.replace(/\/$/, "")}/#/reset-password?token=${encodeURIComponent(token)}`;
 }
 
 function nullableText(value: unknown) {

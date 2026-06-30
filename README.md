@@ -83,6 +83,12 @@ For production, set:
 AUTH_REQUIRED=true
 INITIAL_ADMIN_EMAIL=<admin email>
 INITIAL_ADMIN_PASSWORD=<one-time setup password>
+APP_BASE_URL=https://<your deployed app>
+SMTP_HOST=<smtp host>
+SMTP_PORT=587
+SMTP_USER=<smtp user>
+SMTP_PASSWORD=<smtp password>
+SMTP_FROM="Technology Operations Directory <no-reply@poweredbyprisma.com>"
 ```
 
 After the first administrator exists, remove or rotate the setup password value. Roles are:
@@ -93,13 +99,15 @@ After the first administrator exists, remove or rotate the setup password value.
 
 Sessions use an HttpOnly `tod_session` cookie. The application stores password hashes and session token hashes, not plaintext passwords or plaintext session tokens.
 
+Forgot-password uses an emailed one-time reset link. The reset token is stored only as a hash, expires after 30 minutes, and is marked used after a successful password reset. Configure SMTP before production launch; otherwise reset emails cannot be delivered.
+
 ## Security Rules
 
 - Do not commit `.env`, SQLite database files, logs, screenshots with sensitive content, or generated `dist/` output unless intentionally required.
 - Do not store passwords, API keys, authentication tokens, private certificates, payment information, database credentials, or unnecessary employee personal information.
 - Store only the name/location of approved password-manager entries in `passwordVaultReference`.
 - Sample data must use fake systems, fake vendors, fake URLs, and safe placeholder contact data.
-- Forgot-password currently records the request and tells the user to contact an administrator; it does not return a temporary password.
+- Forgot-password must never return temporary passwords or reset tokens in API responses or logs.
 
 ## Main API Areas
 
@@ -146,7 +154,7 @@ For Render or another Node host:
 ## Current Known Gaps
 
 - Stakeholder review is still unchecked in `docs/development-task-list.md`.
-- Forgot-password is intentionally conservative: it does not email reset links or display temporary passwords. A production-ready password reset process would need secure email or administrator tooling.
+- Password reset email delivery requires production SMTP settings.
 - Authentication is bypassed by default for development. Production must set `AUTH_REQUIRED=true`.
 - Browser-level/mobile visual testing is limited; current tests focus on API behavior and frontend helper logic.
 - Tags still exist as a directory workflow for future filtering/grouping, even if they are not central to the current dashboard success criteria.
