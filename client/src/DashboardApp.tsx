@@ -87,10 +87,8 @@ import type {
 } from "./types";
 
 type LoadState = "loading" | "ready" | "error";
-type DashboardWidgetId = "metrics" | "renewals" | "attention" | "directory";
 type DashboardPreferences = {
   darkMode: boolean;
-  widgets: DashboardWidgetId[];
 };
 export type Route =
   | { name: "dashboard" }
@@ -144,17 +142,10 @@ const reportOptions = reportKeys.map((key) => ({
   label: reportLabel(key)
 }));
 const defaultDashboardPreferences: DashboardPreferences = {
-  darkMode: false,
-  widgets: ["metrics", "renewals", "attention", "directory"]
+  darkMode: false
 };
 const dashboardPreferenceKey = "technologyOperationsDashboardPreferences";
 const dashboardPreferenceEvent = "dashboard-preferences-changed";
-const widgetLabels: Record<DashboardWidgetId, string> = {
-  metrics: "Dashboard totals",
-  renewals: "Upcoming renewals",
-  attention: "Needs attention",
-  directory: "Directory search"
-};
 
 type DirectoryField = {
   name: string;
@@ -734,17 +725,6 @@ function ProfileSettingsPage({
     updatePreferences({ ...preferences, darkMode: checked });
   }
 
-  function toggleWidget(widget: DashboardWidgetId, checked: boolean) {
-    const nextWidgets = checked
-      ? [...preferences.widgets, widget]
-      : preferences.widgets.filter((item) => item !== widget);
-
-    updatePreferences({
-      ...preferences,
-      widgets: normalizeWidgetOrder(nextWidgets)
-    });
-  }
-
   return (
     <>
       <section className="page-heading">
@@ -829,28 +809,6 @@ function ProfileSettingsPage({
             />
             Dark mode
           </label>
-
-          <div>
-            <h4>Dashboard widgets</h4>
-            <div className="widget-settings-list">
-              {(Object.keys(widgetLabels) as DashboardWidgetId[]).map((widget) => {
-                const enabled = preferences.widgets.includes(widget);
-
-                return (
-                  <div className="widget-settings-row" key={widget}>
-                    <label className="check-field">
-                      <input
-                        checked={enabled}
-                        onChange={(event) => toggleWidget(widget, event.target.checked)}
-                        type="checkbox"
-                      />
-                      {widgetLabels[widget]}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </section>
     </>
@@ -1028,7 +986,6 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
         filteredSystems={filteredSystems}
         loadState={loadState}
         missingDocumentation={missingDocumentation}
-        preferences={preferences}
         totals={totals}
         upcomingRenewals={upcomingRenewals}
         withoutTechnicalOwner={withoutTechnicalOwner}
@@ -1041,7 +998,6 @@ function DashboardWidgetLayout({
   filteredSystems,
   loadState,
   missingDocumentation,
-  preferences,
   totals,
   upcomingRenewals,
   withoutTechnicalOwner
@@ -1049,111 +1005,100 @@ function DashboardWidgetLayout({
   filteredSystems: SystemRecord[];
   loadState: LoadState;
   missingDocumentation: SystemRecord[];
-  preferences: DashboardPreferences;
   totals: DashboardTotals | null;
   upcomingRenewals: SystemRecord[];
   withoutTechnicalOwner: SystemRecord[];
 }) {
-  const enabledWidgets = new Set(preferences.widgets);
-
   return (
     <>
-      {enabledWidgets.has("metrics") ? (
-        <section className="metric-grid" aria-label="Directory overview">
-          <MetricCard
-            label="Total Systems"
-            value={totals?.total ?? 0}
-            href="#/systems"
-            icon={<CircleDot size={22} aria-hidden="true" />}
-            loading={loadState === "loading"}
-          />
-          <MetricCard
-            label="Active Systems"
-            value={getStatusCount(totals, "active")}
-            href="#/reports?report=active-systems"
-            icon={<CheckCircle2 size={22} aria-hidden="true" />}
-            tone="good"
-            loading={loadState === "loading"}
-          />
-          <MetricCard
-            label="Being Replaced"
-            value={getStatusCount(totals, "being_replaced")}
-            href="#/reports?report=being-replaced"
-            icon={<RefreshCcw size={22} aria-hidden="true" />}
-            tone="watch"
-            loading={loadState === "loading"}
-          />
-          <MetricCard
-            label="Retired Systems"
-            value={getStatusCount(totals, "retired")}
-            href="#/reports?report=retired-systems"
-            icon={<Archive size={22} aria-hidden="true" />}
-            loading={loadState === "loading"}
-          />
-          <MetricCard
-            label="Missing Documentation"
-            value={totals?.missingDocumentation ?? 0}
-            href="#/reports?report=missing-documentation"
-            icon={<FileQuestion size={22} aria-hidden="true" />}
-            tone="risk"
-            loading={loadState === "loading"}
-          />
-          <MetricCard
-            label="Without Technical Owner"
-            value={totals?.withoutTechnicalOwner ?? 0}
-            href="#/reports?report=missing-owners"
-            icon={<UserRoundX size={22} aria-hidden="true" />}
-            tone="risk"
-            loading={loadState === "loading"}
-          />
-        </section>
-      ) : null}
+      <section className="metric-grid" aria-label="Directory overview">
+        <MetricCard
+          label="Total Systems"
+          value={totals?.total ?? 0}
+          href="#/systems"
+          icon={<CircleDot size={22} aria-hidden="true" />}
+          loading={loadState === "loading"}
+        />
+        <MetricCard
+          label="Active Systems"
+          value={getStatusCount(totals, "active")}
+          href="#/reports?report=active-systems"
+          icon={<CheckCircle2 size={22} aria-hidden="true" />}
+          tone="good"
+          loading={loadState === "loading"}
+        />
+        <MetricCard
+          label="Being Replaced"
+          value={getStatusCount(totals, "being_replaced")}
+          href="#/reports?report=being-replaced"
+          icon={<RefreshCcw size={22} aria-hidden="true" />}
+          tone="watch"
+          loading={loadState === "loading"}
+        />
+        <MetricCard
+          label="Retired Systems"
+          value={getStatusCount(totals, "retired")}
+          href="#/reports?report=retired-systems"
+          icon={<Archive size={22} aria-hidden="true" />}
+          loading={loadState === "loading"}
+        />
+        <MetricCard
+          label="Missing Documentation"
+          value={totals?.missingDocumentation ?? 0}
+          href="#/reports?report=missing-documentation"
+          icon={<FileQuestion size={22} aria-hidden="true" />}
+          tone="risk"
+          loading={loadState === "loading"}
+        />
+        <MetricCard
+          label="Without Technical Owner"
+          value={totals?.withoutTechnicalOwner ?? 0}
+          href="#/reports?report=missing-owners"
+          icon={<UserRoundX size={22} aria-hidden="true" />}
+          tone="risk"
+          loading={loadState === "loading"}
+        />
+      </section>
 
       <section className="content-grid">
-        {enabledWidgets.has("renewals") ? (
-          <Panel title="Upcoming Renewals" subtitle="Next 90 days" icon={<CalendarClock size={18} />}>
-            <RecordList
-              records={upcomingRenewals.slice(0, 6)}
-              emptyText="No renewals are due in the next 90 days."
-              detail={(record) => (
-                <>
-                  <span>{record.vendor ?? "No vendor"}</span>
-                  <span>{formatDate(record.renewal_date)}</span>
-                </>
-              )}
+        <Panel title="Upcoming Renewals" subtitle="Next 90 days" icon={<CalendarClock size={18} />}>
+          <RecordList
+            records={upcomingRenewals.slice(0, 6)}
+            emptyText="No renewals are due in the next 90 days."
+            detail={(record) => (
+              <>
+                <span>{record.vendor ?? "No vendor"}</span>
+                <span>{formatDate(record.renewal_date)}</span>
+              </>
+            )}
+          />
+          <a className="inline-link" href="#/reports?report=upcoming-renewals">
+            View renewal report
+          </a>
+        </Panel>
+
+        <Panel
+          title="Needs Attention"
+          subtitle="Documentation and ownership gaps"
+          icon={<AlertTriangle size={18} />}
+        >
+          <div className="attention-grid">
+            <AttentionColumn
+              title="Missing Documentation"
+              records={missingDocumentation.slice(0, 5)}
+              emptyText="Every visible system has documentation."
             />
-            <a className="inline-link" href="#/reports?report=upcoming-renewals">
-              View renewal report
-            </a>
-          </Panel>
-        ) : null}
+            <AttentionColumn
+              title="No Technical Owner"
+              records={withoutTechnicalOwner.slice(0, 5)}
+              emptyText="Every visible system has a technical owner."
+            />
+          </div>
+        </Panel>
 
-        {enabledWidgets.has("attention") ? (
-          <Panel
-            title="Needs Attention"
-            subtitle="Documentation and ownership gaps"
-            icon={<AlertTriangle size={18} />}
-          >
-            <div className="attention-grid">
-              <AttentionColumn
-                title="Missing Documentation"
-                records={missingDocumentation.slice(0, 5)}
-                emptyText="Every visible system has documentation."
-              />
-              <AttentionColumn
-                title="No Technical Owner"
-                records={withoutTechnicalOwner.slice(0, 5)}
-                emptyText="Every visible system has a technical owner."
-              />
-            </div>
-          </Panel>
-        ) : null}
-
-        {enabledWidgets.has("directory") ? (
-          <Panel title="Directory Search" subtitle="Quick scan" wide>
-            <SystemTable records={filteredSystems} />
-          </Panel>
-        ) : null}
+        <Panel title="Directory Search" subtitle="Quick scan" wide>
+          <SystemTable records={filteredSystems} />
+        </Panel>
       </section>
     </>
   );
@@ -3470,8 +3415,7 @@ function readDashboardPreferences(): DashboardPreferences {
     const parsed = JSON.parse(rawValue) as Partial<DashboardPreferences>;
 
     return {
-      darkMode: parsed.darkMode === true,
-      widgets: normalizeWidgetOrder(parsed.widgets)
+      darkMode: parsed.darkMode === true
     };
   } catch {
     return defaultDashboardPreferences;
@@ -3482,22 +3426,10 @@ function saveDashboardPreferences(preferences: DashboardPreferences) {
   window.localStorage.setItem(
     dashboardPreferenceKey,
     JSON.stringify({
-      darkMode: preferences.darkMode,
-      widgets: normalizeWidgetOrder(preferences.widgets)
+      darkMode: preferences.darkMode
     })
   );
   window.dispatchEvent(new Event(dashboardPreferenceEvent));
-}
-
-function normalizeWidgetOrder(widgets: unknown) {
-  const allowedWidgets = Object.keys(widgetLabels) as DashboardWidgetId[];
-  const selectedWidgets = Array.isArray(widgets)
-    ? widgets.filter((widget): widget is DashboardWidgetId =>
-        allowedWidgets.includes(widget as DashboardWidgetId)
-      )
-    : defaultDashboardPreferences.widgets;
-
-  return selectedWidgets.filter((widget, index) => selectedWidgets.indexOf(widget) === index);
 }
 
 export function parseRouteFromHash(rawHash: string): Route {

@@ -63,8 +63,7 @@ body.dark-mode .guide-card,
 body.dark-mode .filter-bar,
 body.dark-mode .record-form,
 body.dark-mode .attention-column,
-body.dark-mode .dependency-map-row,
-body.dark-mode .widget-settings-row {
+body.dark-mode .dependency-map-row {
   border-color: #334155;
   background: #1e293b;
   color: #e5e7eb;
@@ -450,22 +449,6 @@ h1 {
 
 .personalization-toggle {
   width: fit-content;
-}
-
-.widget-settings-list {
-  display: grid;
-  gap: 10px;
-}
-
-.widget-settings-row {
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid #d9e3ec;
-  border-radius: 8px;
-  padding: 8px 10px;
 }
 
 .icon-button:disabled {
