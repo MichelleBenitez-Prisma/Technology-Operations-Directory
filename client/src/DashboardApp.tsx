@@ -1124,7 +1124,6 @@ function UpdatesPage() {
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Record activity</p>
           <h2>Updates</h2>
         </div>
       </section>
@@ -1188,7 +1187,6 @@ function ReportsPage({ initialQuery }: { initialQuery: URLSearchParams }) {
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Phase 6</p>
           <h2>Reports</h2>
         </div>
         <a className="secondary-link" href="#/systems">
@@ -1366,7 +1364,6 @@ function SystemsList({
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Phase 6</p>
           <h2>Systems List</h2>
         </div>
         <a className="primary-link" href="#/systems/new">
@@ -1538,7 +1535,6 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Phase 4</p>
           <h2>Vendor Directory</h2>
         </div>
         <a className="primary-link" href="#/vendors/new">
@@ -1899,7 +1895,6 @@ function DirectoryHome() {
     <>
       <section className="page-heading">
         <div>
-          <p className="eyebrow">Phase 5</p>
           <h2>Directory Workflows</h2>
         </div>
       </section>
@@ -1917,7 +1912,7 @@ function DirectoryHome() {
       <section className="panel wide">
         <div className="list-summary">
           <strong>Dependency Map</strong>
-          <span>Quick impact view for systems connected by Phase 5 dependencies.</span>
+          <span>Quick impact view for systems connected by dependencies.</span>
         </div>
         <div className="dependency-map">
           {dependencies.map((dependency) => (
