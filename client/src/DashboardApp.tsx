@@ -25,7 +25,7 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent as ReactFormEvent, ReactNode } from "react";
+import type { CSSProperties, FormEvent as ReactFormEvent, ReactNode } from "react";
 
 import {
   ApiError,
@@ -3171,7 +3171,9 @@ function SystemTable({
               <td>{system.business_department ?? "Not assigned"}</td>
               <td>
                 {system.quality_warning_count > 0 ? (
-                  <span className="quality-badge">{system.quality_warning_count}</span>
+                  <span className="quality-badge" style={getWarningBadgeStyle(system.quality_warning_count)}>
+                    {system.quality_warning_count}
+                  </span>
                 ) : (
                   <span className="quality-badge quality-badge-zero">0</span>
                 )}
@@ -3297,6 +3299,16 @@ function TextAreaField({
       {error ? <em>{error}</em> : null}
     </label>
   );
+}
+
+function getWarningBadgeStyle(count: number): CSSProperties {
+  const cappedCount = Math.min(Math.max(count, 1), 10);
+  const hue = Math.max(0, 120 - cappedCount * 12);
+
+  return {
+    background: `linear-gradient(135deg, hsl(${hue} 88% 86%), hsl(${Math.max(hue - 12, 0)} 84% 60%))`,
+    color: `hsl(${Math.max(hue - 24, 0)} 82% 22%)`
+  };
 }
 
 function VendorTextField({

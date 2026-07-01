@@ -182,11 +182,6 @@ body.dark-mode .status-pill.maintenance_only {
   color: #fde68a;
 }
 
-body.dark-mode .quality-badge {
-  background: linear-gradient(135deg, #7c2d12, #b45309);
-  color: #fffbeb;
-}
-
 body.dark-mode .quality-badge-zero {
   background: #14532d;
   color: #dcfce7;
