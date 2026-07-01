@@ -353,15 +353,7 @@ export function DashboardApp() {
                 <Plus size={16} aria-hidden="true" />
                 Add System
               </a>
-              <a
-                className="secondary-link"
-                href={supportTicketUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <LifeBuoy size={16} aria-hidden="true" />
-                Support
-              </a>
+              <SupportTicketLink />
               <a className="icon-button square" href="#/help" aria-label="Open user guide" title="User guide">
                 <CircleHelp size={20} aria-hidden="true" />
               </a>
@@ -425,6 +417,15 @@ function SidebarLink({
     <a className={`side-nav-link ${active ? "active" : ""}`} href={href}>
       {icon}
       {label}
+    </a>
+  );
+}
+
+function SupportTicketLink() {
+  return (
+    <a className="secondary-link" href={supportTicketUrl} rel="noreferrer" target="_blank">
+      <LifeBuoy size={16} aria-hidden="true" />
+      Support
     </a>
   );
 }
@@ -1159,10 +1160,13 @@ function ReportsPage({ initialQuery }: { initialQuery: URLSearchParams }) {
         <div>
           <h2>Reports</h2>
         </div>
-        <a className="secondary-link" href="#/systems">
-          <ListFilter size={16} aria-hidden="true" />
-          Systems
-        </a>
+        <div className="header-actions">
+          <SupportTicketLink />
+          <a className="secondary-link" href="#/systems">
+            <ListFilter size={16} aria-hidden="true" />
+            Systems
+          </a>
+        </div>
       </section>
 
       <section className="filter-bar" aria-label="Report selector">
@@ -1336,10 +1340,13 @@ function SystemsList({
         <div>
           <h2>Systems List</h2>
         </div>
-        <a className="primary-link" href="#/systems/new">
-          <Plus size={16} aria-hidden="true" />
-          Add System
-        </a>
+        <div className="header-actions">
+          <SupportTicketLink />
+          <a className="primary-link" href="#/systems/new">
+            <Plus size={16} aria-hidden="true" />
+            Add System
+          </a>
+        </div>
       </section>
 
       <section className="filter-bar" aria-label="System list filters">
@@ -1507,10 +1514,13 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
         <div>
           <h2>Vendor Directory</h2>
         </div>
-        <a className="primary-link" href="#/vendors/new">
-          <Plus size={16} aria-hidden="true" />
-          Add Vendor
-        </a>
+        <div className="header-actions">
+          <SupportTicketLink />
+          <a className="primary-link" href="#/vendors/new">
+            <Plus size={16} aria-hidden="true" />
+            Add Vendor
+          </a>
+        </div>
       </section>
 
       <section className="filter-bar" aria-label="Vendor list filters">
