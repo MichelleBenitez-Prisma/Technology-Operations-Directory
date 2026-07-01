@@ -244,16 +244,16 @@ Vendor create and update requests support:
 - `support_email`
 - `notes`
 
-Vendor create requests require `name`, `account_number`, `website_url`,
-`login_identifier`, and `eqp_status_2023`.
+Vendor create requests require `name`, `account_number`, `website_url`, and
+`login_identifier`.
 
 Existing compatibility fields are still accepted, including `description`,
 `support_url`, `support_phone`, `support_portal_url`, `account_manager_name`,
 `account_manager_email`, `account_representative`, contract dates, and renewal notes.
 
-CSV import requires `name`, `accountNumber`, `website`, `login`, and
-`eqpStatus2023` columns and returns created rows plus row-level errors.
-Boolean-style fields accept `yes`, `no`, `true`, `false`, `1`, or `0`.
+CSV import requires `name`, `accountNumber`, `website`, and `login` columns and
+returns created rows plus row-level errors. Boolean-style fields such as
+`terms30Day`, `nqp`, and `aim` accept `yes`, `no`, `true`, `false`, `1`, or `0`.
 Do not store actual passwords, tokens, API keys, or payment credentials in `login_identifier`.
 
 ### Global Asset Search

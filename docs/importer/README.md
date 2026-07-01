@@ -75,13 +75,12 @@ Required vendor columns:
 - `accountNumber`
 - `website`
 - `login`
-- `eqpStatus2023`
 
 Example:
 
 ```csv
-name,accountNumber,website,login,eqpStatus2023,terms30Day,nqp,aim,email,category
-Vendor Name,A-100,https://vendor.example.com,vendor@example.com,Approved,yes,no,yes,rep@example.com,Paper
+name,accountNumber,website,login,terms30Day,nqp,aim,email,category
+Vendor Name,A-100,https://vendor.example.com,vendor@example.com,yes,no,yes,rep@example.com,Paper
 ```
 
 Supported vendor columns:
@@ -108,6 +107,6 @@ Supported vendor columns:
 
 Snake_case alternatives such as `account_number`, `website_url`, `login_identifier`, and `cyrious_name` are also accepted.
 
-Yes/no fields accept `yes`, `no`, `true`, `false`, `1`, or `0`.
+Yes/no fields `terms30Day`, `nqp`, and `aim` accept `yes`, `no`, `true`, `false`, `1`, or `0`. Self-promo and rebate are text fields.
 
 The vendor `login` column must contain only a non-secret login identifier, such as an email address. Do not import passwords, API keys, tokens, or payment credentials.

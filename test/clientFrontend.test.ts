@@ -182,7 +182,7 @@ test("vendor route, query, and form helpers preserve business fields", () => {
   assert.equal(form.account_number, "A-100");
   assert.equal(form.login_identifier, "vendor.login@example.com");
   assert.equal(form.terms_30_day, "1");
-  assert.equal(form.self_promo, "0");
+  assert.equal(form.self_promo, "Catalog");
   assert.equal(form.category, "Paper");
   assert.equal(form.support_email, "support@vendor.example.com");
 
@@ -254,7 +254,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await deleteSystem(7);
   await fetchVendors("search=print&includeArchived=true");
   await createVendor(createEmptyVendorForm());
-  await importVendorsCsv("name,accountNumber,website,login,eqpStatus2023\nVendor,A-1,https://vendor.example.com,vendor@example.com,Approved");
+  await importVendorsCsv("name,accountNumber,website,login\nVendor,A-1,https://vendor.example.com,vendor@example.com");
   await archiveVendor(9);
   await fetchDirectoryRecords("integrations", "search=api");
   await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
@@ -340,8 +340,8 @@ function createVendorRecord(): Vendor {
     login_identifier: "vendor.login@example.com",
     cyrious_name: "Cyrious Vendor",
     terms_30_day: 1,
-    self_promo: 0,
-    rebate: 1,
+    self_promo: "Catalog",
+    rebate: "Quarterly",
     nqp: 0,
     aim: 1,
     eqp_status_2023: "Approved",

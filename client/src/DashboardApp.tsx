@@ -1743,8 +1743,8 @@ function VendorDetail({ id, navigate }: { id: number; navigate: (hash: string) =
 
         <DetailSection title="Program and payment">
           <DetailItem label="30 day terms" value={formatBooleanLabel(vendor.terms_30_day)} />
-          <DetailItem label="Self-promo" value={formatBooleanLabel(vendor.self_promo)} />
-          <DetailItem label="Rebate" value={formatBooleanLabel(vendor.rebate)} />
+          <DetailItem label="Self-promo" value={vendor.self_promo} />
+          <DetailItem label="Rebate" value={vendor.rebate} />
           <DetailItem label="NQP" value={formatBooleanLabel(vendor.nqp)} />
           <DetailItem label="AIM" value={formatBooleanLabel(vendor.aim)} />
           <DetailItem label="2023 EQP Status" value={vendor.eqp_status_2023} />
@@ -1877,11 +1877,11 @@ function VendorForm({
 
         <FormSection title="Program and payment">
           <VendorYesNoField label="30 day terms" name="terms_30_day" value={form.terms_30_day} onChange={updateField} />
-          <VendorYesNoField label="Self-promo" name="self_promo" value={form.self_promo} onChange={updateField} />
-          <VendorYesNoField label="Rebate" name="rebate" value={form.rebate} onChange={updateField} />
+          <VendorTextField label="Self-promo" name="self_promo" value={form.self_promo} onChange={updateField} />
+          <VendorTextField label="Rebate" name="rebate" value={form.rebate} onChange={updateField} />
           <VendorYesNoField label="NQP" name="nqp" value={form.nqp} onChange={updateField} />
           <VendorYesNoField label="AIM" name="aim" value={form.aim} onChange={updateField} />
-          <VendorTextField label="2023 EQP Status" name="eqp_status_2023" value={form.eqp_status_2023} onChange={updateField} error={errors.eqp_status_2023} required />
+          <VendorTextField label="2023 EQP Status" name="eqp_status_2023" value={form.eqp_status_2023} onChange={updateField} error={errors.eqp_status_2023} />
           <VendorTextField label="2022 EQP Status" name="eqp_status_2022" value={form.eqp_status_2022} onChange={updateField} />
           <VendorTextField label="EQP volume" name="eqp_volume" value={form.eqp_volume} onChange={updateField} />
           <VendorTextField label="Payment method" name="payment_method" value={form.payment_method} onChange={updateField} />
@@ -3809,8 +3809,8 @@ export function mapVendorToForm(vendor: Vendor): VendorFormInput {
     login_identifier: vendor.login_identifier ?? "",
     cyrious_name: vendor.cyrious_name ?? "",
     terms_30_day: vendor.terms_30_day === null ? "" : String(vendor.terms_30_day),
-    self_promo: vendor.self_promo === null ? "" : String(vendor.self_promo),
-    rebate: vendor.rebate === null ? "" : String(vendor.rebate),
+    self_promo: vendor.self_promo ?? "",
+    rebate: vendor.rebate ?? "",
     nqp: vendor.nqp === null ? "" : String(vendor.nqp),
     aim: vendor.aim === null ? "" : String(vendor.aim),
     eqp_status_2023: vendor.eqp_status_2023 ?? "",

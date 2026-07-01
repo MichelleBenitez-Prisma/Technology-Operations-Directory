@@ -104,8 +104,8 @@ export type Vendor = {
   login_identifier: string | null;
   cyrious_name: string | null;
   terms_30_day: 0 | 1 | null;
-  self_promo: 0 | 1 | null;
-  rebate: 0 | 1 | null;
+  self_promo: string | null;
+  rebate: string | null;
   nqp: 0 | 1 | null;
   aim: 0 | 1 | null;
   eqp_status_2023: string | null;

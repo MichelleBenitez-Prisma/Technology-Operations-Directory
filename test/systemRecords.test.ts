@@ -60,8 +60,8 @@ type TestVendor = {
   login_identifier: string | null;
   cyrious_name: string | null;
   terms_30_day: 0 | 1 | null;
-  self_promo: 0 | 1 | null;
-  rebate: 0 | 1 | null;
+  self_promo: string | null;
+  rebate: string | null;
   nqp: 0 | 1 | null;
   aim: 0 | 1 | null;
   eqp_status_2023: string | null;
@@ -248,8 +248,8 @@ test("system records API supports main phase two flows", async () => {
         login_identifier: "vendor.login@example.com",
         cyrious_name: "Cyrious Vendor",
         terms_30_day: 1,
-        self_promo: 0,
-        rebate: 1,
+        self_promo: "Catalog",
+        rebate: "Quarterly",
         nqp: 0,
         aim: 1,
         eqp_status_2023: "Approved",
@@ -276,7 +276,7 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(vendorData.login_identifier, "vendor.login@example.com");
     assert.equal(vendorData.cyrious_name, "Cyrious Vendor");
     assert.equal(vendorData.terms_30_day, 1);
-    assert.equal(vendorData.self_promo, 0);
+    assert.equal(vendorData.self_promo, "Catalog");
     assert.equal(vendorData.category, "Paper");
     assert.equal(vendorData.support_email, "support@vendor.example.com");
     assert.equal(vendorData.support_phone, "555-0100");
@@ -293,8 +293,8 @@ test("system records API supports main phase two flows", async () => {
       baseUrl,
       "/api/vendors/import.csv",
       [
-        "name,accountNumber,website,login,terms30Day,selfPromo,email,category,eqpStatus2023",
-        "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,yes,no,csv@example.com,Ink,Approved"
+        "name,accountNumber,website,login,terms30Day,selfPromo,email,category",
+        "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,yes,Catalog,csv@example.com,Ink"
       ].join("\n")
     );
     assert.equal(vendorCsvImport.status, 201);
@@ -302,12 +302,12 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(vendorCsvData.created.length, 1);
     assert.equal(vendorCsvData.created[0]?.login_identifier, "csv.vendor@example.com");
     assert.equal(vendorCsvData.created[0]?.terms_30_day, 1);
-    assert.equal(vendorCsvData.created[0]?.self_promo, 0);
+    assert.equal(vendorCsvData.created[0]?.self_promo, "Catalog");
 
     const duplicateVendorCsvImport = await requestCsv(
       baseUrl,
       "/api/vendors/import.csv",
-      ["name,accountNumber,website,login,eqpStatus2023", "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,Approved"].join("\n")
+      ["name,accountNumber,website,login", "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com"].join("\n")
     );
     assert.equal(duplicateVendorCsvImport.status, 201);
     assert.match(
@@ -524,8 +524,7 @@ test("system records API supports main phase two flows", async () => {
         name: "Invalid Vendor",
         account_number: "A-404",
         website_url: "not-a-url",
-        login_identifier: "invalid@example.com",
-        eqp_status_2023: "Pending"
+        login_identifier: "invalid@example.com"
       }
     });
     assert.equal(invalidVendor.status, 400);
