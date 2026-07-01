@@ -53,6 +53,7 @@ import {
   fetchVendor,
   fetchVendors,
   importSystemsCsv,
+  importVendorsCsv,
   loginWithRemember,
   logout,
   requestPasswordReset,
@@ -1487,6 +1488,7 @@ function SystemsList({
 function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [importMessage, setImportMessage] = useState("");
   const [filters, setFilters] = useState(() => ({
     search: initialQuery.get("search") ?? "",
     includeArchived: initialQuery.get("includeArchived") === "true"
@@ -1508,6 +1510,24 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
       });
   }, [filters]);
 
+  async function importVendorCsvFile(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const result = await importVendorsCsv(await file.text());
+      setImportMessage(
+        `Imported ${result.data.created.length} vendors${
+          result.data.errors.length ? ` with ${result.data.errors.length} row errors` : ""
+        }.`
+      );
+      setFilters((current) => ({ ...current }));
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "Unable to import vendor CSV.");
+    }
+  }
+
   return (
     <>
       <section className="page-heading">
@@ -1516,6 +1536,16 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
         </div>
         <div className="header-actions">
           <SupportTicketLink />
+          <label className="secondary-link">
+            <Download size={16} aria-hidden="true" />
+            Import CSV
+            <input
+              accept=".csv,text/csv"
+              className="visually-hidden"
+              type="file"
+              onChange={(event) => void importVendorCsvFile(event.target.files?.[0])}
+            />
+          </label>
           <a className="primary-link" href="#/vendors/new">
             <Plus size={16} aria-hidden="true" />
             Add Vendor
@@ -1554,6 +1584,8 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
         </section>
       ) : null}
 
+      {importMessage ? <section className="notice success">{importMessage}</section> : null}
+
       <section className="panel wide">
         <div className="list-summary">
           <strong>{loadState === "loading" ? "Loading..." : `${vendors.length} vendors`}</strong>
@@ -1564,9 +1596,11 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
             <thead>
               <tr>
                 <th>Vendor</th>
+                <th>Account</th>
+                <th>Category</th>
                 <th>Website</th>
-                <th>Support</th>
-                <th>Representative</th>
+                <th>Login</th>
+                <th>Rep</th>
                 <th>Archived</th>
               </tr>
             </thead>
@@ -1576,15 +1610,17 @@ function VendorsList({ initialQuery }: { initialQuery: URLSearchParams }) {
                   <td>
                     <a href={`#/vendors/${vendor.id}`}>{vendor.name}</a>
                   </td>
+                  <td>{vendor.account_number ?? "Not recorded"}</td>
+                  <td>{vendor.category ?? "Not recorded"}</td>
                   <td>{vendor.website_url ?? "Not recorded"}</td>
-                  <td>{vendor.support_email ?? vendor.support_phone ?? "Not recorded"}</td>
-                  <td>{vendor.account_representative ?? "Not recorded"}</td>
+                  <td>{vendor.login_identifier ?? "Not recorded"}</td>
+                  <td>{vendor.csr_sales_rep ?? vendor.account_representative ?? "Not recorded"}</td>
                   <td>{vendor.archived_at ? formatDateTime(vendor.archived_at) : "No"}</td>
                 </tr>
               ))}
               {vendors.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="empty-table">
+                  <td colSpan={7} className="empty-table">
                     No matching vendors found.
                   </td>
                 </tr>
@@ -1695,24 +1731,28 @@ function VendorDetail({ id, navigate }: { id: number; navigate: (hash: string) =
       <section className="detail-grid">
         <DetailSection title="Vendor information">
           <DetailItem label="Vendor name" value={vendor.name} />
-          <DetailItem label="Description" value={vendor.description} />
+          <DetailItem label="Account number" value={vendor.account_number} />
+          <DetailItem label="Category" value={vendor.category} />
           <DetailItem label="Website" value={vendor.website_url} isLink />
-          <DetailItem label="Support email" value={vendor.support_email} />
-          <DetailItem label="Support phone number" value={vendor.support_phone} />
-          <DetailItem label="Support portal" value={vendor.support_portal_url} isLink />
+          <DetailItem label="Login" value={vendor.login_identifier} />
+          <DetailItem label="Cyrious name" value={vendor.cyrious_name} />
+          <DetailItem label="Email" value={vendor.support_email} />
+          <DetailItem label="CSR/Sales rep" value={vendor.csr_sales_rep} />
+          <DetailItem label="Direct line to rep" value={vendor.rep_direct_line} />
         </DetailSection>
 
-        <DetailSection title="Contract and notes">
-          <DetailItem label="Account representative" value={vendor.account_representative} />
-          <DetailItem label="Contract start date" value={formatNullableDate(vendor.contract_start_date)} />
-          <DetailItem label="Contract end date" value={formatNullableDate(vendor.contract_end_date)} />
-          <DetailItem
-            label="Renewal notice days"
-            value={vendor.renewal_notice_days === null ? null : String(vendor.renewal_notice_days)}
-          />
-          <DetailItem label="Contract notes" value={vendor.contract_notes} />
-          <DetailItem label="Renewal notes" value={vendor.renewal_notes} />
-          <DetailItem label="General notes" value={vendor.notes} />
+        <DetailSection title="Program and payment">
+          <DetailItem label="30 day terms" value={formatBooleanLabel(vendor.terms_30_day)} />
+          <DetailItem label="Self-promo" value={formatBooleanLabel(vendor.self_promo)} />
+          <DetailItem label="Rebate" value={formatBooleanLabel(vendor.rebate)} />
+          <DetailItem label="NQP" value={formatBooleanLabel(vendor.nqp)} />
+          <DetailItem label="AIM" value={formatBooleanLabel(vendor.aim)} />
+          <DetailItem label="2023 EQP Status" value={vendor.eqp_status_2023} />
+          <DetailItem label="2022 EQP Status" value={vendor.eqp_status_2022} />
+          <DetailItem label="EQP volume" value={vendor.eqp_volume} />
+          <DetailItem label="Payment method" value={vendor.payment_method} />
+          <DetailItem label="Invoice searches" value={vendor.invoice_searches} />
+          <DetailItem label="Notes" value={vendor.notes} />
         </DetailSection>
 
         <section className="panel detail-section wide">
@@ -1827,21 +1867,31 @@ function VendorForm({
             error={errors.name}
             required
           />
+          <VendorTextField label="Account number" name="account_number" value={form.account_number} onChange={updateField} />
           <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} />
-          <VendorTextField label="Support email" name="support_email" value={form.support_email} onChange={updateField} />
-          <VendorTextField label="Support phone number" name="support_phone" value={form.support_phone} onChange={updateField} />
-          <VendorTextField label="Support portal" name="support_portal_url" value={form.support_portal_url} onChange={updateField} error={errors.support_portal_url} />
-          <VendorTextField label="Account representative" name="account_representative" value={form.account_representative} onChange={updateField} />
-          <VendorTextArea label="Description" name="description" value={form.description} onChange={updateField} />
+          <VendorTextField label="Login" name="login_identifier" value={form.login_identifier} onChange={updateField} />
+          <VendorTextField label="Cyrious name" name="cyrious_name" value={form.cyrious_name} onChange={updateField} />
+          <VendorTextField label="Email" name="support_email" value={form.support_email} onChange={updateField} />
+          <VendorTextField label="Category" name="category" value={form.category} onChange={updateField} />
         </FormSection>
 
-        <FormSection title="Contract and notes">
-          <VendorTextField label="Contract start date" name="contract_start_date" type="date" value={form.contract_start_date} onChange={updateField} error={errors.contract_start_date} />
-          <VendorTextField label="Contract end date" name="contract_end_date" type="date" value={form.contract_end_date} onChange={updateField} error={errors.contract_end_date} />
-          <VendorTextField label="Renewal notice days" name="renewal_notice_days" type="number" value={form.renewal_notice_days} onChange={updateField} error={errors.renewal_notice_days} />
-          <VendorTextArea label="Contract notes" name="contract_notes" value={form.contract_notes} onChange={updateField} />
-          <VendorTextArea label="Renewal notes" name="renewal_notes" value={form.renewal_notes} onChange={updateField} />
-          <VendorTextArea label="General notes" name="notes" value={form.notes} onChange={updateField} />
+        <FormSection title="Program and payment">
+          <VendorYesNoField label="30 day terms" name="terms_30_day" value={form.terms_30_day} onChange={updateField} />
+          <VendorYesNoField label="Self-promo" name="self_promo" value={form.self_promo} onChange={updateField} />
+          <VendorYesNoField label="Rebate" name="rebate" value={form.rebate} onChange={updateField} />
+          <VendorYesNoField label="NQP" name="nqp" value={form.nqp} onChange={updateField} />
+          <VendorYesNoField label="AIM" name="aim" value={form.aim} onChange={updateField} />
+          <VendorTextField label="2023 EQP Status" name="eqp_status_2023" value={form.eqp_status_2023} onChange={updateField} />
+          <VendorTextField label="2022 EQP Status" name="eqp_status_2022" value={form.eqp_status_2022} onChange={updateField} />
+          <VendorTextField label="EQP volume" name="eqp_volume" value={form.eqp_volume} onChange={updateField} />
+          <VendorTextField label="Payment method" name="payment_method" value={form.payment_method} onChange={updateField} />
+          <VendorTextField label="Invoice searches" name="invoice_searches" value={form.invoice_searches} onChange={updateField} />
+        </FormSection>
+
+        <FormSection title="Representative and notes">
+          <VendorTextField label="CSR/Sales Rep" name="csr_sales_rep" value={form.csr_sales_rep} onChange={updateField} />
+          <VendorTextField label="Direct line to rep" name="rep_direct_line" value={form.rep_direct_line} onChange={updateField} />
+          <VendorTextArea label="Notes" name="notes" value={form.notes} onChange={updateField} />
         </FormSection>
 
         <div className="form-actions">
@@ -3300,6 +3350,29 @@ function VendorTextArea({
   );
 }
 
+function VendorYesNoField({
+  label,
+  name,
+  value,
+  onChange
+}: {
+  label: string;
+  name: keyof VendorFormInput;
+  value: string;
+  onChange: (name: keyof VendorFormInput, value: string) => void;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(name, event.target.value)}>
+        <option value="">Not recorded</option>
+        <option value="1">Yes</option>
+        <option value="0">No</option>
+      </select>
+    </label>
+  );
+}
+
 function DirectoryFieldInput({
   field,
   value,
@@ -3697,7 +3770,23 @@ export function createEmptyVendorForm(): VendorFormInput {
   return {
     name: "",
     description: "",
+    account_number: "",
     website_url: "",
+    login_identifier: "",
+    cyrious_name: "",
+    terms_30_day: "",
+    self_promo: "",
+    rebate: "",
+    nqp: "",
+    aim: "",
+    eqp_status_2023: "",
+    eqp_status_2022: "",
+    eqp_volume: "",
+    payment_method: "",
+    invoice_searches: "",
+    csr_sales_rep: "",
+    rep_direct_line: "",
+    category: "",
     support_email: "",
     support_phone: "",
     support_portal_url: "",
@@ -3715,7 +3804,23 @@ export function mapVendorToForm(vendor: Vendor): VendorFormInput {
   return {
     name: vendor.name,
     description: vendor.description ?? "",
+    account_number: vendor.account_number ?? "",
     website_url: vendor.website_url ?? "",
+    login_identifier: vendor.login_identifier ?? "",
+    cyrious_name: vendor.cyrious_name ?? "",
+    terms_30_day: vendor.terms_30_day === null ? "" : String(vendor.terms_30_day),
+    self_promo: vendor.self_promo === null ? "" : String(vendor.self_promo),
+    rebate: vendor.rebate === null ? "" : String(vendor.rebate),
+    nqp: vendor.nqp === null ? "" : String(vendor.nqp),
+    aim: vendor.aim === null ? "" : String(vendor.aim),
+    eqp_status_2023: vendor.eqp_status_2023 ?? "",
+    eqp_status_2022: vendor.eqp_status_2022 ?? "",
+    eqp_volume: vendor.eqp_volume ?? "",
+    payment_method: vendor.payment_method ?? "",
+    invoice_searches: vendor.invoice_searches ?? "",
+    csr_sales_rep: vendor.csr_sales_rep ?? "",
+    rep_direct_line: vendor.rep_direct_line ?? "",
+    category: vendor.category ?? "",
     support_email: vendor.support_email ?? "",
     support_phone: vendor.support_phone ?? "",
     support_portal_url: vendor.support_portal_url ?? "",
@@ -3793,6 +3898,18 @@ function formatNullableDate(value: string | null) {
     day: "numeric",
     year: "numeric"
   }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatBooleanLabel(value: 0 | 1 | null) {
+  if (value === 1) {
+    return "Yes";
+  }
+
+  if (value === 0) {
+    return "No";
+  }
+
+  return null;
 }
 
 function formatDateTime(value: string) {

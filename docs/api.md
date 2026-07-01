@@ -216,6 +216,7 @@ system detail page can show upstream dependencies and downstream impact.
 
 ```http
 POST /api/vendors/:id/archive
+POST /api/vendors/import.csv
 ```
 
 Archives a vendor by setting `archived_at`. Vendor list responses exclude archived vendors by default.
@@ -223,21 +224,33 @@ Archives a vendor by setting `archived_at`. Vendor list responses exclude archiv
 Vendor create and update requests support:
 
 - `name`
-- `description`
+- `account_number`
 - `website_url`
+- `login_identifier`
+- `cyrious_name`
+- `terms_30_day`
+- `self_promo`
+- `rebate`
+- `nqp`
+- `aim`
+- `eqp_status_2023`
+- `eqp_status_2022`
+- `eqp_volume`
+- `payment_method`
+- `invoice_searches`
+- `csr_sales_rep`
+- `rep_direct_line`
+- `category`
 - `support_email`
-- `support_phone`
-- `support_portal_url`
-- `account_representative`
-- `contract_start_date`
-- `contract_end_date`
-- `renewal_notice_days`
-- `contract_notes`
-- `renewal_notes`
 - `notes`
 
-Existing compatibility fields are still accepted, including `support_url`,
-`account_manager_name`, and `account_manager_email`.
+Existing compatibility fields are still accepted, including `description`,
+`support_url`, `support_phone`, `support_portal_url`, `account_manager_name`,
+`account_manager_email`, `account_representative`, contract dates, and renewal notes.
+
+CSV import requires a `name` column and returns created rows plus row-level errors.
+Boolean-style fields accept `yes`, `no`, `true`, `false`, `1`, or `0`.
+Do not store actual passwords, tokens, API keys, or payment credentials in `login_identifier`.
 
 ### Global Asset Search
 

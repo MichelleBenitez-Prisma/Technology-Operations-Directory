@@ -26,6 +26,7 @@ import {
   fetchSystemTags,
   fetchVendors,
   importSystemsCsv,
+  importVendorsCsv,
   login,
   loginWithRemember,
   logout,
@@ -162,7 +163,7 @@ test("detail and form helpers map records and validation issues", async () => {
   });
 });
 
-test("vendor route, query, and form helpers preserve phase four fields", () => {
+test("vendor route, query, and form helpers preserve business fields", () => {
   const route = parseRouteFromHash("#/vendors?search=print&includeArchived=true");
 
   assert.equal(route.name, "vendors");
@@ -178,10 +179,12 @@ test("vendor route, query, and form helpers preserve phase four fields", () => {
 
   const form = mapVendorToForm(createVendorRecord());
   assert.equal(form.name, "Print Vendor");
+  assert.equal(form.account_number, "A-100");
+  assert.equal(form.login_identifier, "vendor.login@example.com");
+  assert.equal(form.terms_30_day, "1");
+  assert.equal(form.self_promo, "0");
+  assert.equal(form.category, "Paper");
   assert.equal(form.support_email, "support@vendor.example.com");
-  assert.equal(form.account_representative, "Vendor Account Team");
-  assert.equal(form.contract_notes, "Contract notes.");
-  assert.equal(form.renewal_notes, "Renewal notes.");
 
   assert.equal(createEmptyVendorForm().name, "");
 });
@@ -251,6 +254,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
   await deleteSystem(7);
   await fetchVendors("search=print&includeArchived=true");
   await createVendor(createEmptyVendorForm());
+  await importVendorsCsv("name,accountNumber,website,login\nVendor,A-1,https://vendor.example.com,vendor@example.com");
   await archiveVendor(9);
   await fetchDirectoryRecords("integrations", "search=api");
   await createDirectoryRecord("system-dependencies", createDirectoryRecordFixture());
@@ -280,6 +284,7 @@ test("client API calls dashboard, list, create, archive, and delete endpoints", 
       "DELETE /api/system-records/7",
       "GET /api/vendors?search=print&includeArchived=true",
       "POST /api/vendors",
+      "POST /api/vendors/import.csv",
       "POST /api/vendors/9/archive",
       "GET /api/integrations?search=api",
       "POST /api/system-dependencies",
@@ -330,7 +335,23 @@ function createVendorRecord(): Vendor {
     id: 9,
     name: "Print Vendor",
     description: "Vendor description.",
+    account_number: "A-100",
     website_url: "https://vendor.example.com",
+    login_identifier: "vendor.login@example.com",
+    cyrious_name: "Cyrious Vendor",
+    terms_30_day: 1,
+    self_promo: 0,
+    rebate: 1,
+    nqp: 0,
+    aim: 1,
+    eqp_status_2023: "Approved",
+    eqp_status_2022: "Approved",
+    eqp_volume: "10000",
+    payment_method: "ACH",
+    invoice_searches: "Portal",
+    csr_sales_rep: "Sales Rep",
+    rep_direct_line: "555-0190",
+    category: "Paper",
     support_url: null,
     support_email: "support@vendor.example.com",
     support_phone: "555-0100",

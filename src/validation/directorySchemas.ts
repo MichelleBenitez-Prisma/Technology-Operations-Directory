@@ -66,6 +66,22 @@ const optionalActive = z.preprocess(
       return value ? 1 : 0;
     }
 
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+
+      if (normalized === "") {
+        return undefined;
+      }
+
+      if (["1", "true", "yes", "y"].includes(normalized)) {
+        return 1;
+      }
+
+      if (["0", "false", "no", "n"].includes(normalized)) {
+        return 0;
+      }
+    }
+
     return value;
   },
   z.union([z.literal(0), z.literal(1)]).optional()
@@ -116,7 +132,23 @@ const personSchema = z.object({
 const vendorSchema = z.object({
   name: z.string().trim().min(1, "This field is required.").optional(),
   description: optionalText,
+  account_number: optionalText,
   website_url: optionalUrl,
+  login_identifier: optionalText,
+  cyrious_name: optionalText,
+  terms_30_day: optionalActive,
+  self_promo: optionalActive,
+  rebate: optionalActive,
+  nqp: optionalActive,
+  aim: optionalActive,
+  eqp_status_2023: optionalText,
+  eqp_status_2022: optionalText,
+  eqp_volume: optionalText,
+  payment_method: optionalText,
+  invoice_searches: optionalText,
+  csr_sales_rep: optionalText,
+  rep_direct_line: optionalText,
+  category: optionalText,
   support_url: optionalUrl,
   support_email: optionalText,
   support_phone: optionalText,

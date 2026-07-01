@@ -1,0 +1,16 @@
+ALTER TABLE vendors ADD COLUMN account_number TEXT;
+ALTER TABLE vendors ADD COLUMN login_identifier TEXT;
+ALTER TABLE vendors ADD COLUMN cyrious_name TEXT;
+ALTER TABLE vendors ADD COLUMN terms_30_day INTEGER DEFAULT 0 CHECK (terms_30_day IN (0, 1));
+ALTER TABLE vendors ADD COLUMN self_promo INTEGER DEFAULT 0 CHECK (self_promo IN (0, 1));
+ALTER TABLE vendors ADD COLUMN rebate INTEGER DEFAULT 0 CHECK (rebate IN (0, 1));
+ALTER TABLE vendors ADD COLUMN nqp INTEGER DEFAULT 0 CHECK (nqp IN (0, 1));
+ALTER TABLE vendors ADD COLUMN aim INTEGER DEFAULT 0 CHECK (aim IN (0, 1));
+ALTER TABLE vendors ADD COLUMN eqp_status_2023 TEXT;
+ALTER TABLE vendors ADD COLUMN eqp_status_2022 TEXT;
+ALTER TABLE vendors ADD COLUMN eqp_volume TEXT;
+ALTER TABLE vendors ADD COLUMN payment_method TEXT;
+ALTER TABLE vendors ADD COLUMN invoice_searches TEXT;
+ALTER TABLE vendors ADD COLUMN csr_sales_rep TEXT;
+ALTER TABLE vendors ADD COLUMN rep_direct_line TEXT;
+ALTER TABLE vendors ADD COLUMN category TEXT;

@@ -1,8 +1,8 @@
 # CSV Importer README
 
-The CSV importer lets users add system records from the Systems page.
+The CSV importers let users add system and vendor records from spreadsheet files.
 
-## How To Use
+## System Import
 
 1. Open **Systems**.
 2. Choose **Import CSV**.
@@ -65,3 +65,45 @@ For credentials, import only an approved password-manager reference such as `Vau
 - Unknown `categoryCode`.
 - Unsupported `status` value.
 
+## Vendor Import
+
+Open **Vendors**, choose **Import CSV**, and select a `.csv` file.
+
+Required vendor column:
+
+- `name`
+
+Example:
+
+```csv
+name,accountNumber,website,login,terms30Day,selfPromo,email,category
+Vendor Name,A-100,https://vendor.example.com,vendor@example.com,yes,no,rep@example.com,Paper
+```
+
+Supported vendor columns:
+
+- `accountNumber`
+- `website`
+- `login`
+- `cyriousName`
+- `terms30Day`
+- `selfPromo`
+- `rebate`
+- `nqp`
+- `aim`
+- `eqpStatus2023`
+- `eqpStatus2022`
+- `eqpVolume`
+- `paymentMethod`
+- `invoiceSearches`
+- `csrSalesRep`
+- `repDirectLine`
+- `email`
+- `category`
+- `notes`
+
+Snake_case alternatives such as `account_number`, `website_url`, `login_identifier`, and `cyrious_name` are also accepted.
+
+Yes/no fields accept `yes`, `no`, `true`, `false`, `1`, or `0`.
+
+The vendor `login` column must contain only a non-secret login identifier, such as an email address. Do not import passwords, API keys, tokens, or payment credentials.

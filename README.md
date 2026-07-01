@@ -10,7 +10,7 @@ The directory is designed for operational metadata only. It must not store passw
 - Searchable systems list with filters, sorting, archive visibility, CSV export, and CSV import.
 - Add, view, edit, archive, and delete system records.
 - System detail pages with general information, ownership/support, technical information, documentation, lifecycle fields, category-specific details, dependencies, and record actions.
-- Vendor directory with vendor list, search, add/edit forms, detail pages, archive behavior, and connected systems by vendor name.
+- Vendor directory with business fields, vendor CSV import, search, add/edit forms, detail pages, archive behavior, and connected systems by vendor name.
 - Directory workflows for integrations, scheduled processes, reviews, system dependencies, document references, tags, and custom fields.
 - Data-quality warnings and reports for missing documentation, missing owners, renewals, lifecycle, vendor/category/owner/criticality groupings, review due dates, and recent reviews.
 - Authentication, basic roles, session cookies, audit logging, request IDs, backup/restore guidance, and production deployment notes.

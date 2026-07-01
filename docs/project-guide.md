@@ -37,7 +37,7 @@ Open **Systems**. Use search for names, descriptions, owners, departments, vendo
 
 ### Add a Vendor
 
-Open **Vendors** and choose **Add Vendor**. Enter vendor name, description, website, support email, support phone, support portal, account representative, contract notes, renewal notes, and general notes. Vendor detail pages show connected systems when the system vendor text matches the vendor name.
+Open **Vendors** and choose **Add Vendor**. Enter vendor name, account number, website, login identifier, Cyrious name, terms/program flags, EQP status and volume, payment method, invoice search notes, representative contact details, email, category, and notes. Vendor detail pages show connected systems when the system vendor text matches the vendor name. The login field is for a non-secret identifier only, not a password.
 
 ### Create a Dependency
 
@@ -57,7 +57,7 @@ Open **Systems**, apply any search, filter, and sort settings needed, then choos
 
 ### Import Data
 
-Open **Systems** and choose **Import CSV**. The CSV should include headers that match system form fields such as `systemName`, `description`, `categoryCode`, `status`, `technicalOwner`, `vendor`, and `documentationLink`. Imported rows are validated the same way as manually entered systems.
+Open **Systems** and choose **Import CSV**. The CSV should include headers that match system form fields such as `systemName`, `description`, `categoryCode`, `status`, `technicalOwner`, `vendor`, and `documentationLink`. Open **Vendors** and choose **Import CSV** to load vendor rows from a spreadsheet. Imported rows are validated the same way as manually entered records.
 
 See `docs/importer/README.md` for the full importer column list and safety rules.
 

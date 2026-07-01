@@ -56,6 +56,22 @@ type TestVendor = {
   id: number;
   name: string;
   description: string | null;
+  account_number: string | null;
+  login_identifier: string | null;
+  cyrious_name: string | null;
+  terms_30_day: 0 | 1 | null;
+  self_promo: 0 | 1 | null;
+  rebate: 0 | 1 | null;
+  nqp: 0 | 1 | null;
+  aim: 0 | 1 | null;
+  eqp_status_2023: string | null;
+  eqp_status_2022: string | null;
+  eqp_volume: string | null;
+  payment_method: string | null;
+  invoice_searches: string | null;
+  csr_sales_rep: string | null;
+  rep_direct_line: string | null;
+  category: string | null;
   support_email: string | null;
   support_phone: string | null;
   support_portal_url: string | null;
@@ -227,7 +243,23 @@ test("system records API supports main phase two flows", async () => {
       body: {
         name: "Print Vendor",
         description: "Vendor used for print production support.",
+        account_number: "A-100",
         website_url: "https://vendor.example.com",
+        login_identifier: "vendor.login@example.com",
+        cyrious_name: "Cyrious Vendor",
+        terms_30_day: 1,
+        self_promo: 0,
+        rebate: 1,
+        nqp: 0,
+        aim: 1,
+        eqp_status_2023: "Approved",
+        eqp_status_2022: "Approved",
+        eqp_volume: "10000",
+        payment_method: "ACH",
+        invoice_searches: "Portal",
+        csr_sales_rep: "Sales Rep",
+        rep_direct_line: "555-0190",
+        category: "Paper",
         support_email: "support@vendor.example.com",
         support_phone: "555-0100",
         support_portal_url: "https://vendor.example.com/support",
@@ -240,6 +272,12 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(createdVendor.status, 201);
     const vendorData = getResponseData<TestVendor>(createdVendor);
     assert.equal(vendorData.description, "Vendor used for print production support.");
+    assert.equal(vendorData.account_number, "A-100");
+    assert.equal(vendorData.login_identifier, "vendor.login@example.com");
+    assert.equal(vendorData.cyrious_name, "Cyrious Vendor");
+    assert.equal(vendorData.terms_30_day, 1);
+    assert.equal(vendorData.self_promo, 0);
+    assert.equal(vendorData.category, "Paper");
     assert.equal(vendorData.support_email, "support@vendor.example.com");
     assert.equal(vendorData.support_phone, "555-0100");
     assert.equal(vendorData.support_portal_url, "https://vendor.example.com/support");
@@ -251,13 +289,45 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(vendorData.renewal_notes, "Review renewal 90 days before contract end.");
     const vendorId = Number(vendorData.id);
 
+    const vendorCsvImport = await requestCsv(
+      baseUrl,
+      "/api/vendors/import.csv",
+      [
+        "name,accountNumber,website,login,terms30Day,selfPromo,email,category",
+        "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,yes,no,csv@example.com,Ink"
+      ].join("\n")
+    );
+    assert.equal(vendorCsvImport.status, 201);
+    const vendorCsvData = getResponseData<{ created: TestVendor[]; errors: unknown[] }>(vendorCsvImport);
+    assert.equal(vendorCsvData.created.length, 1);
+    assert.equal(vendorCsvData.created[0]?.login_identifier, "csv.vendor@example.com");
+    assert.equal(vendorCsvData.created[0]?.terms_30_day, 1);
+    assert.equal(vendorCsvData.created[0]?.self_promo, 0);
+
+    const duplicateVendorCsvImport = await requestCsv(
+      baseUrl,
+      "/api/vendors/import.csv",
+      ["name", "CSV Vendor"].join("\n")
+    );
+    assert.equal(duplicateVendorCsvImport.status, 201);
+    assert.match(
+      String(
+        getResponseData<{ created: TestVendor[]; errors: Array<{ message: string }> }>(
+          duplicateVendorCsvImport
+        ).errors[0]?.message
+      ),
+      /Vendor name already exists|UNIQUE constraint/i
+    );
+
     const updatedVendor = await requestJson(baseUrl, `/api/vendors/${vendorId}`, {
       method: "PATCH",
       body: {
+        payment_method: "Credit card",
         renewal_notes: "Updated renewal notes."
       }
     });
     assert.equal(updatedVendor.status, 200);
+    assert.equal(getResponseData<TestVendor>(updatedVendor).payment_method, "Credit card");
     assert.equal(
       getResponseData<TestVendor>(updatedVendor).renewal_notes,
       "Updated renewal notes."

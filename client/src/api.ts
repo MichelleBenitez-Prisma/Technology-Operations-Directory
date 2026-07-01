@@ -185,6 +185,23 @@ export async function archiveVendor(id: number) {
   return mutateJson<{ data: Vendor }>(`/api/vendors/${id}/archive`, "POST");
 }
 
+export async function importVendorsCsv(csvText: string) {
+  const response = await fetch(`${API_BASE_URL}/api/vendors/import.csv`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "text/csv" },
+    body: csvText
+  });
+
+  if (!response.ok) {
+    throw await ApiError.fromResponse(response);
+  }
+
+  return (await response.json()) as {
+    data: { created: Vendor[]; errors: Array<{ row: number; message: string }> };
+  };
+}
+
 export async function fetchDirectoryRecords(resource: DirectoryResource, query = "limit=100") {
   return getJson<DirectoryRecord[]>(`/api/${resource}?${query}`);
 }
