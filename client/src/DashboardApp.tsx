@@ -3173,7 +3173,7 @@ function SystemTable({
                 {system.quality_warning_count > 0 ? (
                   <span className="quality-badge">{system.quality_warning_count}</span>
                 ) : (
-                  "None"
+                  <span className="quality-badge quality-badge-zero">0</span>
                 )}
               </td>
               {showLastReview ? <td>{formatDate(system.last_review_date)}</td> : null}
