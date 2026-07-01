@@ -285,7 +285,7 @@ const requiredCreateFields: Record<keyof typeof directorySchemas, string[]> = {
   assetTypes: ["code", "name"],
   teams: ["name"],
   people: ["display_name"],
-  vendors: ["name"],
+  vendors: ["name", "account_number", "website_url", "login_identifier", "eqp_status_2023"],
   assetEnvironments: ["asset_id", "environment_name"],
   integrations: ["name"],
   scheduledProcesses: ["name"],

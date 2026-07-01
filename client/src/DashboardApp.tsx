@@ -1867,9 +1867,9 @@ function VendorForm({
             error={errors.name}
             required
           />
-          <VendorTextField label="Account number" name="account_number" value={form.account_number} onChange={updateField} />
-          <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} />
-          <VendorTextField label="Login" name="login_identifier" value={form.login_identifier} onChange={updateField} />
+          <VendorTextField label="Account number" name="account_number" value={form.account_number} onChange={updateField} error={errors.account_number} required />
+          <VendorTextField label="Website" name="website_url" value={form.website_url} onChange={updateField} error={errors.website_url} required />
+          <VendorTextField label="Login" name="login_identifier" value={form.login_identifier} onChange={updateField} error={errors.login_identifier} required />
           <VendorTextField label="Cyrious name" name="cyrious_name" value={form.cyrious_name} onChange={updateField} />
           <VendorTextField label="Email" name="support_email" value={form.support_email} onChange={updateField} />
           <VendorTextField label="Category" name="category" value={form.category} onChange={updateField} />
@@ -1881,7 +1881,7 @@ function VendorForm({
           <VendorYesNoField label="Rebate" name="rebate" value={form.rebate} onChange={updateField} />
           <VendorYesNoField label="NQP" name="nqp" value={form.nqp} onChange={updateField} />
           <VendorYesNoField label="AIM" name="aim" value={form.aim} onChange={updateField} />
-          <VendorTextField label="2023 EQP Status" name="eqp_status_2023" value={form.eqp_status_2023} onChange={updateField} />
+          <VendorTextField label="2023 EQP Status" name="eqp_status_2023" value={form.eqp_status_2023} onChange={updateField} error={errors.eqp_status_2023} required />
           <VendorTextField label="2022 EQP Status" name="eqp_status_2022" value={form.eqp_status_2022} onChange={updateField} />
           <VendorTextField label="EQP volume" name="eqp_volume" value={form.eqp_volume} onChange={updateField} />
           <VendorTextField label="Payment method" name="payment_method" value={form.payment_method} onChange={updateField} />

@@ -293,8 +293,8 @@ test("system records API supports main phase two flows", async () => {
       baseUrl,
       "/api/vendors/import.csv",
       [
-        "name,accountNumber,website,login,terms30Day,selfPromo,email,category",
-        "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,yes,no,csv@example.com,Ink"
+        "name,accountNumber,website,login,terms30Day,selfPromo,email,category,eqpStatus2023",
+        "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,yes,no,csv@example.com,Ink,Approved"
       ].join("\n")
     );
     assert.equal(vendorCsvImport.status, 201);
@@ -307,7 +307,7 @@ test("system records API supports main phase two flows", async () => {
     const duplicateVendorCsvImport = await requestCsv(
       baseUrl,
       "/api/vendors/import.csv",
-      ["name", "CSV Vendor"].join("\n")
+      ["name,accountNumber,website,login,eqpStatus2023", "CSV Vendor,A-200,https://csv-vendor.example.com,csv.vendor@example.com,Approved"].join("\n")
     );
     assert.equal(duplicateVendorCsvImport.status, 201);
     assert.match(
@@ -522,7 +522,10 @@ test("system records API supports main phase two flows", async () => {
       method: "POST",
       body: {
         name: "Invalid Vendor",
-        website_url: "not-a-url"
+        account_number: "A-404",
+        website_url: "not-a-url",
+        login_identifier: "invalid@example.com",
+        eqp_status_2023: "Pending"
       }
     });
     assert.equal(invalidVendor.status, 400);

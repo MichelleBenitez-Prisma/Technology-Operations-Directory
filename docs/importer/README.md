@@ -69,15 +69,19 @@ For credentials, import only an approved password-manager reference such as `Vau
 
 Open **Vendors**, choose **Import CSV**, and select a `.csv` file.
 
-Required vendor column:
+Required vendor columns:
 
 - `name`
+- `accountNumber`
+- `website`
+- `login`
+- `eqpStatus2023`
 
 Example:
 
 ```csv
-name,accountNumber,website,login,terms30Day,selfPromo,email,category
-Vendor Name,A-100,https://vendor.example.com,vendor@example.com,yes,no,rep@example.com,Paper
+name,accountNumber,website,login,eqpStatus2023,terms30Day,nqp,aim,email,category
+Vendor Name,A-100,https://vendor.example.com,vendor@example.com,Approved,yes,no,yes,rep@example.com,Paper
 ```
 
 Supported vendor columns:
