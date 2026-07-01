@@ -3302,12 +3302,12 @@ function TextAreaField({
 }
 
 function getWarningBadgeStyle(count: number): CSSProperties {
-  const cappedCount = Math.min(Math.max(count, 1), 10);
-  const hue = Math.max(0, 120 - cappedCount * 12);
+  const cappedCount = Math.min(Math.max(count, 1), 8);
+  const hue = Math.max(0, 60 - (cappedCount - 1) * 8.5);
 
   return {
-    background: `linear-gradient(135deg, hsl(${hue} 88% 86%), hsl(${Math.max(hue - 12, 0)} 84% 60%))`,
-    color: `hsl(${Math.max(hue - 24, 0)} 82% 22%)`
+    background: `linear-gradient(135deg, hsl(${hue} 96% 86%), hsl(${Math.max(hue - 10, 0)} 92% 55%))`,
+    color: `hsl(${Math.max(hue - 18, 0)} 88% 22%)`
   };
 }
 
