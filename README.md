@@ -30,6 +30,7 @@ dist/                    Production build output; ignored by Git
 ```
 
 Use `docs/project-guide.md` first for user, developer, administrator, backup, restore, and troubleshooting documentation. Use `docs/api.md` for endpoint details.
+Use `docs/importer/README.md` for CSV importer instructions and accepted columns.
 
 ## Required Software
 
@@ -109,6 +110,18 @@ Forgot-password uses an emailed one-time reset link. The reset token is stored o
 - Store only the name/location of approved password-manager entries in `passwordVaultReference`.
 - Sample data must use fake systems, fake vendors, fake URLs, and safe placeholder contact data.
 - Forgot-password must never return temporary passwords or reset tokens in API responses or logs.
+
+## Documentation Uploads And References
+
+The application does not store uploaded document files directly. Upload runbooks, server notes, OS documentation, vendor documents, or contracts to an approved company document location first, then save the link in the directory.
+
+Recommended places to add documentation:
+
+- **System record > Documentation link**: primary documentation for that system.
+- **System detail > Category-specific details**: server-specific information such as OS type, version, backup policy, and notes.
+- **Directory > Document References**: extra runbooks, support documents, contracts, or approved reference links.
+
+Never store passwords, API keys, certificates, database credentials, or payment details in uploaded documents or dashboard notes.
 
 ## Main API Areas
 

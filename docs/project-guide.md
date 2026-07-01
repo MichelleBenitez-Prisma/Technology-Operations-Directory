@@ -25,6 +25,8 @@ Select **Add System**. Complete the required fields: system name, category, stat
 
 Open **Systems**, select a system name, then choose **Edit**. Update the needed fields and save. Use the detail page to confirm the updated general information, ownership, technical details, documentation, lifecycle information, dependencies, tags, and category-specific details.
 
+For Server records, use the category-specific details section to record the OS type, such as Linux, Windows, or Other.
+
 ### Archive a System
 
 Open the system detail page and choose **Archive**. Archived systems are hidden from the default list but remain available when archived records are included. Use delete only when a record should be permanently removed.
@@ -56,6 +58,8 @@ Open **Systems**, apply any search, filter, and sort settings needed, then choos
 ### Import Data
 
 Open **Systems** and choose **Import CSV**. The CSV should include headers that match system form fields such as `systemName`, `description`, `categoryCode`, `status`, `technicalOwner`, `vendor`, and `documentationLink`. Imported rows are validated the same way as manually entered systems.
+
+See `docs/importer/README.md` for the full importer column list and safety rules.
 
 ### Add Document References and Custom Fields
 

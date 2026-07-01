@@ -2473,13 +2473,13 @@ function CategoryDetailSection({ systemId }: { systemId: number }) {
       <h3>{details.categoryName} details</h3>
       <form className="form-grid" onSubmit={(event) => void saveDetails(event)}>
         {Object.keys(details.fields).map((field) => (
-          <label className="field" key={field}>
-            <span>{humanizeField(field)}</span>
-            <input
-              value={form[field] ?? ""}
-              onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-            />
-          </label>
+          <DirectoryFieldInput
+            key={field}
+            field={categoryDetailField(details.categoryCode, field)}
+            value={form[field] ?? ""}
+            systems={[]}
+            onChange={(value) => setForm((current) => ({ ...current, [field]: value }))}
+          />
         ))}
         <div className="form-actions full-field">
           <button className="secondary-link" type="submit" disabled={isSaving}>
@@ -2490,6 +2490,23 @@ function CategoryDetailSection({ systemId }: { systemId: number }) {
       </form>
     </section>
   );
+}
+
+function categoryDetailField(categoryCode: string, fieldName: string): DirectoryField {
+  if (categoryCode === "server" && fieldName === "operating_system") {
+    return {
+      name: fieldName,
+      label: "OS type",
+      type: "select",
+      options: optionValues(["Linux", "Windows", "Other"])
+    };
+  }
+
+  return {
+    name: fieldName,
+    label: humanizeField(fieldName),
+    type: fieldName === "notes" ? "textarea" : "text"
+  };
 }
 
 function SystemTagsSection({ systemId }: { systemId: number }) {
