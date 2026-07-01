@@ -90,6 +90,7 @@ Authentication uses an HttpOnly `tod_session` cookie.
 | `GET`  | `/api/auth/me`              | Return the signed-in user             |
 | `GET`  | `/api/auth/users`           | Admin-only list of active users       |
 | `PATCH` | `/api/auth/users/:id/role` | Admin-only role update                |
+| `DELETE` | `/api/auth/users/:id`     | Admin-only removal of editor access   |
 | `POST` | `/api/auth/forgot-password` | Email a one-time password reset link  |
 | `POST` | `/api/auth/reset-password`  | Set a new password with a reset token |
 
@@ -101,7 +102,7 @@ Roles:
 - `editor`: create, update, archive, and organization-level directory access.
 - `admin`: delete, user access, server-wide settings, and administrator-level resource access.
 
-The current user response includes a `permissions` array. Admins can use Profile Settings to grant active users either `editor` or `admin` access.
+The current user response includes a `permissions` array. Admins can use Profile Settings to grant active users either `editor` or `admin` access, and can remove editor users from dashboard access.
 
 `/health` remains public for deployment health checks. Other API routes require a valid session when `AUTH_REQUIRED` is enabled.
 

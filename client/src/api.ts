@@ -42,6 +42,10 @@ export async function updateUserRole(id: number, role: "editor" | "admin") {
   return mutateJson<{ data: AuthUser }>(`/api/auth/users/${id}/role`, "PATCH", { role });
 }
 
+export async function removeUser(id: number) {
+  await mutateEmpty(`/api/auth/users/${id}`, "DELETE");
+}
+
 export async function login(email: string, password: string) {
   return mutateJson<{ data: AuthUser }>("/api/auth/login", "POST", { email, password });
 }

@@ -99,7 +99,7 @@ After the first administrator exists, remove or rotate the setup password value.
 
 Sessions use an HttpOnly `tod_session` cookie. The application stores password hashes and session token hashes, not plaintext passwords or plaintext session tokens.
 
-Admins manage user access in Profile Settings. New self-service signups start as read-only until an admin grants Editor or Admin access.
+Admins manage user access in Profile Settings. New self-service signups start as read-only until an admin grants Editor or Admin access. Admins can also remove editor users from dashboard access.
 
 Forgot-password uses an emailed one-time reset link. The reset token is stored only as a hash, expires after 30 minutes, and is marked used after a successful password reset. Configure SMTP before production launch; otherwise reset emails cannot be delivered.
 

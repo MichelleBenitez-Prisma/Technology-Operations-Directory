@@ -56,6 +56,7 @@ import {
   loginWithRemember,
   logout,
   requestPasswordReset,
+  removeUser,
   resetPassword,
   signUp,
   updateDirectoryRecord,
@@ -753,6 +754,22 @@ function ProfileSettingsPage({
     }
   }
 
+  async function removeEditorAccess(accessUser: AuthUser) {
+    if (!window.confirm(`Remove dashboard access for ${accessUser.display_name}?`)) {
+      return;
+    }
+
+    setAccessMessage("");
+
+    try {
+      await removeUser(accessUser.id);
+      setAccessUsers((current) => current.filter((userRecord) => userRecord.id !== accessUser.id));
+      setAccessMessage("Editor user removed from dashboard access.");
+    } catch (error) {
+      setAccessMessage(error instanceof Error ? error.message : "Unable to remove editor user.");
+    }
+  }
+
   return (
     <>
       <section className="page-heading">
@@ -860,6 +877,7 @@ function ProfileSettingsPage({
                   <th>Email</th>
                   <th>Role</th>
                   <th>Permissions</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -881,6 +899,19 @@ function ProfileSettingsPage({
                       </select>
                     </td>
                     <td>{formatPermissions(accessUser.permissions)}</td>
+                    <td>
+                      {accessUser.role === "editor" ? (
+                        <button
+                          className="danger-button"
+                          type="button"
+                          onClick={() => void removeEditorAccess(accessUser)}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        "Admin only"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

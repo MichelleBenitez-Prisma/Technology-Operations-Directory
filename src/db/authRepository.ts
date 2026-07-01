@@ -299,6 +299,36 @@ export function updateUserRole(userId: number, role: EditableUserRole) {
   return user ? withPermissions(user) : undefined;
 }
 
+export function removeEditorUser(userId: number) {
+  const user = queryOne<Omit<AuthUser, "permissions">>(
+    `
+    SELECT id, email, display_name, phone, job_title, profile_image_data, role
+    FROM users
+    WHERE id = $userId
+      AND active = 1
+    `,
+    { userId }
+  );
+
+  if (!user || user.role !== "editor") {
+    return undefined;
+  }
+
+  execute(
+    `
+    UPDATE users
+    SET active = 0,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $userId
+    `,
+    { userId }
+  );
+
+  execute("DELETE FROM user_sessions WHERE user_id = $userId", { userId });
+
+  return withPermissions(user);
+}
+
 export function updateUserProfile(
   userId: number,
   input: {

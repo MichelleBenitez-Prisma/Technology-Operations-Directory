@@ -14,6 +14,7 @@ import {
   listAuditLogEvents,
   listUsersForAccessReview,
   logAuditEvent,
+  removeEditorUser,
   resetPasswordWithToken,
   sessionCookieName,
   updateUserRole,
@@ -126,6 +127,50 @@ authRouter.patch("/users/:id/role", (request, response) => {
   });
 
   response.json({ data: updatedUser });
+});
+
+authRouter.delete("/users/:id", (request, response) => {
+  const user = readCurrentUser(request);
+
+  if (!user) {
+    response.status(401).json({
+      error: "Unauthorized",
+      message: "Please sign in to continue."
+    });
+    return;
+  }
+
+  if (user.role !== "admin") {
+    response.status(403).json({
+      error: "Forbidden",
+      message: "Admin access is required to remove users."
+    });
+    return;
+  }
+
+  const removedUser = removeEditorUser(Number(request.params.id));
+
+  if (!removedUser) {
+    response.status(400).json({
+      error: "Validation Error",
+      message: "Only editor users can be removed from dashboard access."
+    });
+    return;
+  }
+
+  logAuditEvent({
+    userId: user.id,
+    action: "remove_editor_user",
+    entityType: "users",
+    entityId: String(removedUser.id),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: 204,
+    requestId: response.locals.requestId as string | undefined,
+    changeSummary: `${user.email} removed editor access for ${removedUser.email}.`
+  });
+
+  response.status(204).send();
 });
 
 authRouter.put("/me/profile", (request, response) => {
