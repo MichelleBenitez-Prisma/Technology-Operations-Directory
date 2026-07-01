@@ -134,6 +134,10 @@ Main route groups:
 
 See `docs/api.md` for request fields and endpoint details.
 
+### Roles And Permissions
+
+The app uses role-based permissions. New signups are read-only until an admin grants access. Editors can add, edit, archive, and manage organization-level directory resources. Admins can manage user access, server-wide settings, delete actions, and administrator-level resources. Admins update user roles from Profile Settings.
+
 ### Add Database Fields
 
 Add schema changes as a new numbered SQL migration in `database/migrations/`. Update the matching repository in `src/db/`, validation schema in `src/validation/`, shared types, API docs, and UI form/detail sections if users should see or edit the field. Run type checks, tests, build, and a fresh migration check.

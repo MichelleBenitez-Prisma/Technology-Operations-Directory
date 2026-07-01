@@ -13,7 +13,7 @@ The directory is designed for operational metadata only. It must not store passw
 - Vendor directory with vendor list, search, add/edit forms, detail pages, archive behavior, and connected systems by vendor name.
 - Directory workflows for integrations, scheduled processes, reviews, system dependencies, document references, tags, and custom fields.
 - Data-quality warnings and reports for missing documentation, missing owners, renewals, lifecycle, vendor/category/owner/criticality groupings, review due dates, and recent reviews.
-- Authentication, roles, session cookies, audit logging, request IDs, backup/restore guidance, and production deployment notes.
+- Authentication, administrator-managed roles and permissions, session cookies, audit logging, request IDs, backup/restore guidance, and production deployment notes.
 - Profile settings for full name, email, phone, job title, and profile picture.
 
 ## Project Structure
@@ -94,10 +94,12 @@ SMTP_FROM="Technology Operations Directory <no-reply@poweredbyprisma.com>"
 After the first administrator exists, remove or rotate the setup password value. Roles are:
 
 - `viewer`: read-only
-- `editor`: add, edit, and archive records
-- `admin`: delete records and perform administrator-level actions
+- `editor`: add, edit, archive, and manage organization-level directory resources
+- `admin`: manage users, permissions, server-wide settings, deletes, and administrator-level resources
 
 Sessions use an HttpOnly `tod_session` cookie. The application stores password hashes and session token hashes, not plaintext passwords or plaintext session tokens.
+
+Admins manage user access in Profile Settings. New self-service signups start as read-only until an admin grants Editor or Admin access.
 
 Forgot-password uses an emailed one-time reset link. The reset token is stored only as a hash, expires after 30 minutes, and is marked used after a successful password reset. Configure SMTP before production launch; otherwise reset emails cannot be delivered.
 

@@ -49,6 +49,7 @@ import {
   fetchSystemDependencies,
   fetchSystemTags,
   fetchSystems,
+  fetchUsers,
   fetchVendor,
   fetchVendors,
   importSystemsCsv,
@@ -61,6 +62,7 @@ import {
   updateProfile,
   updateSystem,
   updateSystemCategoryDetails,
+  updateUserRole,
   updateVendor,
   removeSystemTag
 } from "./api";
@@ -682,6 +684,18 @@ function ProfileSettingsPage({
   const [isSaving, setIsSaving] = useState(false);
   const preferences = useDashboardPreferences();
   const [personalizationMessage, setPersonalizationMessage] = useState("");
+  const [accessUsers, setAccessUsers] = useState<AuthUser[]>([]);
+  const [accessMessage, setAccessMessage] = useState("");
+
+  useEffect(() => {
+    if (user.role !== "admin") {
+      return;
+    }
+
+    void fetchUsers()
+      .then(setAccessUsers)
+      .catch((error) => setAccessMessage(error instanceof Error ? error.message : "Unable to load users."));
+  }, [user.role]);
 
   async function saveProfile(event: ReactFormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -723,6 +737,20 @@ function ProfileSettingsPage({
 
   function toggleDarkMode(checked: boolean) {
     updatePreferences({ ...preferences, darkMode: checked });
+  }
+
+  async function saveUserRole(userId: number, role: "editor" | "admin") {
+    setAccessMessage("");
+
+    try {
+      const result = await updateUserRole(userId, role);
+      setAccessUsers((current) =>
+        current.map((accessUser) => (accessUser.id === result.data.id ? result.data : accessUser))
+      );
+      setAccessMessage("User role updated.");
+    } catch (error) {
+      setAccessMessage(error instanceof Error ? error.message : "Unable to update user role.");
+    }
   }
 
   return (
@@ -811,8 +839,77 @@ function ProfileSettingsPage({
           </label>
         </div>
       </section>
+
+      <section className="panel wide">
+        <h3>Role And Permissions</h3>
+        <div className="list-summary">
+          <strong>{formatRoleLabel(user.role)}</strong>
+          <span>{formatPermissions(user.permissions)}</span>
+        </div>
+      </section>
+
+      {user.role === "admin" ? (
+        <section className="panel wide">
+          <h3>User Access</h3>
+          {accessMessage ? <section className="notice success">{accessMessage}</section> : null}
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Permissions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accessUsers.map((accessUser) => (
+                  <tr key={accessUser.id}>
+                    <td>{accessUser.display_name}</td>
+                    <td>{accessUser.email}</td>
+                    <td>
+                      <select
+                        aria-label={`Role for ${accessUser.display_name}`}
+                        value={accessUser.role}
+                        onChange={(event) =>
+                          void saveUserRole(accessUser.id, event.target.value as "editor" | "admin")
+                        }
+                      >
+                        {accessUser.role === "viewer" ? <option value="viewer">Viewer</option> : null}
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
+                    <td>{formatPermissions(accessUser.permissions)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </>
   );
+}
+
+function formatRoleLabel(role: AuthUser["role"]) {
+  if (role === "admin") {
+    return "Admin";
+  }
+
+  if (role === "editor") {
+    return "Editor";
+  }
+
+  return "Viewer";
+}
+
+function formatPermissions(permissions: string[] = []) {
+  if (permissions.length === 0) {
+    return "View dashboard and reports";
+  }
+
+  return permissions.map((permission) => permission.replaceAll("_", " ")).join(", ");
 }
 
 function HelpPage() {
