@@ -80,7 +80,7 @@ Example:
 
 ```csv
 name,accountNumber,website,login,terms30Day,nqp,aim,email,category
-Vendor Name,A-100,https://vendor.example.com,vendor@example.com,yes,no,yes,rep@example.com,Paper
+Vendor Name,A-100,www.vendor.example.com,vendor@example.com,yes,no,yes,rep@example.com,Paper
 ```
 
 Supported vendor columns:
@@ -106,6 +106,8 @@ Supported vendor columns:
 - `notes`
 
 Snake_case alternatives such as `account_number`, `website_url`, `login_identifier`, and `cyrious_name` are also accepted.
+
+Website values may use a full URL or start with `www.`. The app saves `www.` websites with `https://` so they can be opened as links.
 
 Yes/no fields `terms30Day`, `nqp`, and `aim` accept `yes`, `no`, `true`, `false`, `1`, or `0`. Self-promo and rebate are text fields.
 

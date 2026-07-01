@@ -14,6 +14,10 @@ const optionalUrl = z.preprocess(
       return null;
     }
 
+    if (typeof value === "string" && value.trim().toLowerCase().startsWith("www.")) {
+      return `https://${value.trim()}`;
+    }
+
     return value;
   },
   z

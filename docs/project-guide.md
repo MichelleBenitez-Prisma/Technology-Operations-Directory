@@ -37,7 +37,7 @@ Open **Systems**. Use search for names, descriptions, owners, departments, vendo
 
 ### Add a Vendor
 
-Open **Vendors** and choose **Add Vendor**. Enter vendor name, account number, website, login identifier, Cyrious name, terms/program flags, EQP status and volume, payment method, invoice search notes, representative contact details, email, category, and notes. Vendor detail pages show connected systems when the system vendor text matches the vendor name. The login field is for a non-secret identifier only, not a password.
+Open **Vendors** and choose **Add Vendor**. Enter vendor name, account number, website, login identifier, Cyrious name, terms/program flags, EQP status and volume, payment method, invoice search notes, representative contact details, email, category, and notes. Website can be entered as `www.example.com`; the app saves it as a working secure link. Vendor detail pages show connected systems when the system vendor text matches the vendor name. The login field is for a non-secret identifier only, not a password.
 
 ### Create a Dependency
 

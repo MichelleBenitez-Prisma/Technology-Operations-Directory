@@ -245,7 +245,9 @@ Vendor create and update requests support:
 - `notes`
 
 Vendor create requests require `name`, `account_number`, `website_url`, and
-`login_identifier`.
+`login_identifier`. Vendor website URLs can be entered as a full URL or as a
+`www.example.com` address; `www.` addresses are saved with `https://` so links
+open correctly.
 
 Existing compatibility fields are still accepted, including `description`,
 `support_url`, `support_phone`, `support_portal_url`, `account_manager_name`,

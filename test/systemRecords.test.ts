@@ -57,6 +57,7 @@ type TestVendor = {
   name: string;
   description: string | null;
   account_number: string | null;
+  website_url: string | null;
   login_identifier: string | null;
   cyrious_name: string | null;
   terms_30_day: 0 | 1 | null;
@@ -244,7 +245,7 @@ test("system records API supports main phase two flows", async () => {
         name: "Print Vendor",
         description: "Vendor used for print production support.",
         account_number: "A-100",
-        website_url: "https://vendor.example.com",
+        website_url: "www.vendor.example.com",
         login_identifier: "vendor.login@example.com",
         cyrious_name: "Cyrious Vendor",
         terms_30_day: 1,
@@ -273,6 +274,7 @@ test("system records API supports main phase two flows", async () => {
     const vendorData = getResponseData<TestVendor>(createdVendor);
     assert.equal(vendorData.description, "Vendor used for print production support.");
     assert.equal(vendorData.account_number, "A-100");
+    assert.equal(vendorData.website_url, "https://www.vendor.example.com");
     assert.equal(vendorData.login_identifier, "vendor.login@example.com");
     assert.equal(vendorData.cyrious_name, "Cyrious Vendor");
     assert.equal(vendorData.terms_30_day, 1);
