@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { Request } from "express";
 
 import {
   authenticateUser,
@@ -12,12 +11,9 @@ import {
   findUserByEmail,
   findUserBySessionToken,
   listAuditLogEvents,
-  listUsersForAccessReview,
   logAuditEvent,
-  removeEditorUser,
   resetPasswordWithToken,
   sessionCookieName,
-  updateUserRole,
   updateUserProfile
 } from "../db/authRepository.js";
 import { authIsRequired, readCookie } from "../middleware/auth.js";
@@ -60,117 +56,6 @@ authRouter.get("/activity", (request, response) => {
   response.json({
     data: JSON.parse(listAuditLogEvents() ?? "[]")
   });
-});
-
-authRouter.get("/users", (request, response) => {
-  const user = readCurrentUser(request);
-
-  if (!user) {
-    response.status(401).json({
-      error: "Unauthorized",
-      message: "Please sign in to continue."
-    });
-    return;
-  }
-
-  if (user.role !== "admin") {
-    response.status(403).json({
-      error: "Forbidden",
-      message: "Admin access is required to manage user roles."
-    });
-    return;
-  }
-
-  response.json({ data: listUsersForAccessReview() });
-});
-
-authRouter.patch("/users/:id/role", (request, response) => {
-  const user = readCurrentUser(request);
-
-  if (!user) {
-    response.status(401).json({
-      error: "Unauthorized",
-      message: "Please sign in to continue."
-    });
-    return;
-  }
-
-  if (user.role !== "admin") {
-    response.status(403).json({
-      error: "Forbidden",
-      message: "Admin access is required to manage user roles."
-    });
-    return;
-  }
-
-  const role = parseEditableRole((request.body as { role?: unknown }).role);
-  const updatedUser = updateUserRole(Number(request.params.id), role);
-
-  if (!updatedUser) {
-    response.status(404).json({
-      error: "Not Found",
-      message: "User was not found."
-    });
-    return;
-  }
-
-  logAuditEvent({
-    userId: user.id,
-    action: "update_user_role",
-    entityType: "users",
-    entityId: String(updatedUser.id),
-    method: request.method,
-    path: request.originalUrl,
-    statusCode: 200,
-    requestId: response.locals.requestId as string | undefined,
-    changeSummary: `${user.email} changed ${updatedUser.email} to ${updatedUser.role}.`
-  });
-
-  response.json({ data: updatedUser });
-});
-
-authRouter.delete("/users/:id", (request, response) => {
-  const user = readCurrentUser(request);
-
-  if (!user) {
-    response.status(401).json({
-      error: "Unauthorized",
-      message: "Please sign in to continue."
-    });
-    return;
-  }
-
-  if (user.role !== "admin") {
-    response.status(403).json({
-      error: "Forbidden",
-      message: "Admin access is required to remove users."
-    });
-    return;
-  }
-
-  const removedUser = removeEditorUser(Number(request.params.id));
-
-  if (!removedUser) {
-    response.status(400).json({
-      error: "Validation Error",
-      message: "Only editor users can be removed from dashboard access."
-    });
-    return;
-  }
-
-  logAuditEvent({
-    userId: user.id,
-    action: "remove_editor_user",
-    entityType: "users",
-    entityId: String(removedUser.id),
-    method: request.method,
-    path: request.originalUrl,
-    statusCode: 204,
-    requestId: response.locals.requestId as string | undefined,
-    changeSummary: `${user.email} removed editor access for ${removedUser.email}.`
-  });
-
-  response.status(204).send();
 });
 
 authRouter.put("/me/profile", (request, response) => {
@@ -420,22 +305,6 @@ function parseResetPasswordInput(body: Record<string, unknown>) {
 function buildResetUrl(token: string) {
   const baseUrl = process.env.APP_BASE_URL?.trim() || "http://127.0.0.1:3001";
   return `${baseUrl.replace(/\/$/, "")}/#/reset-password?token=${encodeURIComponent(token)}`;
-}
-
-function readCurrentUser(request: Request) {
-  return authIsRequired()
-    ? findUserBySessionToken(readCookie(request.headers.cookie, sessionCookieName))
-    : ensureLocalDevelopmentUser();
-}
-
-function parseEditableRole(value: unknown) {
-  const role = String(value ?? "").trim().toLowerCase();
-
-  if (role !== "editor" && role !== "admin") {
-    throwValidationError("Role must be Editor or Admin.");
-  }
-
-  return role;
 }
 
 function nullableText(value: unknown) {

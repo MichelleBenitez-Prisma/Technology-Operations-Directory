@@ -3,21 +3,6 @@ import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { execute, queryOne } from "./database.js";
 
 export type UserRole = "viewer" | "editor" | "admin";
-export type EditableUserRole = "editor" | "admin";
-export type UserPermission =
-  | "view_dashboard"
-  | "view_reports"
-  | "edit_records"
-  | "archive_records"
-  | "delete_records"
-  | "manage_server_settings"
-  | "manage_users"
-  | "manage_dashboard_access"
-  | "manage_alerts"
-  | "manage_plugins"
-  | "manage_teams"
-  | "manage_playlists"
-  | "manage_directory_resources";
 
 export type AuthUser = {
   id: number;
@@ -27,7 +12,6 @@ export type AuthUser = {
   job_title: string | null;
   profile_image_data: string | null;
   role: UserRole;
-  permissions: UserPermission[];
 };
 
 type StoredUser = AuthUser & {
@@ -87,7 +71,7 @@ export function ensureLocalDevelopmentUser() {
   );
 
   if (existing) {
-    return withPermissions(existing);
+    return existing;
   }
 
   const passwordRecord = hashPassword(randomBytes(16).toString("hex"));
@@ -221,7 +205,7 @@ export function findUserBySessionToken(token: string | undefined) {
     return undefined;
   }
 
-  const user = queryOne<Omit<AuthUser, "permissions">>(
+  return queryOne<AuthUser>(
     `
     SELECT users.id, users.email, users.display_name, users.phone, users.job_title, users.profile_image_data, users.role
     FROM user_sessions
@@ -232,12 +216,10 @@ export function findUserBySessionToken(token: string | undefined) {
     `,
     { tokenHash: hashToken(token) }
   );
-
-  return user ? withPermissions(user) : undefined;
 }
 
 export function findUserByEmail(email: string) {
-  const user = queryOne<Omit<AuthUser, "permissions">>(
+  return queryOne<AuthUser>(
     `
     SELECT id, email, display_name, phone, job_title, profile_image_data, role
     FROM users
@@ -246,87 +228,6 @@ export function findUserByEmail(email: string) {
     `,
     { email: email.trim().toLowerCase() }
   );
-
-  return user ? withPermissions(user) : undefined;
-}
-
-export function listUsersForAccessReview() {
-  const data = queryOne<{ data: string }>(
-    `
-    SELECT json_group_array(json_object(
-      'id', id,
-      'email', email,
-      'display_name', display_name,
-      'phone', phone,
-      'job_title', job_title,
-      'profile_image_data', profile_image_data,
-      'role', role
-    )) AS data
-    FROM (
-      SELECT id, email, display_name, phone, job_title, profile_image_data, role
-      FROM users
-      WHERE active = 1
-      ORDER BY display_name COLLATE NOCASE, email COLLATE NOCASE
-    )
-    `
-  )?.data;
-
-  return (JSON.parse(data ?? "[]") as Array<Omit<AuthUser, "permissions">>).map(withPermissions);
-}
-
-export function updateUserRole(userId: number, role: EditableUserRole) {
-  execute(
-    `
-    UPDATE users
-    SET role = $role,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = $userId
-      AND active = 1
-    `,
-    { userId, role }
-  );
-
-  const user = queryOne<Omit<AuthUser, "permissions">>(
-    `
-    SELECT id, email, display_name, phone, job_title, profile_image_data, role
-    FROM users
-    WHERE id = $userId
-      AND active = 1
-    `,
-    { userId }
-  );
-
-  return user ? withPermissions(user) : undefined;
-}
-
-export function removeEditorUser(userId: number) {
-  const user = queryOne<Omit<AuthUser, "permissions">>(
-    `
-    SELECT id, email, display_name, phone, job_title, profile_image_data, role
-    FROM users
-    WHERE id = $userId
-      AND active = 1
-    `,
-    { userId }
-  );
-
-  if (!user || user.role !== "editor") {
-    return undefined;
-  }
-
-  execute(
-    `
-    UPDATE users
-    SET active = 0,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = $userId
-    `,
-    { userId }
-  );
-
-  execute("DELETE FROM user_sessions WHERE user_id = $userId", { userId });
-
-  return withPermissions(user);
 }
 
 export function updateUserProfile(
@@ -539,7 +440,7 @@ function hashToken(token: string) {
 }
 
 function toAuthUser(user: StoredUser): AuthUser {
-  return withPermissions({
+  return {
     id: user.id,
     email: user.email,
     display_name: user.display_name,
@@ -547,49 +448,5 @@ function toAuthUser(user: StoredUser): AuthUser {
     job_title: user.job_title,
     profile_image_data: user.profile_image_data,
     role: user.role
-  });
-}
-
-function withPermissions(user: Omit<AuthUser, "permissions">): AuthUser {
-  return {
-    ...user,
-    permissions: permissionsForRole(user.role)
   };
-}
-
-export function permissionsForRole(role: UserRole): UserPermission[] {
-  if (role === "admin") {
-    return [
-      "view_dashboard",
-      "view_reports",
-      "edit_records",
-      "archive_records",
-      "delete_records",
-      "manage_server_settings",
-      "manage_users",
-      "manage_dashboard_access",
-      "manage_alerts",
-      "manage_plugins",
-      "manage_teams",
-      "manage_playlists",
-      "manage_directory_resources"
-    ];
-  }
-
-  if (role === "editor") {
-    return [
-      "view_dashboard",
-      "view_reports",
-      "edit_records",
-      "archive_records",
-      "manage_dashboard_access",
-      "manage_alerts",
-      "manage_plugins",
-      "manage_teams",
-      "manage_playlists",
-      "manage_directory_resources"
-    ];
-  }
-
-  return ["view_dashboard", "view_reports"];
 }

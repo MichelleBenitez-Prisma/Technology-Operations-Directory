@@ -9,6 +9,7 @@ import {
   Download,
   Edit3,
   FileQuestion,
+  LifeBuoy,
   ListFilter,
   Plus,
   BarChart3,
@@ -49,21 +50,18 @@ import {
   fetchSystemDependencies,
   fetchSystemTags,
   fetchSystems,
-  fetchUsers,
   fetchVendor,
   fetchVendors,
   importSystemsCsv,
   loginWithRemember,
   logout,
   requestPasswordReset,
-  removeUser,
   resetPassword,
   signUp,
   updateDirectoryRecord,
   updateProfile,
   updateSystem,
   updateSystemCategoryDetails,
-  updateUserRole,
   updateVendor,
   removeSystemTag
 } from "./api";
@@ -90,9 +88,8 @@ import type {
 } from "./types";
 
 type LoadState = "loading" | "ready" | "error";
-type DashboardPreferences = {
-  darkMode: boolean;
-};
+const supportTicketUrl =
+  import.meta.env?.VITE_SUPPORT_TICKET_URL ?? "https://firstgx.mypresswise.com/support/ticket.php";
 export type Route =
   | { name: "dashboard" }
   | { name: "help" }
@@ -144,12 +141,6 @@ const reportOptions = reportKeys.map((key) => ({
   key,
   label: reportLabel(key)
 }));
-const defaultDashboardPreferences: DashboardPreferences = {
-  darkMode: false
-};
-const dashboardPreferenceKey = "technologyOperationsDashboardPreferences";
-const dashboardPreferenceEvent = "dashboard-preferences-changed";
-
 type DirectoryField = {
   name: string;
   label: string;
@@ -259,13 +250,6 @@ export function DashboardApp() {
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const preferences = useDashboardPreferences();
-
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", preferences.darkMode);
-
-    return () => document.body.classList.remove("dark-mode");
-  }, [preferences.darkMode]);
 
   useEffect(() => {
     const updateRoute = () => setRoute(parseRoute());
@@ -368,6 +352,15 @@ export function DashboardApp() {
               <a className="primary-link" href="#/systems/new">
                 <Plus size={16} aria-hidden="true" />
                 Add System
+              </a>
+              <a
+                className="secondary-link"
+                href={supportTicketUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <LifeBuoy size={16} aria-hidden="true" />
+                Support
               </a>
               <a className="icon-button square" href="#/help" aria-label="Open user guide" title="User guide">
                 <CircleHelp size={20} aria-hidden="true" />
@@ -683,20 +676,6 @@ function ProfileSettingsPage({
   });
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const preferences = useDashboardPreferences();
-  const [personalizationMessage, setPersonalizationMessage] = useState("");
-  const [accessUsers, setAccessUsers] = useState<AuthUser[]>([]);
-  const [accessMessage, setAccessMessage] = useState("");
-
-  useEffect(() => {
-    if (user.role !== "admin") {
-      return;
-    }
-
-    void fetchUsers()
-      .then(setAccessUsers)
-      .catch((error) => setAccessMessage(error instanceof Error ? error.message : "Unable to load users."));
-  }, [user.role]);
 
   async function saveProfile(event: ReactFormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -729,45 +708,6 @@ function ProfileSettingsPage({
       setForm((current) => ({ ...current, profileImageData: String(reader.result ?? "") }));
     };
     reader.readAsDataURL(file);
-  }
-
-  function updatePreferences(nextPreferences: DashboardPreferences) {
-    saveDashboardPreferences(nextPreferences);
-    setPersonalizationMessage("Personalization settings saved.");
-  }
-
-  function toggleDarkMode(checked: boolean) {
-    updatePreferences({ ...preferences, darkMode: checked });
-  }
-
-  async function saveUserRole(userId: number, role: "editor" | "admin") {
-    setAccessMessage("");
-
-    try {
-      const result = await updateUserRole(userId, role);
-      setAccessUsers((current) =>
-        current.map((accessUser) => (accessUser.id === result.data.id ? result.data : accessUser))
-      );
-      setAccessMessage("User role updated.");
-    } catch (error) {
-      setAccessMessage(error instanceof Error ? error.message : "Unable to update user role.");
-    }
-  }
-
-  async function removeEditorAccess(accessUser: AuthUser) {
-    if (!window.confirm(`Remove dashboard access for ${accessUser.display_name}?`)) {
-      return;
-    }
-
-    setAccessMessage("");
-
-    try {
-      await removeUser(accessUser.id);
-      setAccessUsers((current) => current.filter((userRecord) => userRecord.id !== accessUser.id));
-      setAccessMessage("Editor user removed from dashboard access.");
-    } catch (error) {
-      setAccessMessage(error instanceof Error ? error.message : "Unable to remove editor user.");
-    }
   }
 
   return (
@@ -842,105 +782,8 @@ function ProfileSettingsPage({
         </form>
       </section>
 
-      <section className="panel wide">
-        <h3>Personalization</h3>
-        {personalizationMessage ? <section className="notice success">{personalizationMessage}</section> : null}
-        <div className="personalization-grid">
-          <label className="check-field personalization-toggle">
-            <input
-              checked={preferences.darkMode}
-              onChange={(event) => toggleDarkMode(event.target.checked)}
-              type="checkbox"
-            />
-            Dark mode
-          </label>
-        </div>
-      </section>
-
-      <section className="panel wide">
-        <h3>Role And Permissions</h3>
-        <div className="list-summary">
-          <strong>{formatRoleLabel(user.role)}</strong>
-          <span>{formatPermissions(user.permissions)}</span>
-        </div>
-      </section>
-
-      {user.role === "admin" ? (
-        <section className="panel wide">
-          <h3>User Access</h3>
-          {accessMessage ? <section className="notice success">{accessMessage}</section> : null}
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Permissions</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accessUsers.map((accessUser) => (
-                  <tr key={accessUser.id}>
-                    <td>{accessUser.display_name}</td>
-                    <td>{accessUser.email}</td>
-                    <td>
-                      <select
-                        aria-label={`Role for ${accessUser.display_name}`}
-                        value={accessUser.role}
-                        onChange={(event) =>
-                          void saveUserRole(accessUser.id, event.target.value as "editor" | "admin")
-                        }
-                      >
-                        {accessUser.role === "viewer" ? <option value="viewer">Viewer</option> : null}
-                        <option value="editor">Editor</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td>{formatPermissions(accessUser.permissions)}</td>
-                    <td>
-                      {accessUser.role === "editor" ? (
-                        <button
-                          className="danger-button"
-                          type="button"
-                          onClick={() => void removeEditorAccess(accessUser)}
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        "Admin only"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
     </>
   );
-}
-
-function formatRoleLabel(role: AuthUser["role"]) {
-  if (role === "admin") {
-    return "Admin";
-  }
-
-  if (role === "editor") {
-    return "Editor";
-  }
-
-  return "Viewer";
-}
-
-function formatPermissions(permissions: string[] = []) {
-  if (permissions.length === 0) {
-    return "View dashboard and reports";
-  }
-
-  return permissions.map((permission) => permission.replaceAll("_", " ")).join(", ");
 }
 
 function HelpPage() {
@@ -1015,7 +858,6 @@ function DashboardHome({ navigate }: { navigate: (hash: string) => void }) {
   const [systems, setSystems] = useState<SystemRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [searchTerm, setSearchTerm] = useState("");
-  const preferences = useDashboardPreferences();
 
   useEffect(() => {
     void loadDashboard();
@@ -3507,52 +3349,6 @@ function DirectoryFieldInput({
 
 function parseRoute(): Route {
   return parseRouteFromHash(window.location.hash);
-}
-
-function useDashboardPreferences() {
-  const [preferences, setPreferences] = useState<DashboardPreferences>(() => readDashboardPreferences());
-
-  useEffect(() => {
-    const updatePreferences = () => setPreferences(readDashboardPreferences());
-
-    window.addEventListener("storage", updatePreferences);
-    window.addEventListener(dashboardPreferenceEvent, updatePreferences);
-
-    return () => {
-      window.removeEventListener("storage", updatePreferences);
-      window.removeEventListener(dashboardPreferenceEvent, updatePreferences);
-    };
-  }, []);
-
-  return preferences;
-}
-
-function readDashboardPreferences(): DashboardPreferences {
-  try {
-    const rawValue = window.localStorage.getItem(dashboardPreferenceKey);
-
-    if (!rawValue) {
-      return defaultDashboardPreferences;
-    }
-
-    const parsed = JSON.parse(rawValue) as Partial<DashboardPreferences>;
-
-    return {
-      darkMode: parsed.darkMode === true
-    };
-  } catch {
-    return defaultDashboardPreferences;
-  }
-}
-
-function saveDashboardPreferences(preferences: DashboardPreferences) {
-  window.localStorage.setItem(
-    dashboardPreferenceKey,
-    JSON.stringify({
-      darkMode: preferences.darkMode
-    })
-  );
-  window.dispatchEvent(new Event(dashboardPreferenceEvent));
 }
 
 export function parseRouteFromHash(rawHash: string): Route {

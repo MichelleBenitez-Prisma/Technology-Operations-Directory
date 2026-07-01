@@ -442,15 +442,6 @@ h1 {
   justify-content: flex-end;
 }
 
-.personalization-grid {
-  display: grid;
-  gap: 18px;
-}
-
-.personalization-toggle {
-  width: fit-content;
-}
-
 .icon-button:disabled {
   cursor: not-allowed;
   opacity: 0.56;

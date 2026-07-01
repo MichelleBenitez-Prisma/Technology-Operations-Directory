@@ -142,7 +142,6 @@ export type AuthUser = {
   job_title: string | null;
   profile_image_data: string | null;
   role: "viewer" | "editor" | "admin";
-  permissions: string[];
 };
 
 export type AuditLogEvent = {

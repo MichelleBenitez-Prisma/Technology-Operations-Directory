@@ -4,6 +4,8 @@ This guide explains how users operate the Technology Operations Directory and ho
 
 ## User Documentation
 
+Use **Support** in the dashboard header to open the support-ticket page. The ticket URL is configured with `VITE_SUPPORT_TICKET_URL`.
+
 ### Open the Application
 
 For local development, start both services from the repository root:
@@ -133,10 +135,6 @@ Main route groups:
 - directory routes such as `/api/teams`, `/api/people`, `/api/integrations`, `/api/scheduled-processes`, `/api/reviews`, and `/api/tags`
 
 See `docs/api.md` for request fields and endpoint details.
-
-### Roles And Permissions
-
-The app uses role-based permissions. New signups are read-only until an admin grants access. Editors can add, edit, archive, and manage organization-level directory resources. Admins can manage user access, server-wide settings, delete actions, and administrator-level resources. Admins update user roles from Profile Settings and can remove editor users from dashboard access.
 
 ### Add Database Fields
 

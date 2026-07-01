@@ -34,18 +34,6 @@ export async function fetchActivity() {
   return getJson<AuditLogEvent[]>("/api/auth/activity");
 }
 
-export async function fetchUsers() {
-  return getJson<AuthUser[]>("/api/auth/users");
-}
-
-export async function updateUserRole(id: number, role: "editor" | "admin") {
-  return mutateJson<{ data: AuthUser }>(`/api/auth/users/${id}/role`, "PATCH", { role });
-}
-
-export async function removeUser(id: number) {
-  await mutateEmpty(`/api/auth/users/${id}`, "DELETE");
-}
-
 export async function login(email: string, password: string) {
   return mutateJson<{ data: AuthUser }>("/api/auth/login", "POST", { email, password });
 }
@@ -236,7 +224,7 @@ async function getJson<T>(path: string): Promise<T> {
 
 async function mutateJson<T>(
   path: string,
-  method: "PATCH" | "POST" | "PUT",
+  method: "POST" | "PUT",
   body?:
     | SystemRecordFormInput
     | VendorFormInput
@@ -244,7 +232,6 @@ async function mutateJson<T>(
     | { email: string; password: string }
     | { email: string; password: string; remember: boolean }
     | { token: string; password: string }
-    | { role: "editor" | "admin" }
     | {
         displayName: string;
         email: string;
