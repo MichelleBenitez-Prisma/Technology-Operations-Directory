@@ -291,6 +291,17 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(vendorData.renewal_notes, "Review renewal 90 days before contract end.");
     const vendorId = Number(vendorData.id);
 
+    const requiredOnlyVendor = await requestJson(baseUrl, "/api/vendors", {
+      method: "POST",
+      body: {
+        name: "Required Only Vendor",
+        account_number: "A-101",
+        website_url: "www.required-vendor.example.com",
+        login_identifier: "required.vendor@example.com"
+      }
+    });
+    assert.equal(requiredOnlyVendor.status, 201);
+
     const vendorCsvImport = await requestCsv(
       baseUrl,
       "/api/vendors/import.csv",

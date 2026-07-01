@@ -292,6 +292,11 @@ export function createDirectoryRow(
 ) {
   const config = getDirectoryResourceConfig(resourceName);
   const values = pickAllowedValues(config, input);
+
+  if (resourceName === "vendors" && values.renewal_notice_days == null) {
+    values.renewal_notice_days = 90;
+  }
+
   const columns = Object.keys(values);
 
   if (columns.length === 0) {
