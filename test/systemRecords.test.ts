@@ -345,7 +345,6 @@ test("system records API supports main phase two flows", async () => {
       getResponseData<TestVendor>(updatedVendor).renewal_notes,
       "Updated renewal notes."
     );
-
     const archivedVendor = await requestJson(baseUrl, `/api/vendors/${vendorId}/archive`, {
       method: "POST"
     });
@@ -862,8 +861,21 @@ test("system records API supports main phase two flows", async () => {
         "SELECT COUNT(*) AS count FROM audit_logs WHERE action = 'login_success' OR change_summary IS NOT NULL"
       )
       .get() as { count: number };
+    const vendorActivity = database
+      .prepare(
+        "SELECT change_summary FROM audit_logs WHERE entity_type = 'vendors' ORDER BY id DESC"
+      )
+      .all() as Array<{ change_summary: string }>;
     database.close();
     assert.ok(auditCount.count >= 2);
+    assert.ok(
+      vendorActivity.some((event) =>
+        /Vendor edited: Print Vendor changed.*Payment method from ACH to Credit card/.test(
+          event.change_summary
+        )
+      )
+    );
+    assert.ok(vendorActivity.some((event) => /Vendor added: Print Vendor/.test(event.change_summary)));
   } finally {
     await closeServer(server);
     closeDatabase();

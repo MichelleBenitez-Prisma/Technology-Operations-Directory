@@ -1,5 +1,6 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 
+import { logAuditEvent, type AuthUser } from "../db/authRepository.js";
 import {
   archiveDirectoryRow,
   createDirectoryRow,
@@ -36,8 +37,23 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
         return;
       }
 
-      response.status(201).json({
-        data: importVendorsFromCsv(request.body)
+      response.locals.skipAudit = true;
+      response.status(201);
+      const result = importVendorsFromCsv(request.body);
+      logDirectoryAudit(
+        request,
+        response,
+        "create",
+        "vendors",
+        undefined,
+        `Vendor import added ${result.created.length} vendor${result.created.length === 1 ? "" : "s"}${
+          result.created.length > 0
+            ? `: ${result.created.map((vendor) => String(vendor?.name ?? "Unnamed vendor")).join(", ")}`
+            : ""
+        }.`
+      );
+      response.json({
+        data: result
       });
     });
   }
@@ -72,6 +88,19 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
     const input = parseCreateInput(resourceName, request.body);
     const row = createDirectoryRow(resourceName, input);
 
+    if (resourceName === "vendors") {
+      response.locals.skipAudit = true;
+      response.status(201);
+      logDirectoryAudit(
+        request,
+        response,
+        "create",
+        "vendors",
+        row?.id,
+        `Vendor added: ${String(row?.name ?? "Unnamed vendor")}.`
+      );
+    }
+
     response.status(201).json({
       data: row
     });
@@ -98,6 +127,18 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
       return;
     }
 
+    if (resourceName === "vendors") {
+      response.locals.skipAudit = true;
+      logDirectoryAudit(
+        request,
+        response,
+        "archive",
+        "vendors",
+        id,
+        `Vendor archived: ${String(row.name ?? "Unnamed vendor")}.`
+      );
+    }
+
     response.json({
       data: row
     });
@@ -115,6 +156,7 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
     }
 
     const input = parseUpdateInput(resourceName, request.body);
+    const existing = resourceName === "vendors" ? findDirectoryRowById(resourceName, id) : undefined;
     const row = updateDirectoryRow(resourceName, id, input);
 
     if (!row) {
@@ -123,6 +165,18 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
         message: `Record ${id} was not found.`
       });
       return;
+    }
+
+    if (resourceName === "vendors") {
+      response.locals.skipAudit = true;
+      logDirectoryAudit(
+        request,
+        response,
+        "update",
+        "vendors",
+        id,
+        buildVendorEditSummary(existing, row)
+      );
     }
 
     response.json({
@@ -142,6 +196,7 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
     }
 
     const input = parseUpdateInput(resourceName, request.body);
+    const existing = resourceName === "vendors" ? findDirectoryRowById(resourceName, id) : undefined;
     const row = updateDirectoryRow(resourceName, id, input);
 
     if (!row) {
@@ -150,6 +205,18 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
         message: `Record ${id} was not found.`
       });
       return;
+    }
+
+    if (resourceName === "vendors") {
+      response.locals.skipAudit = true;
+      logDirectoryAudit(
+        request,
+        response,
+        "update",
+        "vendors",
+        id,
+        buildVendorEditSummary(existing, row)
+      );
     }
 
     response.json({
@@ -182,6 +249,96 @@ export function createDirectoryRouter(resourceName: DirectoryResourceName) {
   });
 
   return router;
+}
+
+const vendorAuditLabels: Record<string, string> = {
+  name: "Vendor name",
+  account_number: "Account number",
+  website_url: "Website",
+  login_identifier: "Login",
+  cyrious_name: "Cyrious name",
+  terms_30_day: "30 day terms",
+  self_promo: "Self-promo",
+  rebate: "Rebate",
+  nqp: "NQP",
+  aim: "AIM",
+  eqp_status_2023: "2023 EQP Status",
+  eqp_status_2022: "2022 EQP Status",
+  eqp_volume: "EQP volume",
+  payment_method: "Payment method",
+  invoice_searches: "Invoice searches",
+  csr_sales_rep: "CSR/Sales Rep",
+  rep_direct_line: "Direct line to rep",
+  support_email: "Email",
+  category: "Category",
+  notes: "Notes"
+};
+
+function buildVendorEditSummary(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined
+) {
+  const vendorName = String(after?.name ?? before?.name ?? "Unnamed vendor");
+
+  if (!before || !after) {
+    return `Vendor edited: ${vendorName}.`;
+  }
+
+  const changes = Object.entries(vendorAuditLabels)
+    .filter(([field]) => formatAuditValue(before[field]) !== formatAuditValue(after[field]))
+    .map(([field, label]) => `${label} from ${formatAuditValue(before[field])} to ${formatAuditValue(after[field])}`);
+
+  if (changes.length === 0) {
+    return `Vendor edited: ${vendorName}. No visible fields changed.`;
+  }
+
+  const visibleChanges = changes.slice(0, 5).join("; ");
+  const extraCount = changes.length - 5;
+
+  return `Vendor edited: ${vendorName} changed ${visibleChanges}${
+    extraCount > 0 ? `; and ${extraCount} more field${extraCount === 1 ? "" : "s"}` : ""
+  }.`;
+}
+
+function formatAuditValue(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return "blank";
+  }
+
+  if (text === "1") {
+    return "yes";
+  }
+
+  if (text === "0") {
+    return "no";
+  }
+
+  return text;
+}
+
+function logDirectoryAudit(
+  request: Request,
+  response: Response,
+  action: string,
+  entityType: string,
+  entityId: unknown,
+  changeSummary: string
+) {
+  const user = response.locals.authUser as AuthUser | undefined;
+
+  logAuditEvent({
+    userId: user?.id,
+    action,
+    entityType,
+    entityId: entityId == null ? undefined : String(entityId),
+    method: request.method,
+    path: request.originalUrl,
+    statusCode: response.statusCode,
+    requestId: response.locals.requestId as string | undefined,
+    changeSummary
+  });
 }
 
 function importVendorsFromCsv(csvText: string) {
