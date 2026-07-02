@@ -2,13 +2,17 @@ import {
   AlertTriangle,
   Archive,
   CalendarClock,
+  Cable,
   CheckCircle2,
   CircleHelp,
   CircleDot,
   Clock3,
+  ClipboardCheck,
   Download,
   Edit3,
   FileQuestion,
+  FileText,
+  GitFork,
   LifeBuoy,
   ListFilter,
   Plus,
@@ -20,6 +24,9 @@ import {
   Save,
   Search,
   ShieldAlert,
+  SlidersHorizontal,
+  Tags,
+  TimerReset,
   Trash2,
   UserRoundX,
   X
@@ -1932,7 +1939,7 @@ function DirectoryHome() {
         {(Object.keys(directoryConfigs) as DirectoryResource[]).map((resource) => (
           <a className="metric-card neutral" href={`#/directory/${resource}`} key={resource}>
             <span className="metric-icon">
-              <ListFilter size={20} aria-hidden="true" />
+              {directoryWorkflowIcon(resource)}
             </span>
             <span className="metric-value">{directoryConfigs[resource].title}</span>
             <span className="metric-label">Manage records</span>
@@ -1962,6 +1969,29 @@ function DirectoryHome() {
       </section>
     </>
   );
+}
+
+function directoryWorkflowIcon(resource: DirectoryResource) {
+  const iconProps = { size: 20, "aria-hidden": true } as const;
+
+  switch (resource) {
+    case "integrations":
+      return <Cable {...iconProps} />;
+    case "scheduled-processes":
+      return <TimerReset {...iconProps} />;
+    case "reviews":
+      return <ClipboardCheck {...iconProps} />;
+    case "tags":
+      return <Tags {...iconProps} />;
+    case "system-dependencies":
+      return <GitFork {...iconProps} />;
+    case "document-references":
+      return <FileText {...iconProps} />;
+    case "custom-fields":
+      return <SlidersHorizontal {...iconProps} />;
+    default:
+      return <ListFilter {...iconProps} />;
+  }
 }
 
 function DirectoryList({
