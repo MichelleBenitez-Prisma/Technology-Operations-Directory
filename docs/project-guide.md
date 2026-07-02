@@ -19,7 +19,7 @@ Open `http://127.0.0.1:5173`. In production, open the deployed application URL. 
 
 ### Add a System
 
-Select **Add System**. Complete the required fields: system name, category, status, and description. Add ownership, support, technical, documentation, lifecycle, replacement, and retirement details when available. Save the form. The app shows validation messages for missing required fields, invalid URLs, invalid dates, and duplicate active system names.
+Select **Add System**. Complete the required fields: system name, category, status, and description. Add ownership, support, technical, documentation, lifecycle, replacement, and retirement details when available. URL fields can be entered as full links or as `www.example.com`; the app saves `www.` values as working secure links. Save the form. The app shows validation messages for missing required fields, invalid URLs, invalid dates, and duplicate active system names.
 
 ### Edit a System
 

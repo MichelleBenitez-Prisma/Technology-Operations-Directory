@@ -24,6 +24,9 @@ type TestSystemRecord = {
   system_name: string;
   status: string;
   business_department: string | null;
+  production_url: string | null;
+  test_url: string | null;
+  documentation_url: string | null;
   replacement_system?: string | null;
   retirement_notes?: string | null;
   archived_at?: string | null;
@@ -163,9 +166,9 @@ test("system records API supports main phase two flows", async () => {
       hostingLocation: "Azure",
       serverName: "PAYROLL-APP-01",
       databaseName: "PayrollDb",
-      productionUrl: "https://payroll.example.com",
+      productionUrl: "www.payroll.example.com",
       testUrl: "https://test-payroll.example.com",
-      documentationLink: "https://docs.example.com/payroll-api",
+      documentationLink: "www.docs.example.com/payroll-api",
       passwordVaultReference: "Vault/Technology/PayrollApi",
       renewalDate: "2026-12-31",
       lastReviewDate: "2026-06-18",
@@ -181,6 +184,8 @@ test("system records API supports main phase two flows", async () => {
     assert.equal(created.status, 201);
     const createdData = getResponseData<TestSystemRecord>(created);
     assert.equal(createdData.system_name, "Payroll API");
+    assert.equal(createdData.production_url, "https://www.payroll.example.com");
+    assert.equal(createdData.documentation_url, "https://www.docs.example.com/payroll-api");
     assert.equal(createdData.replacement_system, "Enterprise Payroll Platform");
     assert.equal(
       createdData.retirement_notes,

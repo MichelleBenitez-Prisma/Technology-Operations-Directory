@@ -105,7 +105,8 @@ Roles:
 
 - `systemName`, `description`, `categoryCode`, and `status` are required when creating a system record.
 - Required text fields cannot be empty or whitespace only.
-- URLs must begin with `http://` or `https://` and use valid URL formatting.
+- URLs may begin with `http://`, `https://`, or `www.`. Values that start with
+  `www.` are saved with `https://` so they open as working links.
 - Dates must use a real `YYYY-MM-DD` calendar date.
 - `status` must match one of the allowed system status values.
 - `categoryCode` must exist in `asset_types`.
