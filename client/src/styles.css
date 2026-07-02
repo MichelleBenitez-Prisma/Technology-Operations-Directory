@@ -147,6 +147,7 @@ body.dark-mode .attention-column li {
 body.dark-mode .record-list a,
 body.dark-mode .attention-column a,
 body.dark-mode td a,
+body.dark-mode .table-support-link,
 body.dark-mode .inline-link,
 body.dark-mode .forgot-link,
 body.dark-mode .login-subtitle button {
@@ -1132,6 +1133,29 @@ th {
 
 .detail-section dd a:hover {
   text-decoration: underline;
+}
+
+.table-support-link {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #d7e0ea;
+  border-radius: 8px;
+  color: #003b9f;
+  font-weight: 800;
+  padding: 0 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.table-support-link:hover {
+  background: #eef5ff;
+}
+
+body.dark-mode .table-support-link {
+  border-color: #334155;
 }
 
 @media (max-width: 1280px) {

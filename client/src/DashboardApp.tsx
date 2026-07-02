@@ -1099,7 +1099,7 @@ function DashboardWidgetLayout({
         </Panel>
 
         <Panel title="Directory Search" subtitle="Quick scan" wide>
-          <SystemTable records={filteredSystems} />
+          <SystemTable records={filteredSystems} showSupportAction />
         </Panel>
       </section>
     </>
@@ -2448,6 +2448,7 @@ function SystemDetail({
           <a className="secondary-link" href="#/systems">
             Systems
           </a>
+          <SupportTicketLink />
           <button className="secondary-link" onClick={() => navigate(`/systems/${record.id}/edit`)}>
             <Edit3 size={16} aria-hidden="true" />
             Edit
@@ -3183,15 +3184,22 @@ function SystemTable({
   records,
   showVendor,
   showLastReview,
-  showArchived
+  showArchived,
+  showSupportAction
 }: {
   records: SystemRecord[];
   showVendor?: boolean;
   showLastReview?: boolean;
   showArchived?: boolean;
+  showSupportAction?: boolean;
 }) {
   const columnCount =
-    5 + 1 + (showVendor ? 1 : 0) + (showLastReview ? 1 : 0) + (showArchived ? 1 : 0);
+    5 +
+    1 +
+    (showVendor ? 1 : 0) +
+    (showLastReview ? 1 : 0) +
+    (showArchived ? 1 : 0) +
+    (showSupportAction ? 1 : 0);
 
   return (
     <div className="table-wrap">
@@ -3207,6 +3215,7 @@ function SystemTable({
             <th>Warnings</th>
             {showLastReview ? <th>Last review</th> : null}
             {showArchived ? <th>Archived</th> : null}
+            {showSupportAction ? <th aria-label="Support action" /> : null}
           </tr>
         </thead>
         <tbody>
@@ -3233,6 +3242,14 @@ function SystemTable({
               </td>
               {showLastReview ? <td>{formatDate(system.last_review_date)}</td> : null}
               {showArchived ? <td>{system.archived_at ? formatDateTime(system.archived_at) : "No"}</td> : null}
+              {showSupportAction ? (
+                <td>
+                  <a className="table-support-link" href={supportTicketUrl} rel="noreferrer" target="_blank">
+                    <LifeBuoy size={15} aria-hidden="true" />
+                    Support
+                  </a>
+                </td>
+              ) : null}
             </tr>
           ))}
           {records.length === 0 ? (
