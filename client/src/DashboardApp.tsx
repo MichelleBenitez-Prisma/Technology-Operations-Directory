@@ -4,6 +4,7 @@ import {
   CalendarClock,
   Cable,
   CheckCircle2,
+  ChevronRight,
   CircleHelp,
   CircleDot,
   Clock3,
@@ -258,6 +259,7 @@ export function DashboardApp() {
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const updateRoute = () => setRoute(parseRoute());
@@ -283,6 +285,10 @@ export function DashboardApp() {
       })
       .finally(() => setAuthChecked(true));
   }, []);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [route.name]);
 
   function navigate(hash: string) {
     window.location.hash = hash;
@@ -318,7 +324,24 @@ export function DashboardApp() {
   }
 
   return (
-    <main className="app-layout">
+    <main className={`app-layout${sidebarOpen ? " sidebar-is-open" : ""}`}>
+      <button
+        className="sidebar-toggle"
+        type="button"
+        aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+        aria-expanded={sidebarOpen}
+        onClick={() => setSidebarOpen((current) => !current)}
+      >
+        {sidebarOpen ? <X size={20} aria-hidden="true" /> : <ChevronRight size={20} aria-hidden="true" />}
+      </button>
+      {sidebarOpen ? (
+        <button
+          className="sidebar-scrim"
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
       <aside className="sidebar">
         <a className="brand-mark" href="#">
           <span className="brand-monitor" aria-hidden="true">
